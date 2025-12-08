@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Meet Transcriber</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-captions"></i> Google Meet Live Transcriber</h1>
+            <p class="subtitle">Join Google Meet meetings and get real-time transcription using Recall.ai</p>
+        </header>
+
+        <div class="app-container">
+            <div class="control-panel">
+                <h2><i class="fas fa-video"></i> Start Transcription</h2>
+                
+                <div class="input-group">
+                    <label for="meetingUrl">
+                        <i class="fas fa-link"></i> Google Meet URL
+                    </label>
+                    <input 
+                        type="text" 
+                        id="meetingUrl" 
+                        placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    >
+                    <div class="hint">
+                        <i class="fas fa-info-circle"></i> Paste the full Google Meet URL
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="startBtn" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Start Transcription
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>
+                        <i class="fas fa-stop"></i> Stop Transcription
+                    </button>
+                </div>
+
+                <div class="status-container">
+                    <h3><i class="fas fa-info-circle"></i> Status</h3>
+                    <div id="status" class="status idle">
+                        <i class="fas fa-clock"></i> Ready to start
+                    </div>
+                    <div id="botInfo" class="bot-info" style="display: none;">
+                        <div><strong>Bot ID:</strong> <span id="botId"></span></div>
+                        <div><strong>Status:</strong> <span id="botStatus"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcript-container">
+                <div class="transcript-header">
+                    <h2><i class="fas fa-comment-alt"></i> Live Transcript</h2>
+                    <div class="controls">
+                        <button id="clearBtn" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button id="copyBtn" class="btn btn-secondary">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="transcript" class="transcript">
+                    <div class="empty-state">
+                        <i class="fas fa-microphone-alt"></i>
+                        <p>Transcript will appear here once the meeting starts</p>
+                    </div>
+                </div>
+                
+                <div class="transcript-stats">
+                    <div><i class="fas fa-user-friends"></i> Speakers: <span id="speakerCount">0</span></div>
+                    <div><i class="fas fa-clock"></i> Last update: <span id="lastUpdate">Never</span></div>
+                    <div><i class="fas fa-file-word"></i> Words: <span id="wordCount">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3><i class="fas fa-graduation-cap"></i> How to Use</h3>
+            <ol>
+                <li>Get your <strong>Recall.ai API key</strong> from <a href="https://app.recall.ai" target="_blank">app.recall.ai</a></li>
+                <li>Add it to the <code>.env</code> file in the backend</li>
+                <li>Copy your Google Meet URL (must have join permissions)</li>
+                <li>Paste the URL and click "Start Transcription"</li>
+                <li>The bot will join and start transcribing in real-time</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
