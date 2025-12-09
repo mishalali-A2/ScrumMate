@@ -10,8 +10,8 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-captions"></i> Google Meet Live Transcriber</h1>
-            <p class="subtitle">Join Google Meet meetings and get real-time transcription using Recall.ai</p>
+            <h1><i class="fas fa-captions"></i> ScrumMate Bot</h1>
+            <p class="subtitle">Join Google Meet meetings as your ScrumMate</p>
         </header>
 
         <div class="app-container">
@@ -31,13 +31,37 @@
                         <i class="fas fa-info-circle"></i> Paste the full Google Meet URL
                     </div>
                 </div>
+                <div class="control-panel">
+                    <div class="input-group meeting-type-container">
+                        <label><i class="fas fa-tasks"></i> Meeting Type</label>
+
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="radio" id="retrospective" name="meetingType" value="retrospective">
+                                Retrospective
+                            </label>
+
+                            <label class="checkbox-item">
+                                <input type="radio" id="dailyStandup" name="meetingType" value="daily-standup">
+                                Daily Standup
+                            </label>
+
+                            <label class="checkbox-item">
+                                <input type="radio" id="productOwner" name="meetingType" value="product-owner">
+                                Product Owner Meeting
+                            </label>
+                        </div>
+
+                        <div class="hint"><i class="fas fa-info-circle"></i> Select the type of meeting</div>
+                    </div>
+
 
                 <div class="button-group">
                     <button id="startBtn" class="btn btn-primary">
-                        <i class="fas fa-play"></i> Start Transcription
+                        <i class="fas fa-play"></i> Join Meeting
                     </button>
                     <button id="stopBtn" class="btn btn-danger" disabled>
-                        <i class="fas fa-stop"></i> Stop Transcription
+                        <i class="fas fa-stop"></i> Leave Meeting
                     </button>
                 </div>
 
@@ -84,11 +108,9 @@
         <div class="instructions">
             <h3><i class="fas fa-graduation-cap"></i> How to Use</h3>
             <ol>
-                <li>Get your <strong>Recall.ai API key</strong> from <a href="https://app.recall.ai" target="_blank">app.recall.ai</a></li>
-                <li>Add it to the <code>.env</code> file in the backend</li>
-                <li>Copy your Google Meet URL (must have join permissions)</li>
-                <li>Paste the URL and click "Start Transcription"</li>
-                <li>The bot will join and start transcribing in real-time</li>
+                <li>Copy your Google Meet URL</li>
+                <li>Paste the URL and click "Join Meeting"</li>
+                <li>The bot will join and start transcribing in real-time to generate Moms, user stories and etc.</li>
             </ol>
         </div>
     </div>

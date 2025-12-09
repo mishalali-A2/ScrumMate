@@ -28,14 +28,20 @@ class MeetingTranscriber {
     
     async startTranscription() {
         const meetingUrl = document.getElementById('meetingUrl').value.trim();
-        
+        const selectedMeetingTypes = [];
+        if (document.getElementById('retrospective').checked) selectedMeetingTypes.push('retrospective');
+        if (document.getElementById('dailyStandup').checked) selectedMeetingTypes.push('daily-standup');
+        if (document.getElementById('productOwner').checked) selectedMeetingTypes.push('product-owner');
+
+        console.log("Selected meeting types:", selectedMeetingTypes);
+
         if (!meetingUrl) {
             alert('Please enter a Google Meet URL');
             return;
         }
         
         if (!meetingUrl.includes('meet.google.com')) {
-            alert('Please enter a valid Google Meet URL (should contain meet.google.com)');
+            alert('Please enter a valid Google Meet URL');
             return;
         }
         
@@ -62,7 +68,7 @@ class MeetingTranscriber {
                 // Start polling for updates
                 this.startPolling();
             } else {
-                this.updateStatus('Error: ' + (data.error?.detail || 'Unknown error'), 'error');
+                this.updateStatus('Error: ' + (data.error?.detail || data.error || 'Unknown error'), 'error');
             }
         } catch (error) {
             this.updateStatus('Connection error: ' + error.message, 'error');
@@ -72,7 +78,7 @@ class MeetingTranscriber {
     async stopTranscription() {
         if (!this.currentBotId) return;
         
-        this.updateStatus('Stopping transcription...', 'processing');
+        this.updateStatus('Stopping bot and leaving meeting...', 'processing');
         
         try {
             const response = await fetch(`/api/bot/${this.currentBotId}`, {
@@ -82,19 +88,36 @@ class MeetingTranscriber {
             const data = await response.json();
             
             if (data.success) {
-                this.updateStatus('Transcription stopped', 'idle');
-                this.clearTranscript();
+                // Stop polling immediately
+                this.stopPolling();
                 
-                // Disable stop button
+                this.updateStatus('Bot left meeting. Transcript saved!', 'success');
+                
+                // Display the final transcript
+                if (data.transcript && data.transcript.length > 0) {
+                    this.displayFinalTranscript(data.transcript, data.statistics);
+                } else {
+                    this.updateStatus('No transcript data available', 'idle');
+                }
+                
+                // Show success notification with download
+                if (data.transcript_file) {
+                    this.showTranscriptSavedNotification(data.transcript_file, data.statistics);
+                }
+                
+                // Update UI
                 document.getElementById('stopBtn').disabled = true;
                 document.getElementById('startBtn').disabled = false;
-                
-                // Stop polling
-                this.stopPolling();
                 this.hideBotInfo();
+                
+                // Clear bot ID
+                this.currentBotId = null;
+            } else {
+                this.updateStatus('Error: ' + (data.error || 'Failed to stop'), 'error');
             }
         } catch (error) {
-            this.updateStatus('Error stopping transcription', 'error');
+            this.updateStatus('Error stopping transcription: ' + error.message, 'error');
+            console.error('Stop error:', error);
         }
     }
     
@@ -190,6 +213,96 @@ class MeetingTranscriber {
         
         // Auto-scroll to bottom
         transcriptContainer.scrollTop = transcriptContainer.scrollHeight;
+    }
+    
+    displayFinalTranscript(transcriptData, statistics) {
+        const transcriptContainer = document.getElementById('transcript');
+        
+        if (!transcriptData || transcriptData.length === 0) {
+            transcriptContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <p>No transcript data available</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Create a beautiful final transcript view
+        let transcriptHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h2 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-check-circle"></i>
+                    Meeting Transcript Complete
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px;">
+                    <div>
+                        <div style="opacity: 0.9; font-size: 12px;">Speakers</div>
+                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_speakers}</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 12px;">Words</div>
+                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_words}</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 12px;">Entries</div>
+                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_entries}</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 12px;">Duration</div>
+                        <div style="font-size: 24px; font-weight: bold;">${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Group consecutive messages by speaker
+        const groupedMessages = [];
+        let currentSpeaker = null;
+        let currentText = [];
+        
+        transcriptData.forEach((item, index) => {
+            if (item.speaker !== currentSpeaker) {
+                if (currentSpeaker !== null) {
+                    groupedMessages.push({
+                        speaker: currentSpeaker,
+                        text: currentText.join(' ')
+                    });
+                }
+                currentSpeaker = item.speaker;
+                currentText = [item.text];
+            } else {
+                currentText.push(item.text);
+            }
+            
+            // Push last group
+            if (index === transcriptData.length - 1) {
+                groupedMessages.push({
+                    speaker: currentSpeaker,
+                    text: currentText.join(' ')
+                });
+            }
+        });
+        
+        // Render grouped messages
+        groupedMessages.forEach(msg => {
+            transcriptHTML += `
+                <div class="speaker-block">
+                    <div class="speaker-header">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="speaker-name">${msg.speaker}</span>
+                    </div>
+                    <div class="speaker-text">${msg.text}</div>
+                </div>
+            `;
+        });
+        
+        transcriptContainer.innerHTML = transcriptHTML;
+        this.updateStats(statistics.total_speakers, statistics.total_words);
+        
+        // Scroll to top to see the summary
+        transcriptContainer.scrollTop = 0;
     }
     
     groupBySpeaker(transcriptData) {
@@ -298,6 +411,79 @@ class MeetingTranscriber {
         setTimeout(() => {
             notification.remove();
         }, 3000);
+    }
+    
+    showTranscriptSavedNotification(filename, statistics) {
+        const notification = document.createElement('div');
+        notification.className = 'notification success large';
+        notification.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; padding: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+                    <div>
+                        <strong style="font-size: 16px;">Transcript Saved!</strong>
+                        <div style="font-size: 12px; opacity: 0.9;">Bot has left the meeting</div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; font-size: 13px;">
+                    <div style="margin-bottom: 5px;">📊 ${statistics.total_speakers} speakers • ${statistics.total_words} words</div>
+                    <div style="margin-bottom: 5px;">⏱️ Duration: ${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</div>
+                    <div>📝 ${statistics.total_entries} transcript entries</div>
+                </div>
+                
+                <a href="/api/download/${filename}" 
+                   download="${filename}"
+                   style="background: white; color: #10b981; padding: 10px 20px; border-radius: 8px; 
+                          text-decoration: none; text-align: center; font-weight: bold; display: block;
+                          transition: all 0.2s;">
+                    <i class="fas fa-download"></i> Download JSON File
+                </a>
+            </div>
+        `;
+        
+        notification.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 400px;
+            max-width: 500px;
+            z-index: 10000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 12px;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -60%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+            .notification.large a:hover {
+                background: #f0fdf4 !important;
+                transform: scale(1.02);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(notification);
+        
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        }, 10000);
     }
 }
 

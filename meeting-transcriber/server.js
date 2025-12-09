@@ -13,9 +13,9 @@ app.use(express.static('.'));
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_API_URL = 'https://us-west-2.recall.ai/api/v1';
 
-console.log('🚀 Starting Meeting Transcriber...');
-console.log(`📍 Using US West 2 region`);
-console.log(`🔑 API Key: ${RECALL_API_KEY ? '✓ Set' : '✗ Missing!'}`);
+console.log('Starting Meeting Transcriber...');
+console.log(`Using US West 2 region`);
+console.log(`API Key: ${RECALL_API_KEY ? 'Set' : 'Missing!'}`);
 
 // Store active bots and their transcripts
 const activeBots = new Map();
@@ -56,16 +56,16 @@ app.post('/api/create-bot', async (req, res) => {
         
         console.log(`🤖 Creating bot for: ${meetingUrl}`);
         
-        // Create bot with real-time transcription
+        // bot with real-time transcription
         const response = await axios.post(
             `${RECALL_API_URL}/bot/`,
             {
                 meeting_url: meetingUrl,
-                bot_name: "Meeting Transcriber",
+                bot_name: "ScrumMate-Bot",
                 recording_config: {
                     transcript: {
                         provider: {
-                            meeting_captions: {}  // Uses platform's native captions (works without external webhook)
+                            meeting_captions: {}  
                         }
                     },
                     realtime_endpoints: [
@@ -92,7 +92,7 @@ app.post('/api/create-bot', async (req, res) => {
         
         const botId = response.data.id;
         
-        // Initialize bot data
+        // init bot data
         activeBots.set(botId, {
             botId,
             meetingUrl,
@@ -103,7 +103,7 @@ app.post('/api/create-bot', async (req, res) => {
         });
         
         console.log(`✅ Bot created: ${botId}`);
-        console.log(`📊 Status: ${response.data.status_changes?.[0]?.code || 'unknown'}`);
+        console.log(`Status: ${response.data.status_changes?.[0]?.code || 'unknown'}`);
         
         res.json({
             success: true,
@@ -124,7 +124,7 @@ app.post('/api/create-bot', async (req, res) => {
             success: false,
             error: errorData.detail || error.message,
             code: errorData.code,
-            suggestion: 'Check your meeting URL and API key. Note: Real-time webhooks require a public URL (use ngrok for local testing)'
+            suggestion: 'Check your meeting URL and API key. (ngrok)'
         });
     }
 });
@@ -134,21 +134,22 @@ app.post('/webhook/transcription', (req, res) => {
     try {
         const data = req.body;
         
-        console.log('📨 Webhook received:', JSON.stringify(data, null, 2));
+        console.log('Webhook received:', JSON.stringify(data, null, 2));
         
-        // Handle transcript events
+        // trans events
         if (data.event === 'transcript.data' || data.event === 'transcript.partial_data') {
             const botId = data.data.bot?.id;
             
             if (botId && activeBots.has(botId)) {
                 const botInfo = activeBots.get(botId);
                 
-                // Extract transcript information
+                // Extract transcript info
                 const words = data.data.data?.words || [];
                 const text = words.map(w => w.text).join(' ');
                 const participant = data.data.data?.participant;
                 
-                if (text && data.event === 'transcript.data') {  // Only save final transcripts
+                //only save final full transcript
+                if (text && data.event === 'transcript.data') {  
                     botInfo.transcript.push({
                         speaker: participant?.name || `Speaker ${participant?.id || 'Unknown'}`,
                         text: text,
@@ -158,7 +159,7 @@ app.post('/webhook/transcription', (req, res) => {
                     
                     botInfo.lastUpdate = new Date();
                     
-                    console.log(`📝 Transcript for ${botId}: [${participant?.name}] "${text}"`);
+                    console.log(`Transcript for ${botId}: [${participant?.name}] "${text}"`);
                 }
             }
         } else if (data.event === 'bot.status_change') {
@@ -166,24 +167,23 @@ app.post('/webhook/transcription', (req, res) => {
             if (botId && activeBots.has(botId)) {
                 const status = data.data.status?.code || 'unknown';
                 activeBots.get(botId).status = status;
-                console.log(`📊 Bot ${botId} status: ${status}`);
+                console.log(`Bot ${botId} status: ${status}`);
             }
         }
         
         res.status(200).json({ received: true });
         
     } catch (error) {
-        console.error('❌ Webhook error:', error);
+        console.error('Webhook error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// === GET BOT STATUS & TRANSCRIPT ===
+// === BOT STATUS & TRANSCRIPT ===
 app.get('/api/bot/:botId', async (req, res) => {
     try {
         const { botId } = req.params;
         
-        // Get bot info from Recall API
         const botResponse = await axios.get(
             `${RECALL_API_URL}/bot/${botId}/`,
             {
@@ -191,13 +191,13 @@ app.get('/api/bot/:botId', async (req, res) => {
             }
         );
         
-        // Get stored transcript from memory (webhook data)
+        // stored transcript from memory -> webhook
         let transcript = [];
         if (activeBots.has(botId)) {
             transcript = activeBots.get(botId).transcript || [];
         }
         
-        // Also try to get transcript from API as backup
+        // api transcript extract
         if (transcript.length === 0) {
             try {
                 const transcriptResponse = await axios.get(
@@ -215,7 +215,7 @@ app.get('/api/bot/:botId', async (req, res) => {
                     }));
                 }
             } catch (transcriptError) {
-                console.log(`📝 No API transcript yet for ${botId}`);
+                console.log(`No transcript yet for ${botId}`);
             }
         }
         
@@ -232,7 +232,7 @@ app.get('/api/bot/:botId', async (req, res) => {
         });
         
     } catch (error) {
-        console.error(`❌ Error getting bot ${req.params.botId}:`, error.message);
+        console.error(` Error getting bot ${req.params.botId}:`, error.message);
         
         res.status(500).json({
             success: false,
@@ -269,7 +269,7 @@ app.delete('/api/bot/:botId', async (req, res) => {
             finalTranscript = activeBots.get(botId).transcript || [];
         }
         
-        // Also fetch from API as backup
+        //  API fetch -> backup
         try {
             const transcriptResponse = await axios.get(
                 `${RECALL_API_URL}/bot/${botId}/transcript/`,
@@ -287,15 +287,15 @@ app.delete('/api/bot/:botId', async (req, res) => {
                 }));
             }
         } catch (transcriptError) {
-            console.log(`📝 Using in-memory transcript`);
+            console.log(`Using in-memory transcript`);
         }
         
-        // Generate JSON file
+        // JSON file
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `transcript-${botId.substring(0, 8)}-${timestamp}.json`;
         const filepath = path.join(__dirname, 'transcripts', filename);
         
-        // Ensure transcripts directory exists
+        // transcripts directory 
         const transcriptsDir = path.join(__dirname, 'transcripts');
         if (!fs.existsSync(transcriptsDir)) {
             fs.mkdirSync(transcriptsDir);
@@ -321,17 +321,35 @@ app.delete('/api/bot/:botId', async (req, res) => {
         fs.writeFileSync(filepath, JSON.stringify(transcriptData, null, 2));
         console.log(`💾 Transcript saved: ${filename}`);
         
-        // Delete bot from Recall API (makes it leave the meeting)
-        await axios.delete(
-            `${RECALL_API_URL}/bot/${botId}/`,
-            {
-                headers: { 'Authorization': `Token ${RECALL_API_KEY}` }
+        //use leave_call 
+        try {
+            await axios.post(
+                `${RECALL_API_URL}/bot/${botId}/leave_call/`,
+                {},
+                {
+                    headers: { 'Authorization': `Token ${RECALL_API_KEY}` }
+                }
+            );
+            console.log(`✅ Bot successfully left the meeting: ${botId}`);
+        } catch (leaveError) {
+            console.log(`⚠️ leave_call failed, trying DELETE: ${leaveError.response?.status}`);
+            
+            try {
+                await axios.delete(
+                    `${RECALL_API_URL}/bot/${botId}/`,
+                    {
+                        headers: { 'Authorization': `Token ${RECALL_API_KEY}` }
+                    }
+                );
+                console.log(`✅ Bot deleted (was not in call): ${botId}`);
+            } catch (deleteError) {
+                console.error(`❌ Could not remove bot:`, deleteError.response?.data);
             }
-        );
+        }
         
-        // Remove from active bots
+        // rmv from active bots
         activeBots.delete(botId);
-        console.log(`🗑️ Bot deleted and left meeting: ${botId}`);
+        console.log(` Bot left meeting: ${botId}`);
         
         res.json({
             success: true,
@@ -342,7 +360,7 @@ app.delete('/api/bot/:botId', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Error stopping bot:', error);
+        console.error(' Error stopping bot:', error);
         res.status(500).json({
             success: false,
             error: error.response?.data?.detail || error.message
@@ -376,10 +394,9 @@ app.get('/api/download/:filename', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🌐 Server: http://localhost:${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🎯 Ready! Paste a Google Meet URL in the web interface.`);
+    console.log(` Health check: http://localhost:${PORT}/api/health`);
+    console.log(`🎯 Ready!`);
     console.log('');
-    console.log('⚠️  NOTE: Real-time webhooks require a public URL.');
     console.log('   For local testing, use ngrok: npx ngrok http 3000');
     console.log('   Then update destination_url in the code with your ngrok URL');
     console.log('============================================');
