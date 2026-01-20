@@ -113,7 +113,13 @@ if __name__ == "__main__":
     WORKFLOW_ID = "JgL4ipoMjAxDsZMJ"
 
         # Read user stories from stories.txt
-    file_path = "stories.txt"
+    ######################################
+    #####################################
+    ####################################
+    file_path = "stories.json"
+    #######################################
+    ######################################
+    ###################################
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             user_stories = f.read().strip()  # reads entire file as a single string
