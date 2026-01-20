@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+SQLAlchemy
+asyncpg
+alembic
+psycopg[binary]
+python-dotenv
+pydantic
+sqlalchemy[asyncio]
+# Optional for pgvector support:
+pgvector
+sqlalchemy-utils

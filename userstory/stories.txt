@@ -1,0 +1,288 @@
+## **1. UI/UX & Frontend**
+
+### **US-01 – Mobile-First Lesson Player**
+
+Role: Frontend Developer
+Goal: Build a responsive lesson player for mobile and desktop that streams audio, shows transcript, and displays interactive prompts.
+Reason: Learners use phones and desktops; the player must be usable across devices.
+
+Acceptance:
+
+* Player layout adapts from 360px to desktop widths without layout breakage.
+* Transcript syncs with audio playback and highlights current sentence.
+* Interactive prompts (fill-in-the-blank, multiple choice) render and submit answers.
+
+---
+
+### **US-02 – Real-time Pronunciation Feedback UI**
+
+Role: Frontend Developer
+Goal: Implement a recording widget that shows live feedback (score, waveform) during pronunciation practice.
+Reason: Immediate visual feedback improves practice quality and engagement.
+
+Acceptance:
+
+* Recorder works in Chrome and Safari on mobile and desktop.
+* Live waveform and provisional score update during recording.
+* User can re-record and see historical scores per phrase.
+
+---
+
+### **US-03 – Design System & Component Library**
+
+Role: Frontend Developer / Designer
+Goal: Create tokens, components, and Storybook docs for lessons, quizzes, progress bars, and modals.
+Reason: Consistent components accelerate feature development and ensure accessible UI.
+
+Acceptance:
+
+* Tokens for color, spacing, and typography documented in Storybook.
+* Components meet WCAG AA where applicable and include keyboard support.
+* Examples for lesson flow, recording widget, and progress components exist.
+
+---
+
+### **US-04 – Interactive Transcript Editor**
+
+Role: Frontend Developer
+Goal: Add an editor allowing users to correct ASR transcripts and tag phrases for review.
+Reason: Users can improve transcript quality and personalize study lists.
+
+Acceptance:
+
+* User edits persist and are saved with version metadata.
+* Tagging creates review items in the learner’s practice queue.
+* Editor shows timestamps and allows jumping to audio at timestamps.
+
+---
+
+## **2. Content & Learning Engine**
+
+### **US-05 – Lesson Management API**
+
+Role: Backend Developer
+Goal: Build endpoints to create, update, and fetch lessons with media, transcripts, and exercises.
+Reason: Backend must serve structured lesson data to frontends and mobile clients.
+
+Acceptance:
+
+* CRUD endpoints for lessons accept JSON + media references and return stable lesson IDs.
+* Lesson payload includes exercises, difficulty, expected duration, and supported languages.
+* API enforces authentication and validates lesson schema.
+
+---
+
+### **US-06 – User Progress & State Storage**
+
+Role: Backend Developer
+Goal: Persist user progress, completed exercises, and personalized practice queues in Postgres.
+Reason: Accurate state enables spaced-repetition and resume functionality.
+
+Acceptance:
+
+* Progress schema includes timestamps, score history, and review queue weights (JSONB).
+* Endpoints support fetching progress with pagination and aggregation.
+* Migration scripts are provided and tested.
+
+---
+
+### **US-07 – Scoring & Evaluation Service**
+
+Role: Backend Developer
+Goal: Implement a microservice to evaluate pronunciations against reference audio and return metrics.
+Reason: Centralized scoring allows consistent feedback across clients.
+
+Acceptance:
+
+* Service accepts audio chunks, runs evaluation, and returns metrics (accuracy, phoneme-level feedback).
+* Evaluation is idempotent and returns deterministic results for same input.
+* Service exposes health and metrics endpoints.
+
+---
+
+### **US-08 – Content Authoring Tooling**
+
+Role: Backend Developer / Frontend Developer
+Goal: Provide an internal tool to author lessons: upload audio, time-align transcripts, add exercises.
+Reason: Efficient content creation reduces time-to-market for new lessons.
+
+Acceptance:
+
+* Authoring UI supports audio upload, transcript alignment, and exercise creation.
+* Authoring changes are versioned and previewable in the lesson player.
+* Role-based permissions for authors and reviewers in the tool.
+
+---
+
+## **3. Machine Learning & Personalization**
+
+### **US-09 – ASR Pipeline for Multilingual Support**
+
+Role: ML Engineer
+Goal: Build an ASR pipeline supporting real-time partials and final transcripts for target languages.
+Reason: High-quality transcripts power search, feedback, and study features.
+
+Acceptance:
+
+* Pipeline returns partials and final transcripts with timestamps and confidence scores.
+* Language detection selects appropriate ASR model automatically.
+* Transcripts stored with alignment metrics for frontend consumption.
+
+---
+
+### **US-10 – Pronunciation Scoring Model**
+
+Role: ML Engineer
+Goal: Train a model to provide phoneme-level scoring and error categorization for learner speech.
+Reason: Granular feedback helps learners focus on specific pronunciation issues.
+
+Acceptance:
+
+* Model returns phoneme timings, error types (substitution, deletion, insertion), and overall score.
+* Model evaluated on a validation set with documented metrics.
+* Dockerized inference service with CPU fallback and GPU support.
+
+---
+
+### **US-11 – Adaptive Recommendation Engine**
+
+Role: ML Engineer
+Goal: Create a personalization model to recommend next lessons and review items based on performance.
+Reason: Personalization increases learning efficiency and retention.
+
+Acceptance:
+
+* Recommendations use recent scores, review spacing, and topic coverage to rank content.
+* Engine exposes an API returning top-N recommendations with rationale.
+* Offline batch process recalculates weights weekly; real-time updates adjust after practice sessions.
+
+---
+
+### **US-12 – NLP Content Analysis**
+
+Role: ML Engineer
+Goal: Extract key phrases, difficulty estimates, and named entities from lesson transcripts for tagging and search.
+Reason: Rich metadata enables advanced search and adaptive exercise generation.
+
+Acceptance:
+
+* Extracted metadata stored in lesson records (JSONB).
+* Difficulty estimates correlate with human-labeled samples.
+* Entities and keywords are searchable via API.
+
+---
+
+### **US-13 – Model Optimization & CI**
+
+Role: ML Engineer
+Goal: Optimize models (quantization or pruning) and add model validation to CI to ensure stable deployments.
+Reason: Keep inference cost low and ensure production models are reliable.
+
+Acceptance:
+
+* Model optimization steps included in CI builds produce comparable metrics.
+* CI runs a small validation inference suite on PRs.
+* Optimized model images are automatically pushed to a registry.
+
+---
+
+## **4. Infrastructure & Data**
+
+### **US-14 – Scalable Media Storage**
+
+Role: Backend Developer / DevOps
+Goal: Use S3-compatible storage for lesson media and presigned URLs for uploads and downloads.
+Reason: Efficiently store large audio/video assets and control access.
+
+Acceptance:
+
+* API issues presigned URLs for upload and verifies completion.
+* Thumbnails and low-bitrate derivatives are generated and referenced.
+* Storage access uses scoped signed URLs; public access avoided.
+
+---
+
+### **US-15 – Real-time Metrics & Monitoring**
+
+Role: DevOps Engineer
+Goal: Instrument services and ML workers with metrics and alerts (latency, error rates, queue depth).
+Reason: Observability ensures reliable user experience and timely intervention.
+
+Acceptance:
+
+* Prometheus metrics and Grafana dashboards for core services.
+* Alerts for high error rates, sustained queue growth, and low model throughput.
+* Runbook for common incidents documented.
+
+---
+
+### **US-16 – Authentication & Roles**
+
+Role: Backend Developer
+Goal: Implement JWT-based auth with role permissions for learners, authors, and admins.
+Reason: Secure access control across APIs and authoring tools.
+
+Acceptance:
+
+* JWT access + refresh tokens with short expiry and revocation.
+* Role-based permissions enforced server-side for protected endpoints.
+* Admin endpoints audit critical changes.
+
+---
+
+## **5. Integrations & Product**
+
+### **US-17 – Third-Party Learning Analytics Export**
+
+Role: Backend Developer
+Goal: Export anonymized learning analytics to third-party dashboards (CSV / JSON webhook).
+Reason: Institutions want aggregated reports for compliance and assessment.
+
+Acceptance:
+
+* Export supports date ranges, cohort filters, and anonymization toggles.
+* Webhook retries and failure logging implemented.
+* Sample CSV format documented for consumers.
+
+---
+
+### **US-18 – LMS Integration (LTI)**
+
+Role: Backend Developer
+Goal: Provide LTI endpoints to integrate lessons and scores with standard LMS systems.
+Reason: Universities and corporates require seamless LMS integration.
+
+Acceptance:
+
+* LTI launch flow implemented and tested with at least one LMS.
+* Grade/score synchronization works via LTI outcomes.
+* Docs show how to configure LTI consumer keys and destinations.
+
+---
+
+### **US-19 – E2E Test for Learning Flow**
+
+Role: QA Engineer
+Goal: Create end-to-end tests that run a sample lesson, record speech, submit answers, and verify updated progress.
+Reason: Ensure production readiness of core learner flows.
+
+Acceptance:
+
+* Headless tests simulate recording and verify score persistence.
+* Tests run in CI with small mocked audio files.
+* Failures include artifacts and logs for debugging.
+
+---
+
+### **US-20 – Launch Demo & Stakeholder Review**
+
+Role: Product Owner
+Goal: Prepare a demo showcasing the adaptive lesson, pronunciation feedback, and analytics for stakeholders.
+Reason: Validate product direction and gather feedback before MVP launch.
+
+Acceptance:
+
+* Demo covers lesson playback, live ASR, scoring, and recommendation adjustments.
+* Stakeholder feedback captured and prioritized.
+* Rollout plan and success metrics documented.
+
