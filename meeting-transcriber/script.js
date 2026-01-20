@@ -417,28 +417,29 @@ class MeetingTranscriber {
         const notification = document.createElement('div');
         notification.className = 'notification success large';
         notification.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; padding: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+            <div class="notification-content">
+                <div class="notification-header">
+                    <i class="fas fa-check-circle"></i>
                     <div>
-                        <strong style="font-size: 16px;">Transcript Saved!</strong>
-                        <div style="font-size: 12px; opacity: 0.9;">Bot has left the meeting</div>
+                        <strong>Transcript Saved!</strong>
+                        <div class="notification-subtitle">Bot has left the meeting</div>
                     </div>
                 </div>
                 
-                <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; font-size: 13px;">
-                    <div style="margin-bottom: 5px;">📊 ${statistics.total_speakers} speakers • ${statistics.total_words} words</div>
-                    <div style="margin-bottom: 5px;">⏱️ Duration: ${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</div>
-                    <div>📝 ${statistics.total_entries} transcript entries</div>
+                <div class="notification-stats">
+                    <div>${statistics.total_speakers} speakers | ${statistics.total_words} words</div>
+                    <div>Duration: ${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</div>
+                    <div>${statistics.total_entries} transcript entries</div>
                 </div>
                 
-                <a href="/api/download/${filename}" 
-                   download="${filename}"
-                   style="background: white; color: #10b981; padding: 10px 20px; border-radius: 8px; 
-                          text-decoration: none; text-align: center; font-weight: bold; display: block;
-                          transition: all 0.2s;">
-                    <i class="fas fa-download"></i> Download JSON File
-                </a>
+                <div class="notification-actions">
+                    <a href="/api/download/${filename}" download="${filename}" class="btn-download">
+                        <i class="fas fa-download"></i> Download JSON
+                    </a>
+                    <button onclick="runPipeline('${filename}')" class="btn-pipeline">
+                        <i class="fas fa-cogs"></i> Run Pipeline
+                    </button>
+                </div>
             </div>
         `;
         
@@ -457,33 +458,215 @@ class MeetingTranscriber {
             animation: slideIn 0.3s ease-out;
         `;
         
-        // Add animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translate(-50%, -60%);
-                }
-                to {
-                    opacity: 1;
-                    transform: translate(-50%, -50%);
-                }
-            }
-            .notification.large a:hover {
-                background: #f0fdf4 !important;
-                transform: scale(1.02);
-            }
-        `;
-        document.head.appendChild(style);
-        
         document.body.appendChild(notification);
         
-        // Auto-dismiss after 10 seconds
+        // Store filename for later use
+        this.lastTranscriptFile = filename;
+        
+        // Auto-dismiss after 15 seconds (longer to allow pipeline trigger)
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease-in';
             setTimeout(() => notification.remove(), 300);
-        }, 10000);
+        }, 15000);
+    }
+}
+
+// Pipeline functions (global scope for onclick handlers)
+let currentMeetingId = null;
+let pipelinePollingInterval = null;
+
+async function runPipeline(filename) {
+    // Close any notification
+    document.querySelectorAll('.notification.large').forEach(n => n.remove());
+    
+    // Show modal
+    const modal = document.getElementById('pipelineModal');
+    modal.style.display = 'flex';
+    
+    // Reset status
+    document.querySelectorAll('.pipeline-step').forEach(step => {
+        step.classList.remove('active', 'completed', 'error');
+    });
+    document.getElementById('pipelineResult').style.display = 'none';
+    document.getElementById('pipelineError').style.display = 'none';
+    
+    // Mark first step as active
+    document.querySelector('[data-step="chunking"]').classList.add('active');
+    
+    try {
+        const response = await fetch('/api/pipeline/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcriptFile: filename })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            currentMeetingId = data.meeting_id;
+            // Start polling for status
+            startPipelinePolling(data.meeting_id);
+        } else {
+            showPipelineError(data.error || 'Failed to start pipeline');
+        }
+    } catch (error) {
+        showPipelineError('Connection error: ' + error.message);
+    }
+}
+
+function startPipelinePolling(meetingId) {
+    if (pipelinePollingInterval) {
+        clearInterval(pipelinePollingInterval);
+    }
+    
+    pipelinePollingInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/pipeline/status/${meetingId}`);
+            const data = await response.json();
+            
+            if (data.status === 'completed') {
+                clearInterval(pipelinePollingInterval);
+                showPipelineComplete(meetingId, data.result);
+            } else if (data.status === 'failed') {
+                clearInterval(pipelinePollingInterval);
+                showPipelineError(data.error, data.error_stage);
+            } else if (data.progress) {
+                updatePipelineProgress(data.progress);
+            }
+        } catch (error) {
+            console.error('Pipeline polling error:', error);
+        }
+    }, 2000);
+}
+
+function updatePipelineProgress(progress) {
+    // Update step indicators based on progress message
+    const steps = ['chunking', 'embedding', 'summarization', 'userstories', 'assignment'];
+    const progressLower = progress.toLowerCase();
+    
+    for (let i = 0; i < steps.length; i++) {
+        const step = document.querySelector(`[data-step="${steps[i]}"]`);
+        if (progressLower.includes(steps[i]) || progressLower.includes(steps[i].replace('userstories', 'user stor'))) {
+            step.classList.add('active');
+            step.classList.remove('completed');
+        } else if (step.classList.contains('active')) {
+            step.classList.remove('active');
+            step.classList.add('completed');
+        }
+    }
+}
+
+function showPipelineComplete(meetingId, result) {
+    // Mark all steps as completed
+    document.querySelectorAll('.pipeline-step').forEach(step => {
+        step.classList.remove('active');
+        step.classList.add('completed');
+    });
+    
+    // Show results
+    const resultDiv = document.getElementById('pipelineResult');
+    resultDiv.innerHTML = `
+        <h3><i class="fas fa-check-circle"></i> Pipeline Complete</h3>
+        <div class="result-stats">
+            <div><strong>Chunks created:</strong> ${result.chunks_count}</div>
+            <div><strong>User stories:</strong> ${result.stories_count}</div>
+        </div>
+        <div class="result-actions">
+            <button onclick="viewPipelineResults('${meetingId}')" class="btn btn-primary">
+                <i class="fas fa-eye"></i> View Results
+            </button>
+        </div>
+    `;
+    resultDiv.style.display = 'block';
+}
+
+function showPipelineError(error, stage = null) {
+    // Mark failed step
+    if (stage) {
+        const step = document.querySelector(`[data-step="${stage}"]`);
+        if (step) {
+            step.classList.remove('active');
+            step.classList.add('error');
+        }
+    }
+    
+    const errorDiv = document.getElementById('pipelineError');
+    errorDiv.innerHTML = `
+        <h3><i class="fas fa-exclamation-circle"></i> Pipeline Failed</h3>
+        <p>${error}</p>
+        ${stage ? `<p class="error-stage">Failed at: ${stage}</p>` : ''}
+    `;
+    errorDiv.style.display = 'block';
+}
+
+async function viewPipelineResults(meetingId) {
+    try {
+        const response = await fetch(`/api/pipeline/results/${meetingId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // Open results in a new window or display in modal
+            const resultWindow = window.open('', '_blank');
+            resultWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Pipeline Results - ${meetingId}</title>
+                    <style>
+                        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }
+                        h1 { color: #4f46e5; }
+                        h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 30px; }
+                        pre { background: white; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #e2e8f0; }
+                        .minutes { background: white; padding: 20px; border-radius: 8px; white-space: pre-wrap; border: 1px solid #e2e8f0; }
+                        .story { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #4f46e5; }
+                        .story-id { font-weight: bold; color: #4f46e5; }
+                        .urgency-high { border-left-color: #ef4444; }
+                        .urgency-medium { border-left-color: #f59e0b; }
+                        .urgency-low { border-left-color: #10b981; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Pipeline Results</h1>
+                    <p>Meeting ID: ${meetingId}</p>
+                    
+                    ${data.minutes ? `
+                        <h2>Meeting Minutes</h2>
+                        <div class="minutes">${data.minutes}</div>
+                    ` : ''}
+                    
+                    ${data.user_stories ? `
+                        <h2>User Stories (${data.user_stories.length})</h2>
+                        ${data.user_stories.map(story => `
+                            <div class="story urgency-${story.urgency?.toLowerCase() || 'medium'}">
+                                <div class="story-id">${story.id}</div>
+                                <p>${story.user_story}</p>
+                                <p><strong>Urgency:</strong> ${story.urgency} | <strong>Effort:</strong> ${story.effort_points} pts | <strong>Skill:</strong> ${story.skill_required}</p>
+                                ${story.acceptance_criteria ? `
+                                    <p><strong>Acceptance Criteria:</strong></p>
+                                    <ul>${story.acceptance_criteria.map(ac => `<li>${ac}</li>`).join('')}</ul>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    ` : ''}
+                    
+                    ${data.assignments ? `
+                        <h2>Assignments</h2>
+                        <pre>${JSON.stringify(data.assignments, null, 2)}</pre>
+                    ` : ''}
+                </body>
+                </html>
+            `);
+        }
+    } catch (error) {
+        alert('Failed to load results: ' + error.message);
+    }
+}
+
+function closePipelineModal() {
+    document.getElementById('pipelineModal').style.display = 'none';
+    if (pipelinePollingInterval) {
+        clearInterval(pipelinePollingInterval);
+        pipelinePollingInterval = null;
     }
 }
 

@@ -12,10 +12,12 @@ app.use(express.static('.'));
 
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_API_URL = 'https://us-west-2.recall.ai/api/v1';
+const AGENTIC_API_URL = process.env.AGENTIC_API_URL || 'http://localhost:8000';
 
 console.log('Starting Meeting Transcriber...');
 console.log(`Using US West 2 region`);
 console.log(`API Key: ${RECALL_API_KEY ? 'Set' : 'Missing!'}`);
+console.log(`Agentic API: ${AGENTIC_API_URL}`);
 
 // Store active bots and their transcripts
 const activeBots = new Map();
@@ -391,13 +393,224 @@ app.get('/api/download/:filename', (req, res) => {
     }
 });
 
+// === AGENTIC PIPELINE ENDPOINTS ===
+
+// Trigger the agentic pipeline on a transcript
+app.post('/api/pipeline/run', async (req, res) => {
+    try {
+        const { transcriptFile } = req.body;
+        
+        if (!transcriptFile) {
+            return res.status(400).json({
+                success: false,
+                error: 'transcriptFile is required'
+            });
+        }
+        
+        const filepath = path.join(__dirname, 'transcripts', transcriptFile);
+        
+        if (!fs.existsSync(filepath)) {
+            return res.status(404).json({
+                success: false,
+                error: 'Transcript file not found'
+            });
+        }
+        
+        // Read transcript data
+        const transcriptData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+        
+        // Call agentic API
+        const response = await axios.post(
+            `${AGENTIC_API_URL}/pipeline/run`,
+            {
+                transcript_data: transcriptData,
+                skip_assignment: false
+            },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 10000
+            }
+        );
+        
+        res.json({
+            success: true,
+            meeting_id: response.data.meeting_id,
+            message: response.data.message
+        });
+        
+    } catch (error) {
+        console.error('Pipeline trigger error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.detail || error.message,
+            suggestion: 'Make sure the agentic API server is running on port 8000'
+        });
+    }
+});
+
+// Get pipeline status
+app.get('/api/pipeline/status/:meetingId', async (req, res) => {
+    try {
+        const { meetingId } = req.params;
+        
+        const response = await axios.get(
+            `${AGENTIC_API_URL}/pipeline/status/${meetingId}`,
+            { timeout: 5000 }
+        );
+        
+        res.json({
+            success: true,
+            ...response.data
+        });
+        
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'Pipeline not found for this meeting'
+            });
+        }
+        
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.detail || error.message
+        });
+    }
+});
+
+// Get pipeline results
+app.get('/api/pipeline/results/:meetingId', async (req, res) => {
+    try {
+        const { meetingId } = req.params;
+        
+        const response = await axios.get(
+            `${AGENTIC_API_URL}/pipeline/results/${meetingId}`,
+            { timeout: 5000 }
+        );
+        
+        res.json({
+            success: true,
+            ...response.data
+        });
+        
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'No results found for this meeting'
+            });
+        }
+        
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.detail || error.message
+        });
+    }
+});
+
+// === RAG QUERY ENDPOINT ===
+app.post('/api/rag/query', async (req, res) => {
+    try {
+        const { question, meeting_id } = req.body;
+        
+        if (!question) {
+            return res.status(400).json({
+                success: false,
+                error: 'question is required'
+            });
+        }
+        
+        const response = await axios.post(
+            `${AGENTIC_API_URL}/rag/query`,
+            { question, meeting_id },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000
+            }
+        );
+        
+        res.json({
+            success: true,
+            ...response.data
+        });
+        
+    } catch (error) {
+        console.error('RAG query error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.detail || error.message
+        });
+    }
+});
+
+// Get RAG stats
+app.get('/api/rag/stats', async (req, res) => {
+    try {
+        const response = await axios.get(
+            `${AGENTIC_API_URL}/rag/stats`,
+            { timeout: 5000 }
+        );
+        
+        res.json({
+            success: true,
+            ...response.data
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.detail || error.message
+        });
+    }
+});
+
+// List saved transcripts
+app.get('/api/transcripts', (req, res) => {
+    try {
+        const transcriptsDir = path.join(__dirname, 'transcripts');
+        
+        if (!fs.existsSync(transcriptsDir)) {
+            return res.json({ success: true, transcripts: [] });
+        }
+        
+        const files = fs.readdirSync(transcriptsDir)
+            .filter(f => f.endsWith('.json'))
+            .map(filename => {
+                const filepath = path.join(transcriptsDir, filename);
+                const stats = fs.statSync(filepath);
+                const data = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+                
+                return {
+                    filename,
+                    meeting_url: data.meeting_url || 'Unknown',
+                    created_at: data.created_at,
+                    size: stats.size,
+                    statistics: data.statistics || {}
+                };
+            })
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        res.json({
+            success: true,
+            transcripts: files
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🌐 Server: http://localhost:${PORT}`);
-    console.log(` Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🎯 Ready!`);
+    console.log(`Server: http://localhost:${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log(`RAG page: http://localhost:${PORT}/rag.html`);
+    console.log('Ready!');
     console.log('');
-    console.log('   For local testing, use ngrok: npx ngrok http 3000');
-    console.log('   Then update destination_url in the code with your ngrok URL');
+    console.log('For local testing, use ngrok: npx ngrok http 3000');
+    console.log('Then update destination_url in the code with your ngrok URL');
     console.log('============================================');
 });
