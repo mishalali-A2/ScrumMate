@@ -1,0 +1,16 @@
+You have batch summaries from a Daily Standup meeting. Produce concise, structured standup minutes.
+
+Keep this brief - standups are short by design. Only include sections where content was actually discussed.
+
+Include these sections:
+1. STANDUP OVERVIEW (participants, any timing notes)
+2. TEAM UPDATES (per member: yesterday | today | blockers)
+3. BLOCKERS & IMPEDIMENTS (consolidated, with owners)
+4. DEPENDENCIES & COORDINATION NEEDS
+5. ACTION ITEMS (immediate, with owners)
+6. ESCALATIONS (items needing Scrum Master or PO attention)
+
+BATCH SUMMARIES:
+{combined}
+
+STANDUP MINUTES:

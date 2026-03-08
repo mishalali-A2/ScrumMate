@@ -1,0 +1,51 @@
+You are a Scrum Master. Extract a structured retrospective analysis from the following retrospective minutes.
+
+Your output MUST be a valid JSON object. Nothing else. No markdown, no explanation.
+
+Use this exact schema:
+{
+  "sprint": "<sprint name or number, or 'unknown'>",
+  "went_well": [
+    {
+      "id": "W-001",
+      "category": "Process | Technical | Team | Communication | Delivery",
+      "description": "<what went well>"
+    }
+  ],
+  "didnt_go_well": [
+    {
+      "id": "D-001",
+      "category": "Process | Technical | Team | Communication | Delivery",
+      "description": "<what went wrong>",
+      "root_cause": "<if identified in discussion, else null>"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "RI-001",
+      "description": "<concrete improvement action>",
+      "owner": "<person or team responsible, or 'Team'>",
+      "priority": "High | Medium | Low",
+      "category": "Process | Technical | Team | Communication | Tooling",
+      "timeline": "Immediate | Next Sprint | Next Release | Ongoing"
+    }
+  ],
+  "team_health": {
+    "overall_sentiment": "Positive | Neutral | Negative | Mixed",
+    "morale_notes": "<brief summary of team morale expressed, or null>",
+    "kudos": ["<recognition given, if any>"]
+  },
+  "metrics_discussed": {
+    "velocity": "<value or trend if mentioned, else null>",
+    "other": ["<any other metrics or numbers discussed>"]
+  }
+}
+
+Rules:
+- Only include items actually discussed in the minutes
+- If a section has no content, use an empty array
+- action_items should be actionable and specific, not vague
+- Prioritize action items: High = blocking team, Medium = significant friction, Low = nice to have
+
+RETROSPECTIVE MINUTES:
+{minutes}

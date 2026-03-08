@@ -4,47 +4,128 @@
     "email": "i221291@nu.edu.pk",
     "experience_years": 1,
     "role": "Frontend Developer",
-    "skills": ["React", "Next.js", "Tailwind CSS", "UI/UX Design", "Responsive Design", "Basic Backend Integration", "ASR"],
-    "strengths": ["Quick prototyping", "Attention to visual details", "Translating designs into clean code"],
-    "current_projects": ["Building interactive dashboards", "Client-facing web applications"],
-    "assigned_effort_points": 0
+    "skills": [
+      "React",
+      "Next.js",
+      "Tailwind CSS",
+      "UI/UX Design",
+      "Responsive Design",
+      "Basic Backend Integration",
+      "ASR"
+    ],
+    "strengths": [
+      "Quick prototyping",
+      "Attention to visual details",
+      "Translating designs into clean code"
+    ],
+    "current_projects": [
+      "Building interactive dashboards",
+      "Client-facing web applications"
+    ],
+    "assigned_effort_points": 8
   },
   {
     "name": "Ayaan Mughal",
     "email": "i220861@nu.edu.pk",
     "experience_years": 3,
     "role": "Backend Developer",
-    "skills": ["Node.js", "Python", "FastAPI", "PostgreSQL", "MongoDB", "REST & GraphQL API Development", "Server Optimization", "Docker", "AWS","Figma"],
-    "strengths": ["Writing scalable backend systems", "Designing data pipelines", "Integrating ML services"],
-    "current_projects": ["Maintaining API infrastructure", "Optimizing backend services for real-time applications"],
-    "assigned_effort_points": 0
+    "skills": [
+      "Node.js",
+      "Python",
+      "FastAPI",
+      "PostgreSQL",
+      "MongoDB",
+      "REST & GraphQL API Development",
+      "Server Optimization",
+      "Docker",
+      "AWS",
+      "Figma"
+    ],
+    "strengths": [
+      "Writing scalable backend systems",
+      "Designing data pipelines",
+      "Integrating ML services"
+    ],
+    "current_projects": [
+      "Maintaining API infrastructure",
+      "Optimizing backend services for real-time applications"
+    ],
+    "assigned_effort_points": 52
   },
   {
     "name": "Muaz Ahmed",
     "email": "i221125@nu.edu.pk",
     "experience_years": 2,
     "role": "Machine Learning Engineer",
-    "skills": ["Python", "PyTorch", "TensorFlow", "NLP", "Computer Vision", "Speech Processing", "Testing" ,"Data Preprocessing", "Model Optimization", "GPU Acceleration", "End-to-End ML Pipelines"],
-    "strengths": ["Applying ML to real-world problems", "Designing multimodal AI systems", "Mentoring juniors"],
-    "current_projects": ["AI-driven meeting assistant", "Semantic search and recommendation systems"],
-    "assigned_effort_points": 0
+    "skills": [
+      "Python",
+      "PyTorch",
+      "TensorFlow",
+      "NLP",
+      "Computer Vision",
+      "Speech Processing",
+      "Testing",
+      "Data Preprocessing",
+      "Model Optimization",
+      "GPU Acceleration",
+      "End-to-End ML Pipelines"
+    ],
+    "strengths": [
+      "Applying ML to real-world problems",
+      "Designing multimodal AI systems",
+      "Mentoring juniors"
+    ],
+    "current_projects": [
+      "AI-driven meeting assistant",
+      "Semantic search and recommendation systems"
+    ],
+    "assigned_effort_points": 8
   },
   {
     "name": "Zara Khan",
     "experience_years": 0.5,
     "role": "Intern",
-    "skills": ["Unity", "Unreal Engine", "C#", "RAG pipelines", "3D Modeling basics", "Gameplay Mechanics"],
-    "strengths": ["Rapid prototyping of game mechanics", "Understanding of retrieval-augmented workflows", "Adaptability to different game engines"],
-    "current_projects": ["Assisting with game AI implementation", "Integrating RAG-based content generation in games"],
+    "skills": [
+      "Unity",
+      "Unreal Engine",
+      "C#",
+      "RAG pipelines",
+      "3D Modeling basics",
+      "Gameplay Mechanics"
+    ],
+    "strengths": [
+      "Rapid prototyping of game mechanics",
+      "Understanding of retrieval-augmented workflows",
+      "Adaptability to different game engines"
+    ],
+    "current_projects": [
+      "Assisting with game AI implementation",
+      "Integrating RAG-based content generation in games"
+    ],
     "assigned_effort_points": 0
   },
   {
     "name": "Omar Siddiqui",
     "experience_years": 0,
     "role": "Intern",
-    "skills": ["HTML", "CSS", "JavaScript", "React", "Node.js", "Leetcode problem solving", "Data Structures & Algorithms"],
-    "strengths": ["Efficient problem-solving", "Clean and modular code", "Rapid learning of web frameworks"],
-    "current_projects": ["Building responsive web apps", "Optimizing backend algorithms and APIs"],
-    "assigned_effort_points": 0
+    "skills": [
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "React",
+      "Node.js",
+      "Leetcode problem solving",
+      "Data Structures & Algorithms"
+    ],
+    "strengths": [
+      "Efficient problem-solving",
+      "Clean and modular code",
+      "Rapid learning of web frameworks"
+    ],
+    "current_projects": [
+      "Building responsive web apps",
+      "Optimizing backend algorithms and APIs"
+    ],
+    "assigned_effort_points": 18
   }
 ]

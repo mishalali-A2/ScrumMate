@@ -12,14 +12,18 @@ from .chunking_service import ChunkingService
 from .summarization_service import SummarizationService
 from .userstory_service import UserStoryService
 from .assignment_service import AssignmentService
+from .blockers_service import BlockersService
+from .retro_service import RetroService
 from .rag_service import RAGService
 
 __all__ = [
     "GeminiClient",
-    "EmbeddingService", 
+    "EmbeddingService",
     "ChunkingService",
     "SummarizationService",
     "UserStoryService",
     "AssignmentService",
+    "BlockersService",
+    "RetroService",
     "RAGService",
 ]

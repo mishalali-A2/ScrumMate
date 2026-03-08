@@ -418,12 +418,14 @@ app.post('/api/pipeline/run', async (req, res) => {
         
         // Read transcript data
         const transcriptData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+        const meetingType = req.body.meetingType || 'product-owner';
         
         // Call agentic API
         const response = await axios.post(
             `${AGENTIC_API_URL}/pipeline/run`,
             {
                 transcript_data: transcriptData,
+                meeting_type: meetingType,
                 skip_assignment: false
             },
             {

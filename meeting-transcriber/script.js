@@ -28,12 +28,13 @@ class MeetingTranscriber {
     
     async startTranscription() {
         const meetingUrl = document.getElementById('meetingUrl').value.trim();
-        const selectedMeetingTypes = [];
-        if (document.getElementById('retrospective').checked) selectedMeetingTypes.push('retrospective');
-        if (document.getElementById('dailyStandup').checked) selectedMeetingTypes.push('daily-standup');
-        if (document.getElementById('productOwner').checked) selectedMeetingTypes.push('product-owner');
 
-        console.log("Selected meeting types:", selectedMeetingTypes);
+        // Capture selected meeting type for pipeline use later
+        if (document.getElementById('retrospective').checked) selectedMeetingType = 'retrospective';
+        else if (document.getElementById('dailyStandup').checked) selectedMeetingType = 'daily-standup';
+        else selectedMeetingType = 'product-owner';
+
+        console.log("Meeting type:", selectedMeetingType);
 
         if (!meetingUrl) {
             alert('Please enter a Google Meet URL');
@@ -474,6 +475,7 @@ class MeetingTranscriber {
 // Pipeline functions (global scope for onclick handlers)
 let currentMeetingId = null;
 let pipelinePollingInterval = null;
+let selectedMeetingType = 'product-owner'; // captured when meeting starts
 
 async function runPipeline(filename) {
     // Close any notification
@@ -497,7 +499,7 @@ async function runPipeline(filename) {
         const response = await fetch('/api/pipeline/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcriptFile: filename })
+            body: JSON.stringify({ transcriptFile: filename, meetingType: selectedMeetingType })
         });
         
         const data = await response.json();
@@ -524,17 +526,35 @@ function startPipelinePolling(meetingId) {
             const response = await fetch(`/api/pipeline/status/${meetingId}`);
             const data = await response.json();
             
+            if (!response.ok || (!data.success && data.error)) {
+                clearInterval(pipelinePollingInterval);
+                const errMsg = data?.error || 'Request failed';
+                showPipelineError(
+                    errMsg.includes('stream') || errMsg.includes('aborted')
+                        ? 'Connection interrupted. The pipeline may have completed. Click "Try View Results" below.'
+                        : errMsg,
+                    null,
+                    meetingId
+                );
+                return;
+            }
             if (data.status === 'completed') {
                 clearInterval(pipelinePollingInterval);
-                showPipelineComplete(meetingId, data.result);
+                showPipelineComplete(meetingId, data.result, data.actual_meeting_id || meetingId);
             } else if (data.status === 'failed') {
                 clearInterval(pipelinePollingInterval);
-                showPipelineError(data.error, data.error_stage);
+                showPipelineError(data.error || 'Pipeline failed', data.error_stage, meetingId);
             } else if (data.progress) {
                 updatePipelineProgress(data.progress);
             }
         } catch (error) {
             console.error('Pipeline polling error:', error);
+            clearInterval(pipelinePollingInterval);
+            showPipelineError(
+                'Cannot reach the agentic API. Is it running on port 8000? ' + error.message,
+                null,
+                meetingId
+            );
         }
     }, 2000);
 }
@@ -556,14 +576,15 @@ function updatePipelineProgress(progress) {
     }
 }
 
-function showPipelineComplete(meetingId, result) {
+function showPipelineComplete(meetingId, result, actualMeetingId) {
     // Mark all steps as completed
     document.querySelectorAll('.pipeline-step').forEach(step => {
         step.classList.remove('active');
         step.classList.add('completed');
     });
+    // Use actual meeting ID for results (files are named with this)
+    const resultsId = actualMeetingId || meetingId;
     
-    // Show results
     const resultDiv = document.getElementById('pipelineResult');
     resultDiv.innerHTML = `
         <h3><i class="fas fa-check-circle"></i> Pipeline Complete</h3>
@@ -578,9 +599,11 @@ function showPipelineComplete(meetingId, result) {
         </div>
     `;
     resultDiv.style.display = 'block';
+    // Store for viewPipelineResults - use request id, API will resolve to actual
+    resultDiv.dataset.resultsMeetingId = meetingId;
 }
 
-function showPipelineError(error, stage = null) {
+function showPipelineError(error, stage = null, meetingIdForResults = null) {
     // Mark failed step
     if (stage) {
         const step = document.querySelector(`[data-step="${stage}"]`);
@@ -595,6 +618,11 @@ function showPipelineError(error, stage = null) {
         <h3><i class="fas fa-exclamation-circle"></i> Pipeline Failed</h3>
         <p>${error}</p>
         ${stage ? `<p class="error-stage">Failed at: ${stage}</p>` : ''}
+        ${meetingIdForResults ? `
+            <button onclick="viewPipelineResults('${meetingIdForResults}')" class="btn btn-secondary" style="margin-top:12px">
+                <i class="fas fa-eye"></i> Try View Results
+            </button>
+        ` : ''}
     `;
     errorDiv.style.display = 'block';
 }
@@ -605,53 +633,137 @@ async function viewPipelineResults(meetingId) {
         const data = await response.json();
         
         if (data.success) {
-            // Open results in a new window or display in modal
             const resultWindow = window.open('', '_blank');
             resultWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Pipeline Results - ${meetingId}</title>
+                    <title>Pipeline Results - ${data.meeting_id || meetingId}</title>
                     <style>
-                        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }
+                        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 960px; margin: 0 auto; background: #f5f5f5; color: #334155; }
                         h1 { color: #4f46e5; }
                         h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 30px; }
-                        pre { background: white; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #e2e8f0; }
-                        .minutes { background: white; padding: 20px; border-radius: 8px; white-space: pre-wrap; border: 1px solid #e2e8f0; }
-                        .story { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #4f46e5; }
-                        .story-id { font-weight: bold; color: #4f46e5; }
-                        .urgency-high { border-left-color: #ef4444; }
-                        .urgency-medium { border-left-color: #f59e0b; }
-                        .urgency-low { border-left-color: #10b981; }
+                        h3 { color: #475569; margin-top: 20px; }
+                        pre { background: white; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #e2e8f0; font-size: 13px; }
+                        .minutes { background: white; padding: 20px; border-radius: 8px; white-space: pre-wrap; border: 1px solid #e2e8f0; line-height: 1.7; }
+                        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #4f46e5; }
+                        .card-id { font-weight: bold; color: #4f46e5; font-size: 12px; margin-bottom: 6px; }
+                        .urgency-high, .impact-high, .priority-high { border-left-color: #ef4444; }
+                        .urgency-medium, .impact-medium, .priority-medium { border-left-color: #f59e0b; }
+                        .urgency-low, .impact-low, .priority-low { border-left-color: #10b981; }
+                        .tag { display: inline-block; background: #e2e8f0; border-radius: 4px; padding: 2px 8px; font-size: 12px; margin-right: 4px; }
+                        .section-label { font-weight: 600; color: #64748b; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
+                        ul { margin: 8px 0 0 0; padding-left: 20px; }
+                        li { margin-bottom: 4px; }
                     </style>
                 </head>
                 <body>
                     <h1>Pipeline Results</h1>
-                    <p>Meeting ID: ${meetingId}</p>
-                    
+                    <p><strong>Meeting ID:</strong> ${data.meeting_id || meetingId}</p>
+
                     ${data.minutes ? `
                         <h2>Meeting Minutes</h2>
-                        <div class="minutes">${data.minutes}</div>
+                        <div class="minutes">${data.minutes.replace(/</g,'&lt;')}</div>
                     ` : ''}
-                    
+
                     ${data.user_stories ? `
                         <h2>User Stories (${data.user_stories.length})</h2>
-                        ${data.user_stories.map(story => `
-                            <div class="story urgency-${story.urgency?.toLowerCase() || 'medium'}">
-                                <div class="story-id">${story.id}</div>
-                                <p>${story.user_story}</p>
-                                <p><strong>Urgency:</strong> ${story.urgency} | <strong>Effort:</strong> ${story.effort_points} pts | <strong>Skill:</strong> ${story.skill_required}</p>
-                                ${story.acceptance_criteria ? `
-                                    <p><strong>Acceptance Criteria:</strong></p>
-                                    <ul>${story.acceptance_criteria.map(ac => `<li>${ac}</li>`).join('')}</ul>
+                        ${data.user_stories.map(s => `
+                            <div class="card urgency-${(s.urgency||'medium').toLowerCase()}">
+                                <div class="card-id">${s.id}</div>
+                                <p>${s.user_story}</p>
+                                <span class="tag">${s.urgency}</span>
+                                <span class="tag">${s.effort_points} pts</span>
+                                <span class="tag">${s.skill_required}</span>
+                                ${s.acceptance_criteria?.length ? `
+                                    <div class="section-label" style="margin-top:10px">Acceptance Criteria</div>
+                                    <ul>${s.acceptance_criteria.map(ac => `<li>${ac}</li>`).join('')}</ul>
                                 ` : ''}
                             </div>
                         `).join('')}
                     ` : ''}
-                    
+
                     ${data.assignments ? `
                         <h2>Assignments</h2>
                         <pre>${JSON.stringify(data.assignments, null, 2)}</pre>
+                    ` : ''}
+
+                    ${data.blockers_report ? `
+                        <h2>Blockers Report</h2>
+                        <p><strong>Total Blockers:</strong> ${data.blockers_report.total_blockers ?? 0}</p>
+                        ${data.blockers_report.team_updates?.length ? `
+                            <h3>Team Updates</h3>
+                            ${data.blockers_report.team_updates.map(u => `
+                                <div class="card ${u.has_blocker ? 'urgency-high' : ''}">
+                                    <div class="card-id">${u.member}</div>
+                                    <div class="section-label">Yesterday</div><p>${u.yesterday || 'N/A'}</p>
+                                    <div class="section-label">Today</div><p>${u.today || 'N/A'}</p>
+                                    ${u.has_blocker ? '<span class="tag" style="background:#fee2e2;color:#991b1b">Blocker</span>' : ''}
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${data.blockers_report.blockers?.length ? `
+                            <h3>Blockers</h3>
+                            ${data.blockers_report.blockers.map(b => `
+                                <div class="card impact-${(b.impact||'medium').toLowerCase()}">
+                                    <div class="card-id">${b.id} - ${b.owner}</div>
+                                    <p>${b.description}</p>
+                                    <span class="tag">${b.impact} Impact</span>
+                                    ${b.blocked_task !== 'unspecified' ? `<span class="tag">${b.blocked_task}</span>` : ''}
+                                    ${b.suggested_resolution ? `<p><strong>Resolution:</strong> ${b.suggested_resolution}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        ` : '<p>No blockers reported.</p>'}
+                        ${data.blockers_report.action_items?.length ? `
+                            <h3>Action Items</h3>
+                            <pre>${JSON.stringify(data.blockers_report.action_items, null, 2)}</pre>
+                        ` : ''}
+                    ` : ''}
+
+                    ${data.retro_analysis ? `
+                        <h2>Retrospective Analysis</h2>
+                        ${data.retro_analysis.went_well?.length ? `
+                            <h3>What Went Well</h3>
+                            ${data.retro_analysis.went_well.map(w => `
+                                <div class="card urgency-low">
+                                    <div class="card-id">${w.id} - ${w.category}</div>
+                                    <p>${w.description}</p>
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${data.retro_analysis.didnt_go_well?.length ? `
+                            <h3>What Did Not Go Well</h3>
+                            ${data.retro_analysis.didnt_go_well.map(d => `
+                                <div class="card urgency-high">
+                                    <div class="card-id">${d.id} - ${d.category}</div>
+                                    <p>${d.description}</p>
+                                    ${d.root_cause ? `<p><strong>Root Cause:</strong> ${d.root_cause}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${data.retro_analysis.action_items?.length ? `
+                            <h3>Improvement Action Items</h3>
+                            ${data.retro_analysis.action_items.map(a => `
+                                <div class="card priority-${(a.priority||'medium').toLowerCase()}">
+                                    <div class="card-id">${a.id}</div>
+                                    <p>${a.description}</p>
+                                    <span class="tag">${a.owner}</span>
+                                    <span class="tag">${a.priority}</span>
+                                    <span class="tag">${a.timeline}</span>
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${data.retro_analysis.team_health ? `
+                            <h3>Team Health</h3>
+                            <div class="card">
+                                <p><strong>Sentiment:</strong> ${data.retro_analysis.team_health.overall_sentiment}</p>
+                                ${data.retro_analysis.team_health.morale_notes ? `<p>${data.retro_analysis.team_health.morale_notes}</p>` : ''}
+                                ${data.retro_analysis.team_health.kudos?.length ? `
+                                    <div class="section-label">Kudos</div>
+                                    <ul>${data.retro_analysis.team_health.kudos.map(k => `<li>${k}</li>`).join('')}</ul>
+                                ` : ''}
+                            </div>
+                        ` : ''}
                     ` : ''}
                 </body>
                 </html>

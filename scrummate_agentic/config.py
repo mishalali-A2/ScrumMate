@@ -10,14 +10,29 @@ BASE_DIR = Path(__file__).parent
 CHUNKS_DIR = BASE_DIR / "chunks"
 SUMMARIES_DIR = BASE_DIR / "summaries"
 USER_STORIES_DIR = BASE_DIR / "user_stories"
-ASSIGNMENTS_DIR = BASE_DIR / "user_stories"  # Consolidated with user stories
+STANDUPS_DIR = BASE_DIR / "standups"
+RETROSPECTIVES_DIR = BASE_DIR / "retrospectives"
 MEETINGS_DIR = BASE_DIR / "meetings"
 CHROMA_DB_PATH = BASE_DIR / "chroma_db"
 PROFILES_PATH = BASE_DIR / "sprintmembers" / "profile.json"
+PROMPTS_DIR = BASE_DIR / "prompts"
 
 # Ensure directories exist
-for dir_path in [CHUNKS_DIR, SUMMARIES_DIR, USER_STORIES_DIR, MEETINGS_DIR]:
+for dir_path in [CHUNKS_DIR, SUMMARIES_DIR, USER_STORIES_DIR, STANDUPS_DIR, RETROSPECTIVES_DIR, MEETINGS_DIR]:
     dir_path.mkdir(exist_ok=True)
+
+# Meeting types
+MEETING_TYPE_PO = "product-owner"
+MEETING_TYPE_STANDUP = "daily-standup"
+MEETING_TYPE_RETRO = "retrospective"
+VALID_MEETING_TYPES = {MEETING_TYPE_PO, MEETING_TYPE_STANDUP, MEETING_TYPE_RETRO}
+
+# Map frontend radio values to prompt folder names
+MEETING_TYPE_PROMPT_FOLDER = {
+    MEETING_TYPE_PO: "po_meeting",
+    MEETING_TYPE_STANDUP: "daily_standup",
+    MEETING_TYPE_RETRO: "retrospective",
+}
 
 # API Configuration
 GENAI_API_KEY = os.environ.get("GENAI_API_KEY")
