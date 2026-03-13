@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Performance</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(180deg, #fff7eb 0%, #ffe6c4 35%, #ffd3a0 100%);
+            padding: 24px;
+        }
+        .page-shell { max-width: 1200px; margin: 0 auto; }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 999px;
+            padding: 10px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .brand { display:flex;align-items:center;gap:8px; }
+        .brand img { width:40px;height:40px;object-fit:contain; }
+        .brand span { font-weight:700;font-size:1.1rem;color:#059669; }
+        .nav-pills { display:flex;gap:16px;margin:0 24px;flex:1;justify-content:center; }
+        .nav-pill {
+            padding:8px 20px;border-radius:999px;border:none;background:#ffffff;
+            box-shadow:0 4px 10px rgba(0,0,0,0.06);font-size:0.95rem;font-weight:600;
+            color:#444444;cursor:pointer;text-decoration:none;display:inline-flex;
+            align-items:center;justify-content:center;
+        }
+        .nav-pill.active { background:#059669;color:#ffffff; }
+        .right-controls { display:flex;align-items:center;gap:12px; }
+        .search-box {
+            display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+            background:#ffffff;box-shadow:0 4px 10px rgba(0,0,0,0.06);
+        }
+        .search-box input { border:none;outline:none;background:transparent;font-size:0.9rem;min-width:140px; }
+        .avatar { width:32px;height:32px;border-radius:999px;background:#111827;
+            display:flex;align-items:center;justify-content:center;color:white;font-size:0.9rem; }
+        .card {
+            background:#fffdf8;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,0.08);
+            padding:24px;
+        }
+        .card h1 { margin:0 0 8px;font-size:1.4rem;color:#111827; }
+        .card p { margin:0;color:#6b7280;font-size:0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="top-bar">
+            <div class="brand">
+                <img src="logo_gallery/Logo.png" alt="ScrumMate logo">
+                <span>ScrumMate</span>
+            </div>
+            <nav class="nav-pills">
+                <a href="dashboard.html" class="nav-pill">Dashboard</a>
+                <a href="meetings.html" class="nav-pill">Meetings</a>
+                <a href="projects.html" class="nav-pill">Projects</a>
+                <a href="performance.html" class="nav-pill active">Performance</a>
+            </nav>
+            <div class="right-controls">
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Search performance">
+                </div>
+                <div class="avatar">👤</div>
+            </div>
+        </header>
+
+        <main class="card">
+            <h1>Performance</h1>
+            <p>This page will show team and individual performance metrics.</p>
+        </main>
+    </div>
+</body>
+</html>
+

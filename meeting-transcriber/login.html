@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Welcome</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #ffffff 0%, #fff4e6 40%, #ffd9ad 100%);
+        }
+        .landing-wrapper {
+            width: 100%;
+            max-width: 900px;
+            padding: 40px 32px 60px;
+            text-align: center;
+        }
+        .logo-block {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin: 0 auto 40px;
+            width: fit-content;
+        }
+        .logo-image {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+        }
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .app-title {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #039c8b;
+            letter-spacing: 0.02em;
+        }
+        .tagline {
+            margin-top: 4px;
+            font-size: 0.95rem;
+            color: #555555;
+            max-width: 360px;
+        }
+        .button-row {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+        }
+        .cta-button {
+            min-width: 160px;
+            padding: 12px 24px;
+            border-radius: 999px;
+            border: 2px solid #01a58f;
+            background-color: white;
+            color: #01a58f;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            background-color: #01a58f;
+            color: white;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+        }
+        .cta-button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        }
+        .footer-hint {
+            margin-top: 32px;
+            font-size: 0.9rem;
+            color: #777777;
+        }
+        @media (max-width: 600px) {
+            .landing-wrapper {
+                padding-inline: 20px;
+            }
+            .logo-block {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .logo-text {
+                align-items: center;
+            }
+            .app-title {
+                font-size: 2.4rem;
+            }
+            .button-row {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+    </style>
+    <!-- Clerk JS: uses VITE_CLERK_PUBLISHABLE_KEY from .env -->
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_cmVzb2x2ZWQtd2FscnVzLTg4LmNsZXJrLmFjY291bnRzLmRldiQ"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js">
+    </script>
+</head>
+<body>
+    <div class="landing-wrapper">
+        <div class="logo-block">
+            <!-- Logo on the left, text on the right -->
+            <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="logo-image">
+            <div class="logo-text">
+                <div class="app-title">ScrumMate</div>
+                <div class="tagline">Your personal automated Scrum Agent with real‑time meeting intelligence</div>
+            </div>
+        </div>
+
+        <div class="button-row">
+            <button id="loginBtn" class="cta-button">Login</button>
+            <button id="signupBtn" class="cta-button">Sign Up</button>
+        </div>
+
+        <div class="footer-hint">
+            After signing in, you’ll be redirected to the ScrumMate transcriber.
+        </div>
+    </div>
+
+    <script>
+        function setupClerkAuth() {
+            if (!window.Clerk) {
+                // Clerk script may not be ready yet; try again shortly
+                setTimeout(setupClerkAuth, 50);
+                return;
+            }
+
+            window.Clerk.load().then(() => {
+                const loginBtn = document.getElementById('loginBtn');
+                const signupBtn = document.getElementById('signupBtn');
+
+                if (!loginBtn || !signupBtn) return;
+
+                loginBtn.addEventListener('click', () => {
+                    window.Clerk.openSignIn({
+                        redirectUrl: '/dashboard.html',
+                        afterSignInUrl: '/dashboard.html',
+                    });
+                });
+
+                signupBtn.addEventListener('click', () => {
+                    window.Clerk.openSignUp({
+                        redirectUrl: '/dashboard.html',
+                        afterSignUpUrl: '/dashboard.html',
+                    });
+                });
+            });
+        }
+
+        window.addEventListener('load', setupClerkAuth);
+    </script>
+</body>
+</html>
+

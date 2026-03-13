@@ -8,7 +8,13 @@ require('dotenv').config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+// Serve static assets but do not automatically serve index files
+app.use(express.static('.', { index: false }));
+
+// Default route: show Clerk-powered login/signup landing page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
 
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_API_URL = 'https://us-west-2.recall.ai/api/v1';

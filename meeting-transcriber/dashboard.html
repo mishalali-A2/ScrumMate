@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(180deg, #fff7eb 0%, #ffe6c4 35%, #ffd3a0 100%);
+            padding: 24px;
+        }
+        .dashboard-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 999px;
+            padding: 10px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        .brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #059669;
+        }
+        .nav-pills {
+            display: flex;
+            gap: 16px;
+            margin: 0 24px;
+            flex: 1;
+            justify-content: center;
+        }
+        .nav-pill {
+            padding: 8px 20px;
+            border-radius: 999px;
+            border: none;
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #444444;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-pill.active {
+            background: #059669;
+            color: #ffffff;
+        }
+        .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+        .search-box input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 0.9rem;
+            min-width: 140px;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .main-layout {
+            margin-top: 32px;
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 24px;
+        }
+        .card {
+            background: #fffdf8;
+            border-radius: 24px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+            padding: 24px;
+        }
+        .card h2 {
+            margin: 0 0 12px;
+            font-size: 1.2rem;
+            color: #111827;
+        }
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 18px;
+        }
+        .placeholder-box {
+            margin-top: 12px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #f3f4f6;
+            min-height: 220px;
+        }
+        .side-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .pill-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: #ffffff;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            color: #111827;
+        }
+        .pill-button span.icon {
+            font-size: 1rem;
+        }
+        @media (max-width: 900px) {
+            .top-bar {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .nav-pills {
+                order: 3;
+                flex-wrap: wrap;
+            }
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-shell">
+        <header class="top-bar">
+            <div class="brand">
+                <img src="logo_gallery/Logo.png" alt="ScrumMate logo">
+                <span>ScrumMate</span>
+            </div>
+
+            <nav class="nav-pills">
+                <a href="dashboard.html" class="nav-pill active">Dashboard</a>
+                <a href="meetings.html" class="nav-pill">Meetings</a>
+                <a href="projects.html" class="nav-pill">Projects</a>
+                <a href="performance.html" class="nav-pill">Performance</a>
+            </nav>
+
+            <div class="right-controls">
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Search">
+                </div>
+                <div class="avatar">👤</div>
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <section class="card">
+                <h2>Team Stats</h2>
+                <p class="card-subtitle">Overview of your meetings, projects, and performance.</p>
+                <div class="placeholder-box" id="statsBox">
+                    <!-- Future: inject stats here -->
+                </div>
+            </section>
+
+            <aside class="side-actions">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h2 style="margin:0;">Latest Meeting Minutes</h2>
+                    </div>
+                    <div class="placeholder-box" id="minutesBox">
+                        <!-- Future: latest minutes summary -->
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                    <a href="projects.html" class="pill-button">
+                        <span class="icon">📈</span>
+                        <span>New Project</span>
+                    </a>
+                    <a href="index.html" class="pill-button">
+                        <span class="icon">🎥</span>
+                        <span>New Meeting</span>
+                    </a>
+                </div>
+            </aside>
+        </main>
+    </div>
+</body>
+</html>
+

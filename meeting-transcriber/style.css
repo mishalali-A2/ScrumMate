@@ -6,23 +6,23 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    background: linear-gradient(180deg, #fff7eb 0%, #ffe6c4 35%, #ffd3a0 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 24px;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: #fafafa;
+    background: #fffdf8;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
     overflow: hidden;
 }
 
 header {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    color: white;
+    background: transparent;
+    color: #111827;
     padding: 20px 30px;
 }
 
