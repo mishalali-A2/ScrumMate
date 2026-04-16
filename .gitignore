@@ -2,6 +2,8 @@
 skills-lock.json
 venv
 .gitignore
+.venv
+venv/
 
 # Byte-compiled / optimized / DLL files
 
