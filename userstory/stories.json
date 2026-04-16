@@ -1,40 +1,179 @@
 [
   {
     "id": "US-001",
-    "user_story": "As a user reviewing transcripts, I want the system to use generic labels (e.g., 'Speaker 1', 'Speaker 2') instead of potentially incorrect specific names when speaker identification confidence is low or voices overlap, so that I can trust the accuracy of speaker attribution.",
+    "user_story": "As a new user, I want to create an account using my email and password so that I can access the platform securely.",
     "acceptance_criteria": [
-      "The system accurately identifies segments with low speaker identification confidence or overlapping voices.",
-      "For such segments, the system automatically assigns generic labels (e.g., 'Speaker 1', 'Speaker 2') instead of named individuals.",
-      "The transition between named speakers and generic labels is smooth and logical within the transcript display."
+      "User can enter email, username, and password",
+      "Email must be unique",
+      "Password must meet security requirements",
+      "Confirmation message is shown after successful registration"
     ],
     "urgency": "High",
-    "skill_required": "ML",
+    "skill_required": "Backend",
     "effort_points": 5
   },
   {
     "id": "US-002",
-    "user_story": "As a user viewing long transcripts, I want the transcript content to load and render in chunks as I scroll, so that I can experience smooth performance and responsiveness without delays.",
+    "user_story": "As a registered user, I want to log in to my account so that I can access my boards and tasks.",
     "acceptance_criteria": [
-      "The initial load of a long transcript displays only the visible portion of the transcript.",
-      "As the user scrolls down, subsequent chunks of the transcript are dynamically loaded and rendered.",
-      "Scrolling performance remains smooth and responsive even with very long transcripts (e.g., > 1 hour duration).",
-      "All core transcript features (e.g., search, playback synchronization) remain functional across loaded and not-yet-loaded chunks."
+      "User can log in with valid credentials",
+      "Error shown for invalid credentials",
+      "Session is maintained after login"
     ],
     "urgency": "High",
-    "skill_required": "Frontend",
-    "effort_points": 8
+    "skill_required": "Backend",
+    "effort_points": 3
   },
   {
     "id": "US-003",
-    "user_story": "As a user interacting with multilingual content, I want the system to detect and switch to the correct language more quickly by detecting per phrase, so that I experience a fluid and accurate multilingual transcription.",
+    "user_story": "As a user, I want to create a workspace so that I can organize multiple projects under one space.",
     "acceptance_criteria": [
-      "The system detects language changes within individual phrases or short sentences, rather than waiting for complete sentences.",
-      "Language switching occurs within a noticeably shorter duration (e.g., less than 1 second) after a new language phrase begins.",
-      "The transcribed output accurately reflects the language spoken for each phrase or segment.",
-      "The system does not 'stick' to English for an extended period when another language is predominantly spoken."
+      "User can name the workspace",
+      "Workspace is visible in dashboard",
+      "User becomes workspace admin"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-004",
+    "user_story": "As a workspace admin, I want to invite team members so that they can collaborate on projects.",
+    "acceptance_criteria": [
+      "Admin can send invitation via email",
+      "Invited user receives notification",
+      "User can accept or reject invitation"
     ],
     "urgency": "High",
-    "skill_required": "ML",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-005",
+    "user_story": "As a user, I want to create a project board so that I can manage tasks visually.",
+    "acceptance_criteria": [
+      "Board has a name and description",
+      "Board is linked to a workspace",
+      "Board creator is assigned admin role"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-006",
+    "user_story": "As a board admin, I want to add members to a board so that they can contribute to tasks.",
+    "acceptance_criteria": [
+      "Admin can search users",
+      "Users can be added or removed",
+      "Roles (admin/member) can be assigned"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-007",
+    "user_story": "As a user, I want to create lists (e.g., To Do, In Progress, Done) so that I can organize tasks by status.",
+    "acceptance_criteria": [
+      "User can create, rename, and delete lists",
+      "Lists are displayed in order"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 3
+  },
+  {
+    "id": "US-008",
+    "user_story": "As a user, I want to create tasks within lists so that I can track work items.",
+    "acceptance_criteria": [
+      "Task has title and description",
+      "Task belongs to a list",
+      "Task creation is instant"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-009",
+    "user_story": "As a user, I want to assign tasks to team members so that responsibilities are clear.",
+    "acceptance_criteria": [
+      "Task can have one or multiple assignees",
+      "Assigned users receive notification"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-010",
+    "user_story": "As a user, I want to drag and drop tasks between lists so that I can update task progress.",
+    "acceptance_criteria": [
+      "Drag-and-drop functionality works smoothly",
+      "Task status updates instantly"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-011",
+    "user_story": "As a user, I want to set due dates for tasks so that deadlines are tracked.",
+    "acceptance_criteria": [
+      "User can select date and time",
+      "Overdue tasks are highlighted"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 3
+  },
+  {
+    "id": "US-012",
+    "user_story": "As a user, I want to comment on tasks so that I can communicate with team members.",
+    "acceptance_criteria": [
+      "Comments are timestamped",
+      "Comments show author name",
+      "Notifications sent to relevant users"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-013",
+    "user_story": "As a user, I want to attach files to tasks so that I can share relevant documents.",
+    "acceptance_criteria": [
+      "Supports multiple file types",
+      "Files are downloadable",
+      "Upload progress is shown"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-014",
+    "user_story": "As a user, I want to receive notifications so that I stay updated on project activity.",
+    "acceptance_criteria": [
+      "Notifications for task assignment, comments, deadlines",
+      "Real-time or near real-time alerts",
+      "Notification panel accessible"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 8
+  },
+  {
+    "id": "US-015",
+    "user_story": "As a project manager, I want to view activity logs so that I can monitor team contributions.",
+    "acceptance_criteria": [
+      "Logs include task creation, updates, and assignments",
+      "Filter by user and date",
+      "Displays history of actions"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
     "effort_points": 5
   }
 ]

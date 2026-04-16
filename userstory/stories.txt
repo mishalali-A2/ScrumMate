@@ -1,288 +1,150 @@
-## **1. UI/UX & Frontend**
-
-### **US-01 – Mobile-First Lesson Player**
-
-Role: Frontend Developer
-Goal: Build a responsive lesson player for mobile and desktop that streams audio, shows transcript, and displays interactive prompts.
-Reason: Learners use phones and desktops; the player must be usable across devices.
-
-Acceptance:
-
-* Player layout adapts from 360px to desktop widths without layout breakage.
-* Transcript syncs with audio playback and highlights current sentence.
-* Interactive prompts (fill-in-the-blank, multiple choice) render and submit answers.
+Project: Agile Project Management Web Application
 
 ---
 
-### **US-02 – Real-time Pronunciation Feedback UI**
+User Story 1: User Registration
+As a new user, I want to create an account using my email and password so that I can access the platform securely.
+Acceptance Criteria:
 
-Role: Frontend Developer
-Goal: Implement a recording widget that shows live feedback (score, waveform) during pronunciation practice.
-Reason: Immediate visual feedback improves practice quality and engagement.
-
-Acceptance:
-
-* Recorder works in Chrome and Safari on mobile and desktop.
-* Live waveform and provisional score update during recording.
-* User can re-record and see historical scores per phrase.
+* User can enter email, username, and password
+* Email must be unique
+* Password must meet security requirements
+* Confirmation message is shown after successful registration
 
 ---
 
-### **US-03 – Design System & Component Library**
+User Story 2: User Login
+As a registered user, I want to log in to my account so that I can access my boards and tasks.
+Acceptance Criteria:
 
-Role: Frontend Developer / Designer
-Goal: Create tokens, components, and Storybook docs for lessons, quizzes, progress bars, and modals.
-Reason: Consistent components accelerate feature development and ensure accessible UI.
-
-Acceptance:
-
-* Tokens for color, spacing, and typography documented in Storybook.
-* Components meet WCAG AA where applicable and include keyboard support.
-* Examples for lesson flow, recording widget, and progress components exist.
+* User can log in with valid credentials
+* Error shown for invalid credentials
+* Session is maintained after login
 
 ---
 
-### **US-04 – Interactive Transcript Editor**
+User Story 3: Create Workspace
+As a user, I want to create a workspace so that I can organize multiple projects under one space.
+Acceptance Criteria:
 
-Role: Frontend Developer
-Goal: Add an editor allowing users to correct ASR transcripts and tag phrases for review.
-Reason: Users can improve transcript quality and personalize study lists.
-
-Acceptance:
-
-* User edits persist and are saved with version metadata.
-* Tagging creates review items in the learner’s practice queue.
-* Editor shows timestamps and allows jumping to audio at timestamps.
+* User can name the workspace
+* Workspace is visible in dashboard
+* User becomes workspace admin
 
 ---
 
-## **2. Content & Learning Engine**
+User Story 4: Invite Team Members
+As a workspace admin, I want to invite team members so that they can collaborate on projects.
+Acceptance Criteria:
 
-### **US-05 – Lesson Management API**
-
-Role: Backend Developer
-Goal: Build endpoints to create, update, and fetch lessons with media, transcripts, and exercises.
-Reason: Backend must serve structured lesson data to frontends and mobile clients.
-
-Acceptance:
-
-* CRUD endpoints for lessons accept JSON + media references and return stable lesson IDs.
-* Lesson payload includes exercises, difficulty, expected duration, and supported languages.
-* API enforces authentication and validates lesson schema.
+* Admin can send invitation via email
+* Invited user receives notification
+* User can accept or reject invitation
 
 ---
 
-### **US-06 – User Progress & State Storage**
+User Story 5: Create Project Board
+As a user, I want to create a project board so that I can manage tasks visually.
+Acceptance Criteria:
 
-Role: Backend Developer
-Goal: Persist user progress, completed exercises, and personalized practice queues in Postgres.
-Reason: Accurate state enables spaced-repetition and resume functionality.
-
-Acceptance:
-
-* Progress schema includes timestamps, score history, and review queue weights (JSONB).
-* Endpoints support fetching progress with pagination and aggregation.
-* Migration scripts are provided and tested.
+* Board has a name and description
+* Board is linked to a workspace
+* Board creator is assigned admin role
 
 ---
 
-### **US-07 – Scoring & Evaluation Service**
+User Story 6: Add Members to Board
+As a board admin, I want to add members to a board so that they can contribute to tasks.
+Acceptance Criteria:
 
-Role: Backend Developer
-Goal: Implement a microservice to evaluate pronunciations against reference audio and return metrics.
-Reason: Centralized scoring allows consistent feedback across clients.
-
-Acceptance:
-
-* Service accepts audio chunks, runs evaluation, and returns metrics (accuracy, phoneme-level feedback).
-* Evaluation is idempotent and returns deterministic results for same input.
-* Service exposes health and metrics endpoints.
+* Admin can search users
+* Users can be added/removed
+* Roles (admin/member) can be assigned
 
 ---
 
-### **US-08 – Content Authoring Tooling**
+User Story 7: Create Task List
+As a user, I want to create lists (e.g., To Do, In Progress, Done) so that I can organize tasks by status.
+Acceptance Criteria:
 
-Role: Backend Developer / Frontend Developer
-Goal: Provide an internal tool to author lessons: upload audio, time-align transcripts, add exercises.
-Reason: Efficient content creation reduces time-to-market for new lessons.
-
-Acceptance:
-
-* Authoring UI supports audio upload, transcript alignment, and exercise creation.
-* Authoring changes are versioned and previewable in the lesson player.
-* Role-based permissions for authors and reviewers in the tool.
+* User can create, rename, and delete lists
+* Lists are displayed in order
 
 ---
 
-## **3. Machine Learning & Personalization**
+User Story 8: Create Task/Card
+As a user, I want to create tasks within lists so that I can track work items.
+Acceptance Criteria:
 
-### **US-09 – ASR Pipeline for Multilingual Support**
-
-Role: ML Engineer
-Goal: Build an ASR pipeline supporting real-time partials and final transcripts for target languages.
-Reason: High-quality transcripts power search, feedback, and study features.
-
-Acceptance:
-
-* Pipeline returns partials and final transcripts with timestamps and confidence scores.
-* Language detection selects appropriate ASR model automatically.
-* Transcripts stored with alignment metrics for frontend consumption.
+* Task has title and description
+* Task belongs to a list
+* Task creation is instant
 
 ---
 
-### **US-10 – Pronunciation Scoring Model**
+User Story 9: Assign Task to Member
+As a user, I want to assign tasks to team members so that responsibilities are clear.
+Acceptance Criteria:
 
-Role: ML Engineer
-Goal: Train a model to provide phoneme-level scoring and error categorization for learner speech.
-Reason: Granular feedback helps learners focus on specific pronunciation issues.
-
-Acceptance:
-
-* Model returns phoneme timings, error types (substitution, deletion, insertion), and overall score.
-* Model evaluated on a validation set with documented metrics.
-* Dockerized inference service with CPU fallback and GPU support.
+* Task can have one or multiple assignees
+* Assigned users receive notification
 
 ---
 
-### **US-11 – Adaptive Recommendation Engine**
+User Story 10: Move Tasks Between Lists
+As a user, I want to drag and drop tasks between lists so that I can update task progress.
+Acceptance Criteria:
 
-Role: ML Engineer
-Goal: Create a personalization model to recommend next lessons and review items based on performance.
-Reason: Personalization increases learning efficiency and retention.
-
-Acceptance:
-
-* Recommendations use recent scores, review spacing, and topic coverage to rank content.
-* Engine exposes an API returning top-N recommendations with rationale.
-* Offline batch process recalculates weights weekly; real-time updates adjust after practice sessions.
+* Drag-and-drop functionality works smoothly
+* Task status updates instantly
 
 ---
 
-### **US-12 – NLP Content Analysis**
+User Story 11: Add Due Dates
+As a user, I want to set due dates for tasks so that deadlines are tracked.
+Acceptance Criteria:
 
-Role: ML Engineer
-Goal: Extract key phrases, difficulty estimates, and named entities from lesson transcripts for tagging and search.
-Reason: Rich metadata enables advanced search and adaptive exercise generation.
-
-Acceptance:
-
-* Extracted metadata stored in lesson records (JSONB).
-* Difficulty estimates correlate with human-labeled samples.
-* Entities and keywords are searchable via API.
+* User can select date/time
+* Overdue tasks are highlighted
 
 ---
 
-### **US-13 – Model Optimization & CI**
+User Story 12: Add Comments to Tasks
+As a user, I want to comment on tasks so that I can communicate with team members.
+Acceptance Criteria:
 
-Role: ML Engineer
-Goal: Optimize models (quantization or pruning) and add model validation to CI to ensure stable deployments.
-Reason: Keep inference cost low and ensure production models are reliable.
-
-Acceptance:
-
-* Model optimization steps included in CI builds produce comparable metrics.
-* CI runs a small validation inference suite on PRs.
-* Optimized model images are automatically pushed to a registry.
+* Comments are timestamped
+* Comments show author name
+* Notifications sent to relevant users
 
 ---
 
-## **4. Infrastructure & Data**
+User Story 13: File Attachments
+As a user, I want to attach files to tasks so that I can share relevant documents.
+Acceptance Criteria:
 
-### **US-14 – Scalable Media Storage**
-
-Role: Backend Developer / DevOps
-Goal: Use S3-compatible storage for lesson media and presigned URLs for uploads and downloads.
-Reason: Efficiently store large audio/video assets and control access.
-
-Acceptance:
-
-* API issues presigned URLs for upload and verifies completion.
-* Thumbnails and low-bitrate derivatives are generated and referenced.
-* Storage access uses scoped signed URLs; public access avoided.
+* Supports multiple file types
+* Files are downloadable
+* Upload progress is shown
 
 ---
 
-### **US-15 – Real-time Metrics & Monitoring**
+User Story 14: Notifications System
+As a user, I want to receive notifications so that I stay updated on project activity.
+Acceptance Criteria:
 
-Role: DevOps Engineer
-Goal: Instrument services and ML workers with metrics and alerts (latency, error rates, queue depth).
-Reason: Observability ensures reliable user experience and timely intervention.
-
-Acceptance:
-
-* Prometheus metrics and Grafana dashboards for core services.
-* Alerts for high error rates, sustained queue growth, and low model throughput.
-* Runbook for common incidents documented.
+* Notifications for task assignment, comments, deadlines
+* Real-time or near real-time alerts
+* Notification panel accessible
 
 ---
 
-### **US-16 – Authentication & Roles**
+User Story 15: Activity Tracking & Logs
+As a project manager, I want to view activity logs so that I can monitor team contributions.
+Acceptance Criteria:
 
-Role: Backend Developer
-Goal: Implement JWT-based auth with role permissions for learners, authors, and admins.
-Reason: Secure access control across APIs and authoring tools.
-
-Acceptance:
-
-* JWT access + refresh tokens with short expiry and revocation.
-* Role-based permissions enforced server-side for protected endpoints.
-* Admin endpoints audit critical changes.
+* Logs include task creation, updates, and assignments
+* Filter by user/date
+* Displays commit-like history of actions
 
 ---
-
-## **5. Integrations & Product**
-
-### **US-17 – Third-Party Learning Analytics Export**
-
-Role: Backend Developer
-Goal: Export anonymized learning analytics to third-party dashboards (CSV / JSON webhook).
-Reason: Institutions want aggregated reports for compliance and assessment.
-
-Acceptance:
-
-* Export supports date ranges, cohort filters, and anonymization toggles.
-* Webhook retries and failure logging implemented.
-* Sample CSV format documented for consumers.
-
----
-
-### **US-18 – LMS Integration (LTI)**
-
-Role: Backend Developer
-Goal: Provide LTI endpoints to integrate lessons and scores with standard LMS systems.
-Reason: Universities and corporates require seamless LMS integration.
-
-Acceptance:
-
-* LTI launch flow implemented and tested with at least one LMS.
-* Grade/score synchronization works via LTI outcomes.
-* Docs show how to configure LTI consumer keys and destinations.
-
----
-
-### **US-19 – E2E Test for Learning Flow**
-
-Role: QA Engineer
-Goal: Create end-to-end tests that run a sample lesson, record speech, submit answers, and verify updated progress.
-Reason: Ensure production readiness of core learner flows.
-
-Acceptance:
-
-* Headless tests simulate recording and verify score persistence.
-* Tests run in CI with small mocked audio files.
-* Failures include artifacts and logs for debugging.
-
----
-
-### **US-20 – Launch Demo & Stakeholder Review**
-
-Role: Product Owner
-Goal: Prepare a demo showcasing the adaptive lesson, pronunciation feedback, and analytics for stakeholders.
-Reason: Validate product direction and gather feedback before MVP launch.
-
-Acceptance:
-
-* Demo covers lesson playback, live ASR, scoring, and recommendation adjustments.
-* Stakeholder feedback captured and prioritized.
-* Rollout plan and success metrics documented.
-

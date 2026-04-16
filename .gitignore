@@ -1,2 +1,11 @@
 .agents/
 skills-lock.json
+venv
+.gitignore
+
+# Byte-compiled / optimized / DLL files
+
+__pycache__
+*.py[cod]
+*$py.class
+.env
