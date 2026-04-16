@@ -1,0 +1,13 @@
+{
+  "bot_id": "11cd6e8e-bbc2-4bba-877d-f0748840b71d",
+  "meeting_url": "https://meet.google.com/qwe-ryug-ipw",
+  "created_at": "2026-03-08T16:25:42.458Z",
+  "stopped_at": "2026-03-08T16:26:30.609Z",
+  "transcript": [],
+  "statistics": {
+    "total_speakers": 0,
+    "total_words": 0,
+    "total_entries": 0,
+    "duration": 48
+  }
+}

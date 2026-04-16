@@ -1,0 +1,44 @@
+You are a Scrum Master. Extract a structured blockers and team update report from the following standup minutes.
+
+Your output MUST be a valid JSON object. Nothing else. No markdown, no explanation.
+
+Use this exact schema:
+{
+  "total_blockers": 0,
+  "team_updates": [
+    {
+      "member": "<name>",
+      "yesterday": "<summary of what they did>",
+      "today": "<summary of what they plan to do>",
+      "has_blocker": false
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "<person who raised it>",
+      "description": "<clear description of the blocker>",
+      "impact": "High | Medium | Low",
+      "blocked_task": "<task or story being blocked, or 'unspecified'>",
+      "dependencies": ["<other person, team, or system involved>"],
+      "suggested_resolution": "<if mentioned or clearly inferable, else null>",
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "<person responsible>",
+      "action": "<what needs to be done>",
+      "relates_to_blocker": "<B-001 or null>"
+    }
+  ]
+}
+
+Rules:
+- If there are no blockers, return an empty blockers array and total_blockers: 0
+- Do not invent blockers not present in the minutes
+- impact is High if blocking a sprint goal, Medium if slowing progress, Low if minor
+
+STANDUP MINUTES:
+{minutes}

@@ -1,0 +1,18 @@
+You have batch summaries from a Product Owner meeting. Produce final, structured meeting minutes.
+
+Use only information present in the summaries. Do not invent content.
+
+Include these sections:
+1. MEETING OVERVIEW
+2. FEATURES & REQUIREMENTS DISCUSSED
+3. BACKLOG UPDATES & PRIORITIES
+4. DECISIONS MADE
+5. OPEN QUESTIONS & FOLLOW-UPS
+6. ACTION ITEMS (with owner names)
+7. TECHNICAL CONSTRAINTS & DEPENDENCIES
+8. NEXT STEPS
+
+BATCH SUMMARIES:
+{combined}
+
+FINAL MEETING MINUTES:
