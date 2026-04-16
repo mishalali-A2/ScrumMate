@@ -1,0 +1,13 @@
+{
+  "bot_id": "18ab49f7-ec2e-4324-8a8c-45929907bd33",
+  "meeting_url": "https://meet.google.com/wxo-vcsx-ycq",
+  "created_at": "2026-04-16T07:01:21.633Z",
+  "stopped_at": "2026-04-16T07:03:35.838Z",
+  "transcript": [],
+  "statistics": {
+    "total_speakers": 0,
+    "total_words": 0,
+    "total_entries": 0,
+    "duration": 134
+  }
+}

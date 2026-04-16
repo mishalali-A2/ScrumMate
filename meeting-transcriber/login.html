@@ -3,109 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScrumMate - Welcome</title>
-    <link rel="stylesheet" href="style.css">
+    <title>ScrumMate — Sign in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --line: rgba(15, 23, 42, 0.12);
+            --line-2: rgba(15, 23, 42, 0.18);
+            --text-1: #0f172a;
+            --text-2: #334155;
+            --text-3: #64748b;
+            --accent: #2563eb;
+            --accent-2: #5de4ff;
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --radius: 12px;
+            --radius-sm: 10px;
+            --t: 140ms ease;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: auto; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            margin: 0;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.10), transparent 26%),
+                radial-gradient(circle at 18% 0%, rgba(93, 228, 255, 0.07), transparent 18%),
+                linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+            color: var(--text-1);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(180deg, #ffffff 0%, #fff4e6 40%, #ffd9ad 100%);
-        }
-        .landing-wrapper {
-            width: 100%;
-            max-width: 900px;
-            padding: 40px 32px 60px;
-            text-align: center;
-        }
-        .logo-block {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-            margin: 0 auto 40px;
-            width: fit-content;
-        }
-        .logo-image {
-            width: 150px;
-            height: 150px;
-            object-fit: contain;
-        }
-        .logo-text {
-            display: flex;
-            flex-direction: column;
             align-items: flex-start;
-        }
-        .app-title {
-            font-size: 3rem;
-            font-weight: 800;
-            color: #039c8b;
-            letter-spacing: 0.02em;
-        }
-        .tagline {
-            margin-top: 4px;
-            font-size: 0.95rem;
-            color: #555555;
-            max-width: 360px;
-        }
-        .button-row {
-            margin-top: 40px;
-            display: flex;
             justify-content: center;
-            gap: 32px;
+            padding: 46px 20px 30px;
         }
-        .cta-button {
-            min-width: 160px;
-            padding: 12px 24px;
+
+        .wrap {
+            width: 100%;
+            max-width: 860px;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: 0.95fr 1.05fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .brand-panel {
+            padding: 16px 16px;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            filter: saturate(1.05);
+        }
+
+        .brand-name {
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            font-size: 16px;
+        }
+
+        .brand-sub {
+            color: var(--text-3);
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 420px;
+        }
+
+        .proof-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .proof-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px 10px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.7);
+        }
+
+        .proof-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 999px;
-            border: 2px solid #01a58f;
-            background-color: white;
-            color: #01a58f;
-            font-size: 1.05rem;
-            font-weight: 600;
+            background: rgba(37, 99, 235, 0.20);
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+
+        .proof-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text-2);
+            margin-bottom: 2px;
+        }
+
+        .proof-meta {
+            font-size: 12.5px;
+            color: var(--text-3);
+            line-height: 1.5;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-head {
+            padding: 6px 6px 12px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .card-sub {
+            margin-top: 4px;
+            color: var(--text-3);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: grid;
+            gap: 9px;
+        }
+
+        .btn {
+            height: 42px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.8);
+            color: var(--text-2);
+            font: inherit;
+            font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+            transition: border-color var(--t), background var(--t), box-shadow var(--t), color var(--t);
         }
-        .cta-button:hover {
-            transform: translateY(-2px);
-            background-color: #01a58f;
-            color: white;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+
+        .btn:hover {
+            border-color: var(--line-2);
+            background: rgba(255,255,255,1);
         }
-        .cta-button:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+
+        .btn-primary {
+            border-color: rgba(37, 99, 235, 0.25);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.97), rgba(93, 228, 255, 0.55));
+            color: #ffffff;
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12) inset, 0 18px 40px rgba(37, 99, 235, 0.14);
         }
-        .footer-hint {
-            margin-top: 32px;
-            font-size: 0.9rem;
-            color: #777777;
+
+        .btn-primary:hover {
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.16) inset, 0 22px 50px rgba(37, 99, 235, 0.18);
         }
-        @media (max-width: 600px) {
-            .landing-wrapper {
-                padding-inline: 20px;
+
+        .hint {
+            margin-top: 12px;
+            color: var(--text-3);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            background: rgba(37, 99, 235, 0.06);
+            color: rgba(37, 99, 235, 1);
+            font-weight: 700;
+            font-size: 12.5px;
+        }
+
+        body.loading .loading { display: block; }
+
+        @media (max-width: 900px) {
+            .wrap {
+                grid-template-columns: 1fr;
             }
-            .logo-block {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-            .logo-text {
-                align-items: center;
-            }
-            .app-title {
-                font-size: 2.4rem;
-            }
-            .button-row {
-                flex-direction: column;
-                gap: 16px;
-            }
+            .proof-list { grid-template-columns: 1fr; }
         }
     </style>
-    <!-- Clerk JS: uses VITE_CLERK_PUBLISHABLE_KEY from .env -->
+
     <script
         async
         crossorigin="anonymous"
@@ -113,58 +216,130 @@
         src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js">
     </script>
 </head>
-<body>
-    <div class="landing-wrapper">
-        <div class="logo-block">
-            <!-- Logo on the left, text on the right -->
-            <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="logo-image">
-            <div class="logo-text">
-                <div class="app-title">ScrumMate</div>
-                <div class="tagline">Your personal automated Scrum Agent with real‑time meeting intelligence</div>
+
+<body class="loading">
+    <div class="wrap">
+        <div class="brand-panel">
+            <div class="brand-row">
+                <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="brand-logo">
+                <div class="brand-name">ScrumMate</div>
+            </div>
+
+            <div class="brand-sub">
+                Operate meeting intelligence with an engineered workflow: transcription, pipeline execution, and delivery-grade outputs.
+            </div>
+
+            <div class="proof-list">
+                <div class="proof-item">
+                    <div class="proof-dot"></div>
+                    <div>
+                        <div class="proof-title">Pipeline clarity</div>
+                        <div class="proof-meta">Track runs, verify outputs, and surface blockers with a high-signal view.</div>
+                    </div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-dot"></div>
+                    <div>
+                        <div class="proof-title">Operator speed</div>
+                        <div class="proof-meta">Fast actions and dense tables built for daily work, not demos.</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="button-row">
-            <button id="loginBtn" class="cta-button">Login</button>
-            <button id="signupBtn" class="cta-button">Sign Up</button>
-        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title">Sign in to your workspace</div>
+                <div class="card-sub">Use Clerk to authenticate. If you're already signed in, you'll be redirected automatically.</div>
+            </div>
 
-        <div class="footer-hint">
-            After signing in, you’ll be redirected to the ScrumMate transcriber.
+            <div class="actions">
+                <button id="loginBtn" class="btn btn-primary" type="button">Sign in</button>
+                <button id="signupBtn" class="btn" type="button">Create account</button>
+            </div>
+
+            <div class="hint">
+                After signing in, you're taken to the dashboard. Your pipeline state remains available for review.
+            </div>
+
+            <div class="loading" id="loadingStatus">Checking session…</div>
         </div>
     </div>
 
     <script>
-        function setupClerkAuth() {
-            if (!window.Clerk) {
-                // Clerk script may not be ready yet; try again shortly
-                setTimeout(setupClerkAuth, 50);
-                return;
-            }
+        function setUpClerk() {
+            if (!window.Clerk) return false;
+            return true;
+        }
 
-            window.Clerk.load().then(() => {
-                const loginBtn = document.getElementById('loginBtn');
-                const signupBtn = document.getElementById('signupBtn');
+        function redirectToDashboard() {
+            window.location.replace('/dashboard.html');
+        }
 
-                if (!loginBtn || !signupBtn) return;
+        function setupAuthButtons() {
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
 
-                loginBtn.addEventListener('click', () => {
-                    window.Clerk.openSignIn({
-                        redirectUrl: '/dashboard.html',
-                        afterSignInUrl: '/dashboard.html',
-                    });
+            if (!loginBtn || !signupBtn) return;
+
+            loginBtn.addEventListener('click', () => {
+                window.Clerk.openSignIn({
+                    redirectUrl: '/dashboard.html',
+                    afterSignInUrl: '/dashboard.html',
                 });
+            });
 
-                signupBtn.addEventListener('click', () => {
-                    window.Clerk.openSignUp({
-                        redirectUrl: '/dashboard.html',
-                        afterSignUpUrl: '/dashboard.html',
-                    });
+            signupBtn.addEventListener('click', () => {
+                window.Clerk.openSignUp({
+                    redirectUrl: '/dashboard.html',
+                    afterSignUpUrl: '/dashboard.html',
                 });
             });
         }
 
-        window.addEventListener('load', setupClerkAuth);
+        function boot() {
+            if (!setUpClerk()) {
+                setTimeout(boot, 50);
+                return;
+            }
+
+            window.Clerk.load().then(() => {
+                const clerk = window.Clerk;
+                const isAuthed = () => {
+                    // Clerk v4: after load, `clerk.session.user` is non-null when signed in.
+                    return !!(clerk && clerk.session && clerk.session.user);
+                };
+
+                // Some apps get session hydration slightly after `load()`, so retry briefly.
+                if (isAuthed()) {
+                    redirectToDashboard();
+                    return;
+                }
+
+                let tries = 0;
+                const t = setInterval(() => {
+                    tries += 1;
+                    if (isAuthed()) {
+                        clearInterval(t);
+                        redirectToDashboard();
+                        return;
+                    }
+                    if (tries >= 6) {
+                        clearInterval(t);
+                        document.body.classList.remove('loading');
+                        const loading = document.getElementById('loadingStatus');
+                        if (loading) loading.textContent = 'Ready';
+                        setupAuthButtons();
+                    }
+                }, 200);
+            }).catch(() => {
+                // If Clerk fails to initialize, still allow manual sign-in attempts.
+                document.body.classList.remove('loading');
+                setupAuthButtons();
+            });
+        }
+
+        window.addEventListener('load', boot);
     </script>
 </body>
 </html>

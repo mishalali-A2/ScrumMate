@@ -79,7 +79,7 @@ app.post('/api/create-bot', async (req, res) => {
                     realtime_endpoints: [
                         {
                             type: "webhook",
-                            url: ` https://subsonic-mafalda-unawake.ngrok-free.dev/webhook/transcription`,
+                            url: `https://subsonic-mafalda-unawake.ngrok-free.dev/webhook/transcription`,
                             events: ["transcript.data", "transcript.partial_data"]
                         }
                     ]

@@ -6,3 +6,5 @@ meetings
 summaries
 user_stories
 n8n
+../.agents
+../skills-lock.json
