@@ -560,70 +560,113 @@ function startPipelinePolling(meetingId) {
 }
 
 function updatePipelineProgress(progress) {
-    // Update step indicators based on progress message
-    const steps = ['chunking', 'embedding', 'summarization', 'userstories', 'assignment'];
-    const progressLower = progress.toLowerCase();
-    
-    for (let i = 0; i < steps.length; i++) {
-        const step = document.querySelector(`[data-step="${steps[i]}"]`);
-        if (progressLower.includes(steps[i]) || progressLower.includes(steps[i].replace('userstories', 'user stor'))) {
-            step.classList.add('active');
-            step.classList.remove('completed');
-        } else if (step.classList.contains('active')) {
-            step.classList.remove('active');
-            step.classList.add('completed');
-        }
-    }
+    const p = (progress || '').toLowerCase();
+    document.getElementById('pipelineStatus').textContent = progress || 'Processing…';
+
+    // Map progress message to (% width, active step)
+    let pct = 4, activeStep = 'chunking';
+    if (p.includes('chunk'))                                         { pct = 18; activeStep = 'chunking'; }
+    if (p.includes('embed'))                                         { pct = 42; activeStep = 'embedding'; }
+    if (p.includes('minut') || p.includes('summar'))                 { pct = 66; activeStep = 'summarization'; }
+    if (p.includes('stor') || p.includes('blocker') || p.includes('retro') || p.includes('assign')) { pct = 88; activeStep = 'userstories'; }
+
+    const fill = document.getElementById('pipeProgressFill');
+    if (fill) fill.style.width = pct + '%';
+
+    // Update stage label highlights
+    const stageOrder = ['chunking', 'embedding', 'summarization', 'userstories'];
+    const activeIdx  = stageOrder.indexOf(activeStep);
+    stageOrder.forEach((s, i) => {
+        const el = document.querySelector(`.pipe-stage[data-step="${s}"]`);
+        if (!el) return;
+        el.classList.remove('active', 'done');
+        if (i < activeIdx)  el.classList.add('done');
+        if (i === activeIdx) el.classList.add('active');
+    });
 }
 
 function showPipelineComplete(meetingId, result, actualMeetingId) {
-    // Mark all steps as completed
-    document.querySelectorAll('.pipeline-step').forEach(step => {
-        step.classList.remove('active');
-        step.classList.add('completed');
-    });
-    // Use actual meeting ID for results (files are named with this)
-    const resultsId = actualMeetingId || meetingId;
-    
+    // Progress bar → 100%
+    const fill = document.getElementById('pipeProgressFill');
+    if (fill) { fill.style.width = '100%'; fill.classList.remove('pulsing'); }
+
+    // All stage labels → done
+    document.querySelectorAll('.pipe-stage').forEach(el => { el.classList.remove('active'); el.classList.add('done'); });
+
+    // Header: swap to checkmark icon
+    const iconWrap = document.getElementById('pipeIconWrap');
+    if (iconWrap) iconWrap.className = 'pipe-icon-wrap done';
+    const icon = document.getElementById('pipeHeadIcon');
+    if (icon) icon.className = 'fas fa-check-circle';
+    const sub = document.getElementById('pipeSubtitle');
+    if (sub) sub.textContent = 'All outputs are ready.';
+
+    // Hide live-status text
+    document.getElementById('pipelineStatus').textContent = '';
+
+    // Build stats: type-aware label for stories/blockers
+    const typeIsStandup = selectedMeetingType === 'daily-standup';
+    const storyStat = typeIsStandup
+        ? { num: result?.blockers_count ?? 0, label: 'Blockers identified' }
+        : { num: result?.stories_count   ?? 0, label: 'User stories' };
+
     const resultDiv = document.getElementById('pipelineResult');
     resultDiv.innerHTML = `
-        <h3><i class="fas fa-check-circle"></i> Pipeline Complete</h3>
-        <div class="result-stats">
-            <div><strong>Chunks created:</strong> ${result.chunks_count}</div>
-            <div><strong>User stories:</strong> ${result.stories_count}</div>
-        </div>
-        <div class="result-actions">
-            <button onclick="viewPipelineResults('${meetingId}')" class="btn btn-primary">
-                <i class="fas fa-eye"></i> View Results
-            </button>
-        </div>
-    `;
+        <div class="pipe-result-card">
+            <div class="pipe-result-title">
+                <i class="fas fa-check-circle"></i> Analysis complete
+            </div>
+            <div class="pipe-stats">
+                <div class="pipe-stat">
+                    <div class="pipe-stat-num">${result?.chunks_count ?? '—'}</div>
+                    <div class="pipe-stat-label">Transcript chunks</div>
+                </div>
+                <div class="pipe-stat">
+                    <div class="pipe-stat-num">${storyStat.num}</div>
+                    <div class="pipe-stat-label">${storyStat.label}</div>
+                </div>
+            </div>
+            <div class="pipe-result-actions">
+                <a href="meetings.html" class="pipe-btn pipe-btn-primary">
+                    <i class="fas fa-history"></i> View in Past Meetings
+                </a>
+                <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">
+                    Close
+                </button>
+            </div>
+        </div>`;
     resultDiv.style.display = 'block';
-    // Store for viewPipelineResults - use request id, API will resolve to actual
     resultDiv.dataset.resultsMeetingId = meetingId;
 }
 
 function showPipelineError(error, stage = null, meetingIdForResults = null) {
-    // Mark failed step
-    if (stage) {
-        const step = document.querySelector(`[data-step="${stage}"]`);
-        if (step) {
-            step.classList.remove('active');
-            step.classList.add('error');
-        }
-    }
-    
+    // Progress bar — stop pulsing, tint red
+    const fill = document.getElementById('pipeProgressFill');
+    if (fill) { fill.classList.remove('pulsing'); fill.style.background = 'var(--danger)'; }
+
+    // Header icon → error
+    const iconWrap = document.getElementById('pipeIconWrap');
+    if (iconWrap) iconWrap.className = 'pipe-icon-wrap fail';
+    const icon = document.getElementById('pipeHeadIcon');
+    if (icon) icon.className = 'fas fa-exclamation-circle';
+    const sub = document.getElementById('pipeSubtitle');
+    if (sub) sub.textContent = 'Something went wrong.';
+
+    document.getElementById('pipelineStatus').textContent = '';
+
     const errorDiv = document.getElementById('pipelineError');
     errorDiv.innerHTML = `
-        <h3><i class="fas fa-exclamation-circle"></i> Pipeline Failed</h3>
-        <p>${error}</p>
-        ${stage ? `<p class="error-stage">Failed at: ${stage}</p>` : ''}
-        ${meetingIdForResults ? `
-            <button onclick="viewPipelineResults('${meetingIdForResults}')" class="btn btn-secondary" style="margin-top:12px">
-                <i class="fas fa-eye"></i> Try View Results
-            </button>
-        ` : ''}
-    `;
+        <div class="pipe-error-card">
+            <div class="pipe-error-title"><i class="fas fa-times-circle"></i> Pipeline failed</div>
+            <div class="pipe-error-msg">${error}</div>
+            ${stage ? `<div class="pipe-error-stage">Stage: ${stage}</div>` : ''}
+            ${meetingIdForResults ? `
+                <div style="margin-top:12px">
+                    <button onclick="viewPipelineResults('${meetingIdForResults}')" class="pipe-btn pipe-btn-ghost">
+                        <i class="fas fa-eye"></i> Check partial results
+                    </button>
+                </div>` : ''}
+        </div>`;
     errorDiv.style.display = 'block';
 }
 
@@ -776,6 +819,9 @@ async function viewPipelineResults(meetingId) {
 
 function closePipelineModal() {
     document.getElementById('pipelineModal').style.display = 'none';
+    // Reset progress bar colour so it's clean next time
+    const fill = document.getElementById('pipeProgressFill');
+    if (fill) fill.style.background = '';
     if (pipelinePollingInterval) {
         clearInterval(pipelinePollingInterval);
         pipelinePollingInterval = null;
