@@ -1,9 +1,8 @@
-"""
-Main pipeline for processing meeting transcripts.
+"""Main pipeline for processing meeting transcripts.
 
 Pipeline stages vary by meeting type:
 
-  Product Owner:     Chunking -> Embedding -> Minutes -> User Stories -> Assignment
+  Product Owner:     Chunking -> Embedding -> Minutes -> User Stories -> Assignment -> n8n Trigger
   Daily Standup:     Chunking -> Embedding -> Minutes -> Blockers Report
   Retrospective:     Chunking -> Embedding -> Minutes -> Retro Analysis
 """
@@ -15,9 +14,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 
+import requests  # for n8n trigger
+
 from config import (
     CHUNKS_DIR, SUMMARIES_DIR, USER_STORIES_DIR, STANDUPS_DIR, RETROSPECTIVES_DIR,
     MEETING_TYPE_PO, MEETING_TYPE_STANDUP, MEETING_TYPE_RETRO, VALID_MEETING_TYPES,
+    N8N_BASE_URL, N8N_API_KEY, N8N_WORKFLOW_ID, N8N_ENABLED,
 )
 from services import (
     ChunkingService,
@@ -30,6 +32,94 @@ from services import (
 )
 
 
+# ========== n8n Trigger Service (embedded) ==========
+class N8nTriggerService:
+    """Trigger an n8n workflow with user stories data."""
+    def __init__(self, base_url: str, api_key: str, workflow_id: str):
+        self.base_url = base_url.rstrip('/')
+        self.workflow_id = workflow_id
+        self.headers = {'Content-Type': 'application/json'}
+        if api_key:
+            self.headers['X-N8N-API-KEY'] = api_key
+
+    def trigger_workflow(self, stories_data: Dict[str, Any]) -> bool:
+        stories_json_str = json.dumps(stories_data, ensure_ascii=False, indent=2)
+        payload = {"userStories": stories_json_str}
+        return self._trigger_webhook_or_run(payload)
+
+    def _trigger_webhook_or_run(self, payload: dict) -> bool:
+        info_url = f"{self.base_url}/api/v1/workflows/{self.workflow_id}"
+        try:
+            resp = requests.get(info_url, headers=self.headers, timeout=10)
+            if resp.status_code == 200:
+                info = resp.json()
+                webhook_node = self._find_webhook_node(info)
+                if webhook_node:
+                    path, method = self._normalize_webhook(webhook_node)
+                    return self._call_webhook(path, method, payload)
+        except Exception as e:
+            print(f"⚠️ n8n webhook detection failed: {e}")
+        return self._call_run_api(payload)
+
+    def _find_webhook_node(self, workflow_info: dict) -> Optional[dict]:
+        nodes = workflow_info.get("nodes") or workflow_info.get("workflow", {}).get("nodes", []) or []
+        for n in nodes:
+            t = n.get("type", "") or ""
+            if "webhook" in t.lower() or n.get("typeName", "").lower() == "webhook":
+                return n
+        return None
+
+    def _normalize_webhook(self, node: dict):
+        params = node.get("parameters", {}) or {}
+        raw_path = params.get("path") or params.get("webhookPath") or params.get("pathValue") or ""
+        raw_path = str(raw_path).strip()
+        method = params.get("httpMethod") or params.get("method") or "POST"
+        if isinstance(method, (list, tuple)) and method:
+            method = method[0]
+        method = str(method).upper() if method else "POST"
+
+        if not raw_path:
+            norm = "/webhook"
+        elif raw_path.startswith("/"):
+            norm = raw_path
+        elif "webhook" in raw_path.lower():
+            norm = "/" + raw_path
+        else:
+            norm = "/webhook/" + raw_path
+        return norm, method
+
+    def _call_webhook(self, path: str, method: str, payload: dict) -> bool:
+        url = self.base_url + path
+        try:
+            if method == "GET":
+                resp = requests.get(url, params=payload, timeout=30)
+            else:
+                resp = requests.post(url, json=payload, timeout=30)
+            if 200 <= resp.status_code < 300:
+                print("✅ n8n workflow triggered via webhook")
+                return True
+            print(f"⚠️ n8n webhook returned {resp.status_code}")
+            return False
+        except Exception as e:
+            print(f"⚠️ n8n webhook call failed: {e}")
+            return False
+
+    def _call_run_api(self, payload: dict) -> bool:
+        url = f"{self.base_url}/api/v1/workflows/{self.workflow_id}/run"
+        run_payload = {"inputData": payload.get("userStories", "")}
+        try:
+            resp = requests.post(url, headers=self.headers, json=run_payload, timeout=30)
+            if 200 <= resp.status_code < 300:
+                print("✅ n8n workflow triggered via /run API")
+                return True
+            print(f"⚠️ n8n /run returned {resp.status_code}")
+            return False
+        except Exception as e:
+            print(f"⚠️ n8n /run failed: {e}")
+            return False
+
+
+# ========== Pipeline Classes ==========
 @dataclass
 class PipelineResult:
     """Result of a pipeline run."""
@@ -39,24 +129,16 @@ class PipelineResult:
     chunks_path: Optional[Path] = None
     chunks_count: int = 0
     minutes_path: Optional[Path] = None
-    # PO meeting outputs
     stories_path: Optional[Path] = None
     stories_count: int = 0
     assignments_path: Optional[Path] = None
-    # Standup outputs
     blockers_path: Optional[Path] = None
-    # Retro outputs
     retro_path: Optional[Path] = None
     error: Optional[str] = None
     error_stage: Optional[str] = None
 
 
 class MeetingPipeline:
-    """
-    Orchestrates the meeting transcript processing pipeline.
-    Stages are selected based on meeting_type.
-    """
-
     def __init__(self):
         self.chunking = ChunkingService()
         self.embedding = EmbeddingService()
@@ -66,56 +148,42 @@ class MeetingPipeline:
         self.blockers = BlockersService()
         self.retro = RetroService()
 
-    def extract_meeting_id(self, transcript_data: Dict[str, Any]) -> str:
-        """Extract a clean meeting ID from transcript data."""
-        meeting_url = transcript_data.get("meeting_url", "")
+        # Initialise n8n trigger if enabled
+        if N8N_ENABLED and N8N_BASE_URL and N8N_WORKFLOW_ID:
+            self.n8n = N8nTriggerService(N8N_BASE_URL, N8N_API_KEY, N8N_WORKFLOW_ID)
+        else:
+            self.n8n = None
+            if N8N_ENABLED:
+                print("⚠️ n8n integration enabled but missing config (BASE_URL/WORKFLOW_ID) – skipping")
 
+    def extract_meeting_id(self, transcript_data: Dict[str, Any]) -> str:
+        meeting_url = transcript_data.get("meeting_url", "")
         match = re.search(r"meet\.google\.com/([a-z]{3}-[a-z]{4}-[a-z]{3})", meeting_url)
         if match:
             return match.group(1)
-
         bot_id = transcript_data.get("bot_id", "")
         if bot_id:
             return bot_id[:12]
-
         return "meeting-unknown"
 
-    def run(
-        self,
-        transcript_path: Path,
-        meeting_type: str = MEETING_TYPE_PO,
-        skip_assignment: bool = False,
-    ) -> PipelineResult:
-        """
-        Run the pipeline on a transcript file.
-
-        Args:
-            transcript_path: Path to the transcript JSON file
-            meeting_type: 'product-owner', 'daily-standup', or 'retrospective'
-            skip_assignment: If True, skip assignment step (PO meeting only)
-
-        Returns:
-            PipelineResult with all output paths and status
-        """
-        # Validate and normalise meeting type
+    def run(self, transcript_path: Path, meeting_type: str = MEETING_TYPE_PO, skip_assignment: bool = False) -> PipelineResult:
+        # Validate meeting type
         if meeting_type not in VALID_MEETING_TYPES:
             print(f"Unknown meeting type '{meeting_type}', defaulting to product-owner")
             meeting_type = MEETING_TYPE_PO
 
-        # --- Load transcript ---
+        # Load transcript
         try:
             with open(transcript_path, "r", encoding="utf-8") as f:
                 transcript_data = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError) as e:
-            return PipelineResult(
-                success=False, meeting_id="unknown", meeting_type=meeting_type,
-                error=f"Failed to load transcript: {e}", error_stage="load"
-            )
+            return PipelineResult(success=False, meeting_id="unknown", meeting_type=meeting_type,
+                                  error=f"Failed to load transcript: {e}", error_stage="load")
 
         meeting_id = self.extract_meeting_id(transcript_data)
         result = PipelineResult(success=False, meeting_id=meeting_id, meeting_type=meeting_type)
 
-        # --- Stage 1: Chunking ---
+        # Stage 1: Chunking
         print(f"[1/4] Chunking transcript for meeting: {meeting_id} (type: {meeting_type})")
         try:
             chunks = self.chunking.process_transcript(transcript_data, meeting_id)
@@ -130,7 +198,7 @@ class MeetingPipeline:
             result.error_stage = "chunking"
             return result
 
-        # --- Stage 2: Embeddings ---
+        # Stage 2: Embeddings
         print(f"[2/4] Generating embeddings and storing in vector database")
         try:
             added = self.embedding.add_chunks(chunks)
@@ -140,7 +208,7 @@ class MeetingPipeline:
             result.error_stage = "embedding"
             return result
 
-        # --- Stage 3: Summarization (meeting-type-aware prompts) ---
+        # Stage 3: Summarization
         print(f"[3/4] Generating meeting minutes")
         try:
             meeting_meta = {
@@ -159,13 +227,11 @@ class MeetingPipeline:
             result.error_stage = "summarization"
             return result
 
-        # --- Stage 4: Type-specific analysis ---
+        # Stage 4: Type-specific analysis
         if meeting_type == MEETING_TYPE_PO:
             return self._run_po_stages(result, minutes, meeting_id, skip_assignment)
-
         elif meeting_type == MEETING_TYPE_STANDUP:
             return self._run_standup_stages(result, minutes, meeting_id)
-
         elif meeting_type == MEETING_TYPE_RETRO:
             return self._run_retro_stages(result, minutes, meeting_id)
 
@@ -175,15 +241,7 @@ class MeetingPipeline:
     # ------------------------------------------------------------------
     # Stage 4 variants
     # ------------------------------------------------------------------
-
-    def _run_po_stages(
-        self,
-        result: PipelineResult,
-        minutes: str,
-        meeting_id: str,
-        skip_assignment: bool,
-    ) -> PipelineResult:
-        """User stories + assignment for PO meetings."""
+    def _run_po_stages(self, result: PipelineResult, minutes: str, meeting_id: str, skip_assignment: bool) -> PipelineResult:
         print(f"[4/4] Generating user stories")
         try:
             stories = self.userstory.generate_stories(minutes)
@@ -204,7 +262,6 @@ class MeetingPipeline:
                 profiles = self.assignment.load_profiles()
                 assignment_result = self.assignment.assign_stories(stories, profiles)
                 self.assignment.save_profiles(assignment_result["updated_profiles"])
-
                 assignments_path = USER_STORIES_DIR / f"{meeting_id}_assignments.json"
                 with open(assignments_path, "w", encoding="utf-8") as f:
                     json.dump(assignment_result["assignments"], f, indent=2)
@@ -217,17 +274,28 @@ class MeetingPipeline:
         else:
             print(f"      Skipping assignment step")
 
+        # ---------- NEW: Trigger n8n workflow with the generated user stories ----------
+        if self.n8n and result.stories_path and result.stories_path.exists():
+            print("      Triggering n8n workflow with user stories...")
+            try:
+                with open(result.stories_path, "r", encoding="utf-8") as f:
+                    stories_data = json.load(f)
+                success = self.n8n.trigger_workflow(stories_data)
+                if success:
+                    print("      ✅ n8n workflow triggered successfully")
+                else:
+                    print("      ⚠️ n8n trigger failed (check n8n logs)")
+            except Exception as e:
+                print(f"      ⚠️ n8n trigger error: {e}")
+        else:
+            if N8N_ENABLED and not self.n8n:
+                print("      ℹ️ n8n integration not configured – skipping trigger")
+
         result.success = True
         print(f"\nPipeline completed for {meeting_id} ({MEETING_TYPE_PO})")
         return result
 
-    def _run_standup_stages(
-        self,
-        result: PipelineResult,
-        minutes: str,
-        meeting_id: str,
-    ) -> PipelineResult:
-        """Blockers report for Daily Standup meetings."""
+    def _run_standup_stages(self, result: PipelineResult, minutes: str, meeting_id: str) -> PipelineResult:
         print(f"[4/4] Generating blockers report")
         try:
             blockers_path = self.blockers.generate_and_save(minutes, meeting_id)
@@ -237,18 +305,11 @@ class MeetingPipeline:
             result.error = f"Blockers report generation failed: {e}"
             result.error_stage = "blockers"
             return result
-
         result.success = True
         print(f"\nPipeline completed for {meeting_id} ({MEETING_TYPE_STANDUP})")
         return result
 
-    def _run_retro_stages(
-        self,
-        result: PipelineResult,
-        minutes: str,
-        meeting_id: str,
-    ) -> PipelineResult:
-        """Retro analysis for Retrospective meetings."""
+    def _run_retro_stages(self, result: PipelineResult, minutes: str, meeting_id: str) -> PipelineResult:
         print(f"[4/4] Generating retrospective analysis")
         try:
             retro_path = self.retro.generate_and_save(minutes, meeting_id)
@@ -258,7 +319,6 @@ class MeetingPipeline:
             result.error = f"Retro analysis generation failed: {e}"
             result.error_stage = "retro"
             return result
-
         result.success = True
         print(f"\nPipeline completed for {meeting_id} ({MEETING_TYPE_RETRO})")
         return result
@@ -269,7 +329,7 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python pipeline.py <transcript.json> [--type=product-owner|daily-standup|retrospective] [--skip-assignment]")
         print("\nPipeline stages by meeting type:")
-        print("  product-owner  : Chunking -> Embedding -> Minutes -> User Stories -> Assignment")
+        print("  product-owner  : Chunking -> Embedding -> Minutes -> User Stories -> Assignment -> n8n Trigger")
         print("  daily-standup  : Chunking -> Embedding -> Minutes -> Blockers Report")
         print("  retrospective  : Chunking -> Embedding -> Minutes -> Retro Analysis")
         sys.exit(1)

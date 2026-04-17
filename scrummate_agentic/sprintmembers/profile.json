@@ -22,7 +22,7 @@
       "Building interactive dashboards",
       "Client-facing web applications"
     ],
-    "assigned_effort_points": 8
+    "assigned_effort_points": 24
   },
   {
     "name": "Ayaan Mughal",
@@ -126,6 +126,6 @@
       "Building responsive web apps",
       "Optimizing backend algorithms and APIs"
     ],
-    "assigned_effort_points": 18
+    "assigned_effort_points": 28
   }
 ]

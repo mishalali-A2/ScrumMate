@@ -1,0 +1,104 @@
+{
+  "bot_id": "6bb75dbc-2101-49ae-9876-09449be38799",
+  "meeting_url": "https://meet.google.com/xfk-fyiw-eph",
+  "created_at": "2026-04-17T01:04:14.252Z",
+  "stopped_at": "2026-04-17T01:06:01.593Z",
+  "transcript": [
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Hello. So today we're gonna talk about our new project at hand.",
+      "timestamp": "2026-04-17T01:04:40.007Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "We're going to be making a Task Tracker Web app for internal use. Nothing to",
+      "timestamp": "2026-04-17T01:04:48.456Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "complex just something where users can manage their daily tasks.",
+      "timestamp": "2026-04-17T01:04:48.776Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Users should be able to complete you, create create tasks smart and as completed",
+      "timestamp": "2026-04-17T01:04:57.834Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "and maybe organize them a bit.",
+      "timestamp": "2026-04-17T01:04:58.158Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "For authentication, we can keep it minimal and just basic sign up and login can",
+      "timestamp": "2026-04-17T01:05:09.292Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "be done. No, authorization or any thing fancy?",
+      "timestamp": "2026-04-17T01:05:09.625Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "For UI. I am thinking simple dashboard where tasks are listed. Maybe we can have",
+      "timestamp": "2026-04-17T01:05:18.392Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "sections like Pending in computer.",
+      "timestamp": "2026-04-17T01:05:18.713Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Should be kept clean and minimal.",
+      "timestamp": "2026-04-17T01:05:23.291Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "The tasks have deadline, but let's skip priorities for now. Do keeps go small.",
+      "timestamp": "2026-04-17T01:05:31.785Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "We should also allow users to edit and delete tasks. Do we really need?",
+      "timestamp": "2026-04-17T01:05:40.076Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Do we need a real-time updates? No, actually, we need a refresh based updates.",
+      "timestamp": "2026-04-17T01:05:47.637Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "And all of this should be tested and delivered by in one sprint.",
+      "timestamp": "2026-04-17T01:05:55.487Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "So, let's get to work.",
+      "timestamp": "2026-04-17T01:05:57.481Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 166,
+    "total_entries": 15,
+    "duration": 107
+  }
+}

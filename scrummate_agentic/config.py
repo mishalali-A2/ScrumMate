@@ -65,3 +65,9 @@ ASSIGNMENT_BATCH_SIZE = 10
 
 # RAG Configuration
 RAG_MAX_CHUNKS = 5
+
+# ========== n8n Integration ==========
+N8N_BASE_URL = "http://localhost:5678"           # Change to your n8n instance
+N8N_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTA4ZTkxNi04YWIyLTQ1ZTQtYTQxYy03MWJiMzI0MzgxNTMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY1MjM0NjAzfQ.hJPE1Shr5HgJOyM-9QybTLmWIcq2wUhTMxCYvx3US3o"
+N8N_WORKFLOW_ID = "JgL4ipoMjAxDsZMJ"
+N8N_ENABLED = True                               # Set False to disable triggering
