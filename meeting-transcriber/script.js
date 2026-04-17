@@ -1,81 +1,196 @@
-class MeetingTranscriber {
+/**
+ * Recall.ai: bot has actually entered the call (not only HTTP 200 from create-bot).
+ * @see https://docs.recall.ai/docs/bot-status-change-events
+ */
+const RECALL_BOT_IN_CALL = new Set(['in_call_recording', 'in_call_not_recording']);
+
+function recallStatusLabel(code) {
+    const map = {
+        joining_call: 'Joining call…',
+        in_waiting_room: 'In waiting room…',
+        in_call_recording: 'In call — live',
+        in_call_not_recording: 'In call — live',
+        call_ended: 'Call ended',
+        recording_done: 'Recording finished',
+        bot_errored: 'Error',
+    };
+    return map[code] || (code ? String(code).replace(/_/g, ' ') : 'Connecting…');
+}
+
+class MeetingLauncher {
     constructor() {
-        this.currentBotId = null;
-        this.pollingInterval = null;
-        this.updateInterval = 3000; // Poll every 3 seconds
-        
-        this.bindEvents();
-        this.checkServer();
+        document.getElementById('startBtn')?.addEventListener('click', () => this.startTranscription());
+        this.checkServerQuiet();
     }
-    
-    bindEvents() {
-        document.getElementById('startBtn').addEventListener('click', () => this.startTranscription());
-        document.getElementById('stopBtn').addEventListener('click', () => this.stopTranscription());
-        document.getElementById('clearBtn').addEventListener('click', () => this.clearTranscript());
-        document.getElementById('copyBtn').addEventListener('click', () => this.copyTranscript());
+
+    /** Updates the topbar dot + label: 'inactive' | 'joining' | 'live' */
+    setTopbarStatus(state) {
+        const dot   = document.getElementById('botStatusDot');
+        const label = document.getElementById('botStatusLabel');
+        if (!dot || !label) return;
+        const states = { inactive: 'Inactive', joining: 'Joining', live: 'Live' };
+        dot.className   = `tx-bot-dot tx-bot-dot--${state}`;
+        label.className = `tx-bot-label tx-bot-label--${state}`;
+        label.textContent = states[state] ?? 'Inactive';
     }
-    
-    async checkServer() {
-        try {
-            const response = await fetch('/api/bots');
-            if (response.ok) {
-                this.updateStatus('Server connected', 'success');
-            }
-        } catch (error) {
-            this.updateStatus('Server not responding', 'error');
+
+    async checkServerQuiet() {
+        try { await fetch('/api/bots'); } catch { /* non-blocking */ }
+    }
+
+    setConnecting(message, isError = false) {
+        const el = document.getElementById('txConnecting');
+        if (!el) return;
+        if (!message) {
+            el.hidden = true;
+            el.textContent = '';
+            el.classList.remove('tx-connecting--error');
+            return;
         }
+        el.hidden = false;
+        el.textContent = message;
+        el.classList.toggle('tx-connecting--error', isError);
     }
-    
+
     async startTranscription() {
         const meetingUrl = document.getElementById('meetingUrl').value.trim();
-
-        // Capture selected meeting type for pipeline use later
-        if (document.getElementById('retrospective').checked) selectedMeetingType = 'retrospective';
-        else if (document.getElementById('dailyStandup').checked) selectedMeetingType = 'daily-standup';
-        else selectedMeetingType = 'product-owner';
-
-        console.log("Meeting type:", selectedMeetingType);
+        const meetingTypeSelect = document.getElementById('meetingTypeSelect');
+        if (meetingTypeSelect?.value) {
+            selectedMeetingType = meetingTypeSelect.value;
+        } else if (document.getElementById('retrospective')?.checked) {
+            selectedMeetingType = 'retrospective';
+        } else if (document.getElementById('dailyStandup')?.checked) {
+            selectedMeetingType = 'daily-standup';
+        } else {
+            selectedMeetingType = 'product-owner';
+        }
 
         if (!meetingUrl) {
             alert('Please enter a Google Meet URL');
             return;
         }
-        
         if (!meetingUrl.includes('meet.google.com')) {
             alert('Please enter a valid Google Meet URL');
             return;
         }
-        
-        this.updateStatus('Creating bot and joining meeting...', 'processing');
-        
+
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn) startBtn.disabled = true;
+        this.setTopbarStatus('joining');
+        this.setConnecting('Creating bot…');
+
         try {
             const response = await fetch('/api/create-bot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ meetingUrl })
+                body: JSON.stringify({ meetingUrl, meetingType: selectedMeetingType }),
             });
-            
             const data = await response.json();
-            
-            if (data.success) {
-                this.currentBotId = data.botId;
-                this.updateStatus(data.message, 'success');
-                this.showBotInfo(data.botId);
-                
-                // Enable stop button
-                document.getElementById('stopBtn').disabled = false;
-                document.getElementById('startBtn').disabled = true;
-                
-                // Start polling for updates
-                this.startPolling();
-            } else {
-                this.updateStatus('Error: ' + (data.error?.detail || data.error || 'Unknown error'), 'error');
+
+            if (!data.success) {
+                this.setConnecting(String(data.error?.detail || data.error || 'Could not create bot'), true);
+                this.setTopbarStatus('inactive');
+                if (startBtn) startBtn.disabled = false;
+                return;
             }
+
+            sessionStorage.setItem('scmate_meeting_type', selectedMeetingType);
+            await this.waitUntilInCall(data.botId);
         } catch (error) {
-            this.updateStatus('Connection error: ' + error.message, 'error');
+            this.setConnecting('Connection error: ' + error.message, true);
+            this.setTopbarStatus('inactive');
+            if (startBtn) startBtn.disabled = false;
         }
     }
-    
+
+    async waitUntilInCall(botId) {
+        const startBtn = document.getElementById('startBtn');
+        const maxMs = 240000;
+        const t0 = Date.now();
+        this.setConnecting('Waiting to enter the call…');
+
+        while (Date.now() - t0 < maxMs) {
+            try {
+                const r = await fetch(`/api/bot/${botId}`);
+                const data = await r.json();
+                if (data.success && data.bot) {
+                    const code = data.bot.status;
+
+                    // Primary: status code from Recall (works with webhooks / public URL)
+                    const statusKnown = RECALL_BOT_IN_CALL.has(code);
+
+                    // Fallback: transcript data arriving means the bot is live in the call.
+                    // This covers local dev where webhooks can't reach localhost so
+                    // status_changes stays empty, but the transcript endpoint still works.
+                    const transcriptLive = data.hasTranscript === true;
+
+                    if (statusKnown || transcriptLive) {
+                        this.setTopbarStatus('live');
+                        window.location.href = `session.html?bot=${encodeURIComponent(botId)}`;
+                        return;
+                    }
+
+                    // Update the connecting label only when we have a meaningful status
+                    if (code && code !== 'unknown') {
+                        this.setConnecting(recallStatusLabel(code));
+                    }
+                }
+            } catch {
+                /* keep polling */
+            }
+            await new Promise((res) => setTimeout(res, 2000));
+        }
+
+        this.setConnecting('The bot did not enter the call in time. Check Google Meet, then try again.', true);
+        this.setTopbarStatus('inactive');
+        if (startBtn) startBtn.disabled = false;
+    }
+}
+
+class MeetingSession {
+    constructor() {
+        const params = new URLSearchParams(window.location.search);
+        this.currentBotId = params.get('bot');
+        if (!this.currentBotId) {
+            window.location.href = 'index.html';
+            return;
+        }
+        this.pollingInterval = null;
+        this.updateInterval = 3000;
+        selectedMeetingType = sessionStorage.getItem('scmate_meeting_type') || 'product-owner';
+
+        this.bindEvents();
+        this.checkServerQuiet();
+
+        const pending = params.get('pending') === '1';
+        const banner = document.getElementById('sessionPendingBanner');
+        if (pending && banner) banner.hidden = false;
+
+        this.showBotInfo(this.currentBotId);
+        const stopBtn = document.getElementById('stopBtn');
+        if (stopBtn) stopBtn.disabled = false;
+        this.startPolling();
+    }
+
+    bindEvents() {
+        document.getElementById('stopBtn')?.addEventListener('click', () => this.stopTranscription());
+        document.getElementById('clearBtn')?.addEventListener('click', () => this.clearTranscript());
+        document.getElementById('copyBtn')?.addEventListener('click', () => this.copyTranscript());
+    }
+
+    async checkServerQuiet() {
+        const dot = document.getElementById('serverHealth');
+        try {
+            const response = await fetch('/api/bots');
+            if (!response.ok) throw new Error('bad');
+            dot?.classList.remove('is-off');
+            if (dot) dot.removeAttribute('title');
+        } catch {
+            dot?.classList.add('is-off');
+            if (dot) dot.title = 'Cannot reach app server';
+        }
+    }
+
     async stopTranscription() {
         if (!this.currentBotId) return;
         
@@ -107,8 +222,9 @@ class MeetingTranscriber {
                 }
                 
                 // Update UI
-                document.getElementById('stopBtn').disabled = true;
-                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn') && (document.getElementById('stopBtn').disabled = true);
+                const startBtn = document.getElementById('startBtn');
+                if (startBtn) startBtn.disabled = false;
                 this.hideBotInfo();
                 
                 // Clear bot ID
@@ -148,8 +264,8 @@ class MeetingTranscriber {
             const data = await response.json();
             
             if (data.success) {
-                // Update status
-                document.getElementById('botStatus').textContent = data.bot.status;
+                const bs = document.getElementById('botStatus');
+                if (bs) bs.textContent = data.bot.status;
                 
                 // Update transcript if available
                 if (data.hasTranscript && data.transcript.length > 0) {
@@ -158,10 +274,9 @@ class MeetingTranscriber {
                     // Show waiting message
                     const transcriptContainer = document.getElementById('transcript');
                     transcriptContainer.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-microphone-alt"></i>
-                            <p>Listening... Bot status: ${data.bot.status}</p>
-                            <p>Transcript will appear when speech is detected</p>
+                        <div class="tx-empty">
+                            <p><strong>${recallStatusLabel(data.bot?.status)}</strong></p>
+                            <p>Transcript appears when speech is detected.</p>
                         </div>
                     `;
                 }
@@ -176,9 +291,8 @@ class MeetingTranscriber {
         
         if (!transcriptData || transcriptData.length === 0) {
             transcriptContainer.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-microphone-alt-slash"></i>
-                    <p>No speech detected yet. The bot is listening...</p>
+                <div class="tx-empty">
+                    <p>No speech yet — the bot is still listening.</p>
                 </div>
             `;
             this.updateStats(0, 0);
@@ -200,7 +314,7 @@ class MeetingTranscriber {
             transcriptHTML += `
                 <div class="speaker-block">
                     <div class="speaker-header">
-                        <i class="fas fa-user"></i>
+                        <span class="speaker-mark" aria-hidden="true"></span>
                         <span class="speaker-name">${speaker}</span>
                     </div>
                     <div class="speaker-text">${speakerText}</div>
@@ -221,39 +335,21 @@ class MeetingTranscriber {
         
         if (!transcriptData || transcriptData.length === 0) {
             transcriptContainer.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-file-alt"></i>
-                    <p>No transcript data available</p>
+                <div class="tx-empty">
+                    <p>No transcript data available.</p>
                 </div>
             `;
             return;
         }
         
-        // Create a beautiful final transcript view
         let transcriptHTML = `
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h2 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-check-circle"></i>
-                    Meeting Transcript Complete
-                </h2>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px;">
-                    <div>
-                        <div style="opacity: 0.9; font-size: 12px;">Speakers</div>
-                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_speakers}</div>
-                    </div>
-                    <div>
-                        <div style="opacity: 0.9; font-size: 12px;">Words</div>
-                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_words}</div>
-                    </div>
-                    <div>
-                        <div style="opacity: 0.9; font-size: 12px;">Entries</div>
-                        <div style="font-size: 24px; font-weight: bold;">${statistics.total_entries}</div>
-                    </div>
-                    <div>
-                        <div style="opacity: 0.9; font-size: 12px;">Duration</div>
-                        <div style="font-size: 24px; font-weight: bold;">${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</div>
-                    </div>
+            <div class="tx-final-summary">
+                <div class="tx-final-summary-title">Meeting saved</div>
+                <div class="tx-final-summary-grid">
+                    <div><span class="tx-final-kpi-label">Speakers</span><span class="tx-final-kpi">${statistics.total_speakers}</span></div>
+                    <div><span class="tx-final-kpi-label">Words</span><span class="tx-final-kpi">${statistics.total_words}</span></div>
+                    <div><span class="tx-final-kpi-label">Entries</span><span class="tx-final-kpi">${statistics.total_entries}</span></div>
+                    <div><span class="tx-final-kpi-label">Duration</span><span class="tx-final-kpi">${Math.floor(statistics.duration / 60)}m ${statistics.duration % 60}s</span></div>
                 </div>
             </div>
         `;
@@ -291,7 +387,7 @@ class MeetingTranscriber {
             transcriptHTML += `
                 <div class="speaker-block">
                     <div class="speaker-header">
-                        <i class="fas fa-user-circle"></i>
+                        <span class="speaker-mark" aria-hidden="true"></span>
                         <span class="speaker-name">${msg.speaker}</span>
                     </div>
                     <div class="speaker-text">${msg.text}</div>
@@ -321,22 +417,24 @@ class MeetingTranscriber {
     }
     
     updateStats(speakerCount, wordCount) {
-        document.getElementById('speakerCount').textContent = speakerCount;
-        document.getElementById('wordCount').textContent = wordCount;
+        const sc = document.getElementById('speakerCount');
+        const wc = document.getElementById('wordCount');
+        if (sc) sc.textContent = speakerCount;
+        if (wc) wc.textContent = wordCount;
     }
     
     updateLastUpdate() {
+        const el = document.getElementById('lastUpdate');
+        if (!el) return;
         const now = new Date();
-        document.getElementById('lastUpdate').textContent = 
-            now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        el.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
     
     clearTranscript() {
         const transcriptContainer = document.getElementById('transcript');
         transcriptContainer.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-microphone-alt"></i>
-                <p>Transcript cleared. Ready for new transcription.</p>
+            <div class="tx-empty">
+                <p>Transcript cleared.</p>
             </div>
         `;
         this.updateStats(0, 0);
@@ -368,8 +466,9 @@ class MeetingTranscriber {
     
     updateStatus(message, type) {
         const statusElement = document.getElementById('status');
+        if (!statusElement) return;
         statusElement.textContent = message;
-        statusElement.className = `status ${type}`;
+        statusElement.className = `status tx-live-status ${type}`;
         
         const icon = statusElement.querySelector('i');
         if (icon) {
@@ -389,13 +488,17 @@ class MeetingTranscriber {
     }
     
     showBotInfo(botId) {
-        document.getElementById('botId').textContent = botId.substring(0, 8) + '...';
-        document.getElementById('botStatus').textContent = 'joining';
-        document.getElementById('botInfo').style.display = 'block';
+        const bid = document.getElementById('botId');
+        const bs = document.getElementById('botStatus');
+        const info = document.getElementById('botInfo');
+        if (bid) bid.textContent = botId.substring(0, 8) + '...';
+        if (bs) bs.textContent = 'joining';
+        if (info) info.style.display = 'block';
     }
     
     hideBotInfo() {
-        document.getElementById('botInfo').style.display = 'none';
+        const info = document.getElementById('botInfo');
+        if (info) info.style.display = 'none';
     }
     
     showNotification(message, type) {
@@ -480,20 +583,37 @@ let selectedMeetingType = 'product-owner'; // captured when meeting starts
 async function runPipeline(filename) {
     // Close any notification
     document.querySelectorAll('.notification.large').forEach(n => n.remove());
-    
-    // Show modal
+
+    // ── Reset & show modal ──────────────────────────────────────────────
     const modal = document.getElementById('pipelineModal');
     modal.style.display = 'flex';
-    
-    // Reset status
-    document.querySelectorAll('.pipeline-step').forEach(step => {
-        step.classList.remove('active', 'completed', 'error');
-    });
+
+    // Reset progress bar
+    const fill = document.getElementById('pipeProgressFill');
+    fill.style.width = '4%';
+    fill.classList.add('pulsing');
+
+    // Reset stage labels
+    document.querySelectorAll('.pipe-stage').forEach(s => s.classList.remove('active', 'done'));
+    document.querySelector('[data-step="chunking"]')?.classList.add('active');
+
+    // Reset result / error panels
     document.getElementById('pipelineResult').style.display = 'none';
     document.getElementById('pipelineError').style.display = 'none';
-    
-    // Mark first step as active
-    document.querySelector('[data-step="chunking"]').classList.add('active');
+    document.getElementById('pipelineStatus').textContent = 'Starting pipeline…';
+
+    // Set meeting-type badge
+    const typeLabels = { 'daily-standup': 'Daily Standup', 'product-owner': 'Product Owner', 'retrospective': 'Retrospective' };
+    const typeCls    = { 'daily-standup': 'standup', 'retrospective': 'retro' };
+    const badge = document.getElementById('pipeMeetingBadge');
+    badge.textContent = typeLabels[selectedMeetingType] || 'Meeting';
+    badge.className   = 'pipe-badge ' + (typeCls[selectedMeetingType] || '');
+
+    // Reset icon
+    const iconWrap = document.getElementById('pipeIconWrap');
+    iconWrap.className = 'pipe-icon-wrap';
+    document.getElementById('pipeHeadIcon').className = 'fas fa-cogs pipe-spin';
+    document.getElementById('pipeSubtitle').textContent = 'Analysing your transcript…';
     
     try {
         const response = await fetch('/api/pipeline/run', {
@@ -520,24 +640,35 @@ function startPipelinePolling(meetingId) {
     if (pipelinePollingInterval) {
         clearInterval(pipelinePollingInterval);
     }
-    
+
+    // Allow a few 404s right after triggering — the agentic API may not have
+    // registered the job yet when the first poll fires (fire-and-forget race).
+    let notFoundStreak = 0;
+    const MAX_NOT_FOUND = 6; // ~12 seconds grace period
+
     pipelinePollingInterval = setInterval(async () => {
         try {
             const response = await fetch(`/api/pipeline/status/${meetingId}`);
             const data = await response.json();
-            
+
+            // 404 means the job isn't registered yet — keep retrying briefly.
+            if (response.status === 404) {
+                notFoundStreak++;
+                if (notFoundStreak >= MAX_NOT_FOUND) {
+                    clearInterval(pipelinePollingInterval);
+                    showPipelineError('Pipeline job not found after waiting. Check the agentic API.', null, meetingId);
+                }
+                return; // retry next tick
+            }
+
+            notFoundStreak = 0; // reset once we get a real response
+
             if (!response.ok || (!data.success && data.error)) {
                 clearInterval(pipelinePollingInterval);
-                const errMsg = data?.error || 'Request failed';
-                showPipelineError(
-                    errMsg.includes('stream') || errMsg.includes('aborted')
-                        ? 'Connection interrupted. The pipeline may have completed. Click "Try View Results" below.'
-                        : errMsg,
-                    null,
-                    meetingId
-                );
+                showPipelineError(data?.error || 'Request failed', null, meetingId);
                 return;
             }
+
             if (data.status === 'completed') {
                 clearInterval(pipelinePollingInterval);
                 showPipelineComplete(meetingId, data.result, data.actual_meeting_id || meetingId);
@@ -828,7 +959,11 @@ function closePipelineModal() {
     }
 }
 
-// Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new MeetingTranscriber();
+    const page = document.body.dataset.page;
+    if (page === 'session') {
+        new MeetingSession();
+    } else if (page === 'launcher') {
+        new MeetingLauncher();
+    }
 });

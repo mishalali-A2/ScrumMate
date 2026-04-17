@@ -3,7 +3,13 @@ const axios = require('axios');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 require('dotenv').config();
+
+// --- PostgreSQL connection (same creds as database/.env) ---
+const pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:1234@localhost:5432/ScrumMate',
+});
 
 const app = express();
 app.use(cors());
@@ -53,7 +59,7 @@ app.get('/api/health', async (req, res) => {
 // === CREATE BOT WITH REAL-TIME TRANSCRIPTION ===
 app.post('/api/create-bot', async (req, res) => {
     try {
-        const { meetingUrl } = req.body;
+        const { meetingUrl, meetingType } = req.body;
         
         if (!meetingUrl || !meetingUrl.includes('meet.google.com')) {
             return res.status(400).json({
@@ -100,23 +106,27 @@ app.post('/api/create-bot', async (req, res) => {
         
         const botId = response.data.id;
         
+        const initChanges = response.data.status_changes || [];
+        const initStatus  = initChanges[initChanges.length - 1]?.code || 'created';
+
         // init bot data
         activeBots.set(botId, {
             botId,
             meetingUrl,
-            status: response.data.status_changes?.[0]?.code || 'created',
+            meetingType: meetingType || 'product-owner',
+            status: initStatus,
             createdAt: new Date(),
             transcript: [],
             lastUpdate: new Date()
         });
         
         console.log(`✅ Bot created: ${botId}`);
-        console.log(`Status: ${response.data.status_changes?.[0]?.code || 'unknown'}`);
+        console.log(`Status: ${initStatus}`);
         
         res.json({
             success: true,
             botId,
-            status: response.data.status_changes?.[0]?.code || 'created',
+            status: initStatus,
             message: 'Bot created! Joining meeting with real-time transcription...'
         });
         
@@ -210,28 +220,47 @@ app.get('/api/bot/:botId', async (req, res) => {
             try {
                 const transcriptResponse = await axios.get(
                     `${RECALL_API_URL}/bot/${botId}/transcript/`,
-                    {
-                        headers: { 'Authorization': `Token ${RECALL_API_KEY}` }
-                    }
+                    { headers: { 'Authorization': `Token ${RECALL_API_KEY}` } }
                 );
-                
-                if (transcriptResponse.data.transcript) {
-                    transcript = transcriptResponse.data.transcript.map(item => ({
+
+                const raw = transcriptResponse.data;
+
+                // Recall returns either an array directly, or {transcript: [...]}
+                const items = Array.isArray(raw) ? raw
+                            : Array.isArray(raw?.transcript) ? raw.transcript
+                            : [];
+
+                if (items.length > 0) {
+                    console.log(`📝 Transcript live for ${botId} (${items.length} segments)`);
+                    transcript = items.map(item => ({
                         speaker: item.speaker || 'Unknown Speaker',
-                        text: item.words?.map(w => w.text).join(' ') || '',
-                        timestamp: item.timestamp
+                        text: item.words?.map(w => w.text).join(' ') || item.text || '',
+                        timestamp: item.start_timestamp ?? item.timestamp
                     }));
+                } else {
+                    console.log(`No transcript yet for ${botId}`);
                 }
             } catch (transcriptError) {
                 console.log(`No transcript yet for ${botId}`);
             }
         }
-        
+
+        // Recall status: try status_changes array (newest-last), else top-level status field
+        const statusChanges = botResponse.data.status_changes || [];
+        const currentStatus = statusChanges[statusChanges.length - 1]?.code
+                           || botResponse.data.status
+                           || 'unknown';
+
+        // One-time debug log so we can see the Recall response shape
+        if (currentStatus === 'unknown' && statusChanges.length === 0) {
+            console.log(`[debug] bot ${botId} raw keys:`, Object.keys(botResponse.data));
+        }
+
         res.json({
             success: true,
             bot: {
                 id: botResponse.data.id,
-                status: botResponse.data.status_changes?.[0]?.code || 'unknown',
+                status: currentStatus,
                 meeting_url: botResponse.data.meeting_url,
                 created_at: botResponse.data.created_at
             },
@@ -310,18 +339,20 @@ app.delete('/api/bot/:botId', async (req, res) => {
         }
         
         // Create transcript data
+        const botInfo = activeBots.get(botId);
         const transcriptData = {
             bot_id: botId,
-            meeting_url: activeBots.get(botId)?.meetingUrl || 'Unknown',
-            created_at: activeBots.get(botId)?.createdAt || new Date(),
+            meeting_url: botInfo?.meetingUrl || 'Unknown',
+            meeting_type: botInfo?.meetingType || 'product-owner',
+            created_at: botInfo?.createdAt || new Date(),
             stopped_at: new Date(),
             transcript: finalTranscript,
             statistics: {
                 total_speakers: new Set(finalTranscript.map(t => t.speaker)).size,
                 total_words: finalTranscript.reduce((sum, t) => sum + (t.text?.split(' ').length || 0), 0),
                 total_entries: finalTranscript.length,
-                duration: activeBots.get(botId) ? 
-                    Math.round((new Date() - new Date(activeBots.get(botId).createdAt)) / 1000) : 0
+                duration: botInfo ?
+                    Math.round((new Date() - new Date(botInfo.createdAt)) / 1000) : 0
             }
         };
         
@@ -405,47 +436,41 @@ app.get('/api/download/:filename', (req, res) => {
 app.post('/api/pipeline/run', async (req, res) => {
     try {
         const { transcriptFile } = req.body;
-        
+
         if (!transcriptFile) {
-            return res.status(400).json({
-                success: false,
-                error: 'transcriptFile is required'
-            });
+            return res.status(400).json({ success: false, error: 'transcriptFile is required' });
         }
-        
+
         const filepath = path.join(__dirname, 'transcripts', transcriptFile);
-        
         if (!fs.existsSync(filepath)) {
-            return res.status(404).json({
-                success: false,
-                error: 'Transcript file not found'
-            });
+            return res.status(404).json({ success: false, error: 'Transcript file not found' });
         }
-        
-        // Read transcript data
+
         const transcriptData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
         const meetingType = req.body.meetingType || 'product-owner';
-        
-        // Call agentic API
-        const response = await axios.post(
+
+        // Derive the meeting_id the same way the agentic API does:
+        // it uses the first 11 chars of the bot_id stored in the transcript file.
+        const botId = transcriptData.bot_id || '';
+        const meeting_id = botId.substring(0, 11) || transcriptData.meeting_id || transcriptFile.replace(/\.json$/, '');
+
+        // Fire the pipeline request WITHOUT awaiting it — the agentic API runs
+        // the pipeline asynchronously and the old 10-second timeout was killing
+        // the connection before it could return, causing "stream has been aborted".
+        axios.post(
             `${AGENTIC_API_URL}/pipeline/run`,
-            {
-                transcript_data: transcriptData,
-                meeting_type: meetingType,
-                skip_assignment: false
-            },
-            {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 10000
-            }
-        );
-        
-        res.json({
-            success: true,
-            meeting_id: response.data.meeting_id,
-            message: response.data.message
+            { transcript_data: transcriptData, meeting_type: meetingType, skip_assignment: false },
+            { headers: { 'Content-Type': 'application/json' }, timeout: 300000 }
+        ).then(r => {
+            console.log(`✅ Pipeline complete for ${meeting_id} (agentic id: ${r.data?.meeting_id})`);
+        }).catch(err => {
+            console.error(`❌ Pipeline error for ${meeting_id}:`, err.message);
         });
-        
+
+        // Respond immediately so the frontend can start polling for status.
+        console.log(`🚀 Pipeline started for ${meeting_id} (${meetingType})`);
+        res.json({ success: true, meeting_id, message: 'Pipeline started — polling for status.' });
+
     } catch (error) {
         console.error('Pipeline trigger error:', error.message);
         res.status(500).json({
@@ -572,42 +597,138 @@ app.get('/api/rag/stats', async (req, res) => {
     }
 });
 
+// === PROJECTS FOR CURRENT USER ===
+// GET /api/projects?email=i221125@nu.edu.pk
+// Returns all projects whose `team` JSONB array contains the profile id
+// that matches the given email.
+app.get('/api/projects', async (req, res) => {
+    const { email } = req.query;
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'email query param required' });
+    }
+    try {
+        const result = await pgPool.query(
+            `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count
+             FROM project p
+             WHERE p.team @> to_jsonb(ARRAY(
+                 SELECT pr.id FROM profile pr WHERE pr.email = $1
+             ))
+             ORDER BY p.created_at DESC`,
+            [email]
+        );
+        res.json({ success: true, projects: result.rows });
+    } catch (err) {
+        console.error('DB error /api/projects:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // List saved transcripts
 app.get('/api/transcripts', (req, res) => {
     try {
         const transcriptsDir = path.join(__dirname, 'transcripts');
-        
+        const agenticBase   = path.join(__dirname, '..', 'scrummate_agentic');
+        const summariesDir  = path.join(agenticBase, 'summaries');
+        const storiesDir    = path.join(agenticBase, 'user_stories');
+        const standupsDir   = path.join(agenticBase, 'standups');
+
         if (!fs.existsSync(transcriptsDir)) {
             return res.json({ success: true, transcripts: [] });
         }
-        
+
+        const meetIdFromUrl = url => {
+            const m = url?.match(/meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})/);
+            return m ? m[1] : null;
+        };
+
         const files = fs.readdirSync(transcriptsDir)
             .filter(f => f.endsWith('.json'))
             .map(filename => {
-                const filepath = path.join(transcriptsDir, filename);
-                const stats = fs.statSync(filepath);
-                const data = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
-                
-                return {
-                    filename,
-                    meeting_url: data.meeting_url || 'Unknown',
-                    created_at: data.created_at,
-                    size: stats.size,
-                    statistics: data.statistics || {}
-                };
+                try {
+                    const data = JSON.parse(fs.readFileSync(path.join(transcriptsDir, filename), 'utf-8'));
+                    const meeting_id   = meetIdFromUrl(data.meeting_url)
+                                      || (data.bot_id ? data.bot_id.substring(0, 11) : null);
+                    const meeting_type = data.meeting_type || 'product-owner';
+                    const has_minutes  = meeting_id && fs.existsSync(path.join(summariesDir, `${meeting_id}_final.txt`));
+                    const has_stories  = meeting_id && fs.existsSync(path.join(storiesDir, `${meeting_id}_stories.json`));
+                    // Blockers live in standups/ for daily-standup, user_stories/ for everything else
+                    const has_blockers = meeting_id && (
+                        meeting_type === 'daily-standup'
+                            ? fs.existsSync(path.join(standupsDir, `${meeting_id}_blockers.json`))
+                            : fs.existsSync(path.join(storiesDir, `${meeting_id}_blockers.json`))
+                    );
+                    return {
+                        filename,
+                        meeting_url:  data.meeting_url  || '',
+                        meeting_type,
+                        bot_id:       data.bot_id       || '',
+                        meeting_id,
+                        created_at:   data.created_at,
+                        stopped_at:   data.stopped_at,
+                        statistics:   data.statistics   || {},
+                        has_minutes:  !!has_minutes,
+                        has_stories:  !!has_stories,
+                        has_blockers: !!has_blockers,
+                    };
+                } catch { return null; }
             })
+            .filter(Boolean)
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        
-        res.json({
-            success: true,
-            transcripts: files
-        });
-        
+
+        res.json({ success: true, transcripts: files });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Return full transcript JSON for display
+app.get('/api/transcript/:filename', (req, res) => {
+    try {
+        const filepath = path.join(__dirname, 'transcripts', req.params.filename);
+        if (!fs.existsSync(filepath)) return res.status(404).json({ success: false, error: 'Not found' });
+        res.json({ success: true, data: JSON.parse(fs.readFileSync(filepath, 'utf-8')) });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Return minutes text for a meeting
+app.get('/api/minutes/:meetingId', (req, res) => {
+    try {
+        const p = path.join(__dirname, '..', 'scrummate_agentic', 'summaries', `${req.params.meetingId}_final.txt`);
+        if (!fs.existsSync(p)) return res.status(404).json({ success: false, error: 'No minutes found' });
+        res.json({ success: true, text: fs.readFileSync(p, 'utf-8') });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Return stories or blockers JSON for a meeting
+// ?type=daily-standup → look in standups/; anything else → look in user_stories/
+app.get('/api/stories/:meetingId', (req, res) => {
+    try {
+        const agenticBase  = path.join(__dirname, '..', 'scrummate_agentic');
+        const storiesBase  = path.join(agenticBase, 'user_stories');
+        const standupsBase = path.join(agenticBase, 'standups');
+        const meetingType  = req.query.type || '';
+        const mid          = req.params.meetingId;
+
+        if (meetingType === 'daily-standup') {
+            // Standup blockers always live in standups/
+            const blockersPath = path.join(standupsBase, `${mid}_blockers.json`);
+            if (fs.existsSync(blockersPath))
+                return res.json({ success: true, type: 'blockers', data: JSON.parse(fs.readFileSync(blockersPath, 'utf-8')) });
+            return res.status(404).json({ success: false, error: 'No blockers report found for this standup' });
+        }
+
+        // Product Owner / Retrospective — check user_stories/
+        const storiesPath  = path.join(storiesBase, `${mid}_stories.json`);
+        const blockersPath = path.join(storiesBase, `${mid}_blockers.json`);
+        if (fs.existsSync(storiesPath))  return res.json({ success: true, type: 'stories',  data: JSON.parse(fs.readFileSync(storiesPath, 'utf-8')) });
+        if (fs.existsSync(blockersPath)) return res.json({ success: true, type: 'blockers', data: JSON.parse(fs.readFileSync(blockersPath, 'utf-8')) });
+        return res.status(404).json({ success: false, error: 'No stories or blockers found' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

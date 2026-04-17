@@ -1,0 +1,44 @@
+{
+  "bot_id": "8f65a14b-3f3f-41f3-9816-a9c82450b09a",
+  "meeting_url": "https://meet.google.com/vip-fovc-ydx",
+  "created_at": "2026-04-16T23:22:50.850Z",
+  "stopped_at": "2026-04-16T23:23:49.050Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Hello.",
+      "timestamp": "2026-04-16T23:23:22.253Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Hello, Scrummate Bot.",
+      "timestamp": "2026-04-16T23:23:26.574Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Ramkur.",
+      "timestamp": "2026-04-16T23:23:30.609Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Ramkur.",
+      "timestamp": "2026-04-16T23:23:34.755Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Yodhu Urdu Bhole ke Time here.",
+      "timestamp": "2026-04-16T23:23:38.507Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 12,
+    "total_entries": 5,
+    "duration": 58
+  }
+}

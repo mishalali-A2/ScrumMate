@@ -1,0 +1,33 @@
+{
+  "total_blockers": 1,
+  "team_updates": [
+    {
+      "member": "Muaz Ahmed",
+      "yesterday": "N/A",
+      "today": "N/A",
+      "has_blocker": true
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "Muaz Ahmed",
+      "description": "Scattered responsibilities for deployment and production debugging are causing slowdowns due to environment mismatches (OS, Python, packages, dependencies) and \"Configuration Hell\" (ENVs, API Keys, DB URLs).",
+      "impact": "High",
+      "blocked_task": "unspecified",
+      "dependencies": [
+        "Infrastructure/DevOps Team"
+      ],
+      "suggested_resolution": "Evaluate or move to a dedicated DevOps setup.",
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "SM/PO",
+      "action": "Evaluate Dedicated DevOps Setup to improve scaling, deployments, monitoring, and reduce developer burden.",
+      "relates_to_blocker": "B-001"
+    }
+  ]
+}
