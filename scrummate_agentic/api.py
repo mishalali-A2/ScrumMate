@@ -162,8 +162,15 @@ async def run_pipeline(request: TranscriptRequest, background_tasks: BackgroundT
     }
 
 
-async def _run_pipeline_async(transcript_path: Path, meeting_id: str, meeting_type: str, skip_assignment: bool):
-    """Background task to run the pipeline."""
+def _run_pipeline_async(transcript_path: Path, meeting_id: str, meeting_type: str, skip_assignment: bool):
+    """Background task to run the pipeline.
+
+    Defined as sync (not async) so FastAPI's BackgroundTasks dispatches it to a
+    thread pool instead of running it on the main event loop. This is critical
+    because `pipeline.run()` makes blocking LLM calls (especially when the
+    Ollama fallback kicks in) — running it on the event loop would freeze every
+    other request, including status polls.
+    """
     import traceback
     try:
         print(f"[Pipeline] Starting for meeting: {meeting_id}")

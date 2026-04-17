@@ -609,11 +609,24 @@ async function runPipeline(filename) {
     badge.textContent = typeLabels[selectedMeetingType] || 'Meeting';
     badge.className   = 'pipe-badge ' + (typeCls[selectedMeetingType] || '');
 
-    // Reset icon
+    // Reset icon & title
     const iconWrap = document.getElementById('pipeIconWrap');
     iconWrap.className = 'pipe-icon-wrap';
     document.getElementById('pipeHeadIcon').className = 'fas fa-cogs pipe-spin';
     document.getElementById('pipeSubtitle').textContent = 'Analysing your transcript…';
+    const title = document.querySelector('.pipe-title');
+    if (title) title.textContent = 'Meeting concluded';
+
+    // After ~30s, drop a friendly hint that longer runs are normal (especially
+    // when the local Ollama fallback takes over).
+    if (window._pipeSlowHintTimer) clearTimeout(window._pipeSlowHintTimer);
+    window._pipeSlowHintTimer = setTimeout(() => {
+        const sub = document.getElementById('pipeSubtitle');
+        if (sub && document.getElementById('pipelineResult').style.display === 'none'
+                && document.getElementById('pipelineError').style.display === 'none') {
+            sub.textContent = 'Still working — longer runs are normal for complex transcripts.';
+        }
+    }, 30000);
     
     try {
         const response = await fetch('/api/pipeline/run', {
@@ -641,10 +654,15 @@ function startPipelinePolling(meetingId) {
         clearInterval(pipelinePollingInterval);
     }
 
-    // Allow a few 404s right after triggering — the agentic API may not have
-    // registered the job yet when the first poll fires (fire-and-forget race).
+    // Grace periods: the agentic API may not have registered the job yet when
+    // the first poll fires (fire-and-forget race), and when the Ollama
+    // fallback kicks in a single LLM call on a local CPU can take many
+    // minutes. Be extremely patient — we'd rather wait than falsely fail.
     let notFoundStreak = 0;
-    const MAX_NOT_FOUND = 6; // ~12 seconds grace period
+    let errorStreak    = 0;
+    const MAX_NOT_FOUND = 10;  // ~40s to register the job
+    const MAX_ERRORS    = 240; // ~16 min of transient errors before giving up
+    const POLL_MS       = 4000;
 
     pipelinePollingInterval = setInterval(async () => {
         try {
@@ -658,10 +676,11 @@ function startPipelinePolling(meetingId) {
                     clearInterval(pipelinePollingInterval);
                     showPipelineError('Pipeline job not found after waiting. Check the agentic API.', null, meetingId);
                 }
-                return; // retry next tick
+                return;
             }
 
-            notFoundStreak = 0; // reset once we get a real response
+            notFoundStreak = 0;
+            errorStreak    = 0; // reset on any real response
 
             if (!response.ok || (!data.success && data.error)) {
                 clearInterval(pipelinePollingInterval);
@@ -679,15 +698,21 @@ function startPipelinePolling(meetingId) {
                 updatePipelineProgress(data.progress);
             }
         } catch (error) {
-            console.error('Pipeline polling error:', error);
-            clearInterval(pipelinePollingInterval);
-            showPipelineError(
-                'Cannot reach the agentic API. Is it running on port 8000? ' + error.message,
-                null,
-                meetingId
-            );
+            // Network / timeout hiccups — tolerate many before aborting, since
+            // a slow local LLM can legitimately make the agentic API
+            // unresponsive for a while.
+            errorStreak++;
+            console.warn(`Pipeline polling hiccup (${errorStreak}/${MAX_ERRORS}):`, error.message);
+            if (errorStreak >= MAX_ERRORS) {
+                clearInterval(pipelinePollingInterval);
+                showPipelineError(
+                    'Lost connection to the agentic API after many retries. Is it still running on port 8000? ' + error.message,
+                    null,
+                    meetingId
+                );
+            }
         }
-    }, 2000);
+    }, POLL_MS);
 }
 
 function updatePipelineProgress(progress) {
@@ -724,47 +749,41 @@ function showPipelineComplete(meetingId, result, actualMeetingId) {
     // All stage labels → done
     document.querySelectorAll('.pipe-stage').forEach(el => { el.classList.remove('active'); el.classList.add('done'); });
 
-    // Header: swap to checkmark icon
+    // Header: swap to sparkle icon + update title & subtitle
     const iconWrap = document.getElementById('pipeIconWrap');
     if (iconWrap) iconWrap.className = 'pipe-icon-wrap done';
     const icon = document.getElementById('pipeHeadIcon');
-    if (icon) icon.className = 'fas fa-check-circle';
+    if (icon) icon.className = 'fas fa-check';
     const sub = document.getElementById('pipeSubtitle');
-    if (sub) sub.textContent = 'All outputs are ready.';
+    if (sub) sub.textContent = 'Minutes, stories and outputs are ready.';
+    const title = document.querySelector('.pipe-title');
+    if (title) title.textContent = 'Analysis complete';
 
     // Hide live-status text
     document.getElementById('pipelineStatus').textContent = '';
 
-    // Build stats: type-aware label for stories/blockers
+    // Type-aware outputs label
     const typeIsStandup = selectedMeetingType === 'daily-standup';
-    const storyStat = typeIsStandup
-        ? { num: result?.blockers_count ?? 0, label: 'Blockers identified' }
-        : { num: result?.stories_count   ?? 0, label: 'User stories' };
+    const secondary = typeIsStandup
+        ? { num: result?.blockers_count ?? 0, label: 'blockers' }
+        : { num: result?.stories_count   ?? 0, label: 'user stories' };
+    const chunks = result?.chunks_count ?? 0;
 
     const resultDiv = document.getElementById('pipelineResult');
     resultDiv.innerHTML = `
-        <div class="pipe-result-card">
-            <div class="pipe-result-title">
-                <i class="fas fa-check-circle"></i> Analysis complete
-            </div>
-            <div class="pipe-stats">
-                <div class="pipe-stat">
-                    <div class="pipe-stat-num">${result?.chunks_count ?? '—'}</div>
-                    <div class="pipe-stat-label">Transcript chunks</div>
-                </div>
-                <div class="pipe-stat">
-                    <div class="pipe-stat-num">${storyStat.num}</div>
-                    <div class="pipe-stat-label">${storyStat.label}</div>
-                </div>
-            </div>
-            <div class="pipe-result-actions">
-                <a href="meetings.html" class="pipe-btn pipe-btn-primary">
-                    <i class="fas fa-history"></i> View in Past Meetings
-                </a>
-                <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">
-                    Close
-                </button>
-            </div>
+        <div class="pipe-result-summary">
+            <strong>${chunks}</strong> ${chunks === 1 ? 'chunk' : 'chunks'}
+            <span class="dot-sep"></span>
+            <strong>${secondary.num}</strong> ${secondary.label}
+            <span class="dot-sep"></span>
+            Saved to your workspace
+        </div>
+        <div class="pipe-result-actions">
+            <a href="meetings.html" class="pipe-btn pipe-btn-primary">
+                View in Past Meetings
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h6M6 3l3 3-3 3"/></svg>
+            </a>
+            <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>
         </div>`;
     resultDiv.style.display = 'block';
     resultDiv.dataset.resultsMeetingId = meetingId;
@@ -953,6 +972,8 @@ function closePipelineModal() {
     // Reset progress bar colour so it's clean next time
     const fill = document.getElementById('pipeProgressFill');
     if (fill) fill.style.background = '';
+    // Cancel the "still working" hint if it hasn't fired yet
+    if (window._pipeSlowHintTimer) { clearTimeout(window._pipeSlowHintTimer); window._pipeSlowHintTimer = null; }
     if (pipelinePollingInterval) {
         clearInterval(pipelinePollingInterval);
         pipelinePollingInterval = null;

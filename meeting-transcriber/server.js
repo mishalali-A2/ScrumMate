@@ -450,9 +450,9 @@ app.post('/api/pipeline/run', async (req, res) => {
         const meetingType = req.body.meetingType || 'product-owner';
 
         // Derive the meeting_id the same way the agentic API does:
-        // it uses the first 11 chars of the bot_id stored in the transcript file.
+        // api.py uses bot_id[:12] — must match exactly or polling will 404.
         const botId = transcriptData.bot_id || '';
-        const meeting_id = botId.substring(0, 11) || transcriptData.meeting_id || transcriptFile.replace(/\.json$/, '');
+        const meeting_id = botId.substring(0, 12) || transcriptData.meeting_id || transcriptFile.replace(/\.json$/, '');
 
         // Fire the pipeline request WITHOUT awaiting it — the agentic API runs
         // the pipeline asynchronously and the old 10-second timeout was killing
@@ -460,7 +460,8 @@ app.post('/api/pipeline/run', async (req, res) => {
         axios.post(
             `${AGENTIC_API_URL}/pipeline/run`,
             { transcript_data: transcriptData, meeting_type: meetingType, skip_assignment: false },
-            { headers: { 'Content-Type': 'application/json' }, timeout: 300000 }
+            // 60 min upper bound — local Ollama can be slow, and this is fire-and-forget anyway.
+            { headers: { 'Content-Type': 'application/json' }, timeout: 3600000 }
         ).then(r => {
             console.log(`✅ Pipeline complete for ${meeting_id} (agentic id: ${r.data?.meeting_id})`);
         }).catch(err => {
@@ -488,7 +489,7 @@ app.get('/api/pipeline/status/:meetingId', async (req, res) => {
         
         const response = await axios.get(
             `${AGENTIC_API_URL}/pipeline/status/${meetingId}`,
-            { timeout: 5000 }
+            { timeout: 60000 }
         );
         
         res.json({
@@ -518,7 +519,7 @@ app.get('/api/pipeline/results/:meetingId', async (req, res) => {
         
         const response = await axios.get(
             `${AGENTIC_API_URL}/pipeline/results/${meetingId}`,
-            { timeout: 5000 }
+            { timeout: 60000 }
         );
         
         res.json({

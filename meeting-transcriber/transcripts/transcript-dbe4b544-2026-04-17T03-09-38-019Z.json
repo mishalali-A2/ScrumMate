@@ -1,0 +1,14 @@
+{
+  "bot_id": "dbe4b544-a673-4144-a2b4-c8e1349ea975",
+  "meeting_url": "https://meet.google.com/set-zxrm-gto",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-04-17T03:07:49.496Z",
+  "stopped_at": "2026-04-17T03:09:38.019Z",
+  "transcript": [],
+  "statistics": {
+    "total_speakers": 0,
+    "total_words": 0,
+    "total_entries": 0,
+    "duration": 109
+  }
+}

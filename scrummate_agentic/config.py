@@ -51,6 +51,14 @@ GEMINI_MODEL = "gemini-2.5-flash"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHROMA_COLLECTION_NAME = "meeting_chunks"
 
+# Ollama local fallback (used when Gemini hits rate limits / quota / auth errors)
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+# Per-call timeout. Local CPU inference for qwen3:4b on a long prompt can take
+# many minutes — we'd rather wait than falsely fail. 30 minutes should be more
+# than enough for any single prompt while still guarding against a hung server.
+OLLAMA_TIMEOUT = 1800
+
 # Chunking Configuration
 CHUNK_MIN_TOKENS = 20
 CHUNK_MAX_TOKENS = 700
