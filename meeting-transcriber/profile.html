@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate — Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_cmVzb2x2ZWQtd2FscnVzLTg4LmNsZXJrLmFjY291bnRzLmRldiQ"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --elevated: #ffffff;
+            --line: rgba(15, 23, 42, 0.08);
+            --line-strong: rgba(15, 23, 42, 0.14);
+            --text-1: #111827;
+            --text-2: #475467;
+            --text-3: #667085;
+            --text-4: #98a2b3;
+            --accent: #4f7cff;
+            --accent-2: #5de4ff;
+            --accent-ring: rgba(79, 124, 255, 0.28);
+            --danger: #b91c1c;
+            --danger-soft: rgba(239, 68, 68, 0.1);
+            --radius: 12px;
+            --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { min-height: 100%; overflow-x: hidden; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            color: var(--text-1);
+            background:
+                radial-gradient(circle at top right, rgba(79, 124, 255, 0.08), transparent 24%),
+                radial-gradient(circle at 18% 0%, rgba(93, 228, 255, 0.06), transparent 18%),
+                linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+            letter-spacing: -0.01em;
+            padding: 28px 20px 40px;
+        }
+
+        .page {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-3);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+
+        .nav-back:hover { color: var(--accent); }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 6px;
+        }
+
+        .lead {
+            font-size: 13px;
+            color: var(--text-3);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .card {
+            background: var(--elevated);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            padding: 20px 20px;
+            margin-bottom: 14px;
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.6) inset,
+                0 18px 40px rgba(79, 124, 255, 0.06);
+        }
+
+        .photo-row {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .avatar-lg {
+            width: 92px;
+            height: 92px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(79, 124, 255, 0.22), rgba(93, 228, 255, 0.1));
+            border: 1px solid rgba(93, 228, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: #11315f;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar-lg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--text-4);
+            line-height: 1.45;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity 140ms ease, border-color 140ms ease, background 140ms ease;
+            border: 1px solid var(--line-strong);
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-1);
+        }
+
+        .btn:hover { border-color: rgba(79, 124, 255, 0.35); background: rgba(79, 124, 255, 0.04); }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            border-color: rgba(79, 124, 255, 0.35);
+            background: linear-gradient(180deg, rgba(79, 124, 255, 0.12), rgba(79, 124, 255, 0.06));
+            color: var(--accent);
+        }
+
+        .btn-danger {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: var(--danger-soft);
+            color: var(--danger);
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .btn-danger:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.16);
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .status {
+            font-size: 12px;
+            font-weight: 500;
+            min-height: 18px;
+            margin-top: 10px;
+        }
+
+        .status.ok { color: #15803d; }
+        .status.err { color: var(--danger); }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-4);
+            margin-bottom: 12px;
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        .field:last-child { margin-bottom: 0; }
+
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-3);
+            margin-bottom: 4px;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-1);
+            word-break: break-word;
+        }
+
+        .value.muted {
+            font-weight: 500;
+            color: var(--text-3);
+            font-size: 13px;
+        }
+
+        .value.mono {
+            font-family: ui-monospace, 'Cascadia Code', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-3);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 16px 0;
+        }
+
+        body.page-loading main { visibility: hidden; }
+    </style>
+</head>
+<body class="page-loading">
+
+<div class="page">
+    <a class="nav-back" href="/dashboard.html" id="dashLink">
+        ← Back to dashboard
+    </a>
+
+    <main>
+        <h1>Your profile</h1>
+        <p class="lead">Signed-in workspace details and account information managed with Clerk.</p>
+
+        <div class="card" id="profileCard">
+            <div class="section-title">Profile picture</div>
+            <div class="photo-row">
+                <div class="avatar-lg" id="avatarLg"></div>
+                <div class="photo-actions">
+                    <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+                    <button type="button" class="btn btn-primary" id="photoPickBtn">Change photo</button>
+                    <p class="hint">JPEG, PNG, WebP, or GIF. Your image syncs across this workspace session.</p>
+                </div>
+            </div>
+            <div class="status" id="photoStatus" aria-live="polite"></div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Identity</div>
+            <div class="field">
+                <div class="label">Name</div>
+                <div class="value" id="fieldName">—</div>
+            </div>
+            <div class="field">
+                <div class="label">Username</div>
+                <div class="value" id="fieldUsername">—</div>
+            </div>
+            <div class="field">
+                <div class="label">User ID</div>
+                <div class="value mono" id="fieldUserId">—</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Account &amp; contact</div>
+            <div class="field">
+                <div class="label">Primary email</div>
+                <div class="value" id="fieldEmail">—</div>
+            </div>
+            <div class="field">
+                <div class="label">All emails</div>
+                <div class="value muted" id="fieldEmailsExtra">—</div>
+            </div>
+            <div class="field">
+                <div class="label">Primary phone</div>
+                <div class="value" id="fieldPhone">—</div>
+            </div>
+            <div class="divider"></div>
+            <button type="button" class="btn" id="clerkManageBtn">Open Clerk account manager</button>
+            <p class="hint" style="margin-top:10px;">Update verified emails and phone numbers in Clerk’s hosted account settings.</p>
+        </div>
+
+        <div class="card">
+            <button type="button" class="btn btn-danger" id="logoutBtn">Sign out</button>
+        </div>
+    </main>
+</div>
+
+<script>
+    function initialsFromUser(user) {
+        const fn = user.firstName && String(user.firstName).trim();
+        const ln = user.lastName && String(user.lastName).trim();
+        if (fn && ln) return (fn[0] + ln[0]).toUpperCase();
+        const full = user.fullName && String(user.fullName).trim();
+        if (full) {
+            const parts = full.split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            if (parts.length === 1 && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+        }
+        if (user.username) return String(user.username).slice(0, 2).toUpperCase();
+        const email = user.primaryEmailAddress && user.primaryEmailAddress.emailAddress;
+        if (email) return email.slice(0, 2).toUpperCase();
+        return '?';
+    }
+
+    function displayNameFromUser(user) {
+        const full = user.fullName && String(user.fullName).trim();
+        if (full) return full;
+        const fn = user.firstName && String(user.firstName).trim();
+        const ln = user.lastName && String(user.lastName).trim();
+        const combo = [fn, ln].filter(Boolean).join(' ');
+        if (combo) return combo;
+        if (user.username) return user.username;
+        if (user.primaryEmailAddress && user.primaryEmailAddress.emailAddress) {
+            return user.primaryEmailAddress.emailAddress;
+        }
+        return 'Signed-in user';
+    }
+
+    function mountAvatar(container, user) {
+        container.replaceChildren();
+        const url = user.imageUrl;
+        if (url) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Profile photo';
+            container.appendChild(img);
+            return;
+        }
+        container.textContent = initialsFromUser(user);
+    }
+
+    function listEmails(user) {
+        const addrs = (user.emailAddresses || []).map(function (e) {
+            var addr = typeof e.emailAddress === 'string' ? e.emailAddress : '';
+            return addr.trim();
+        }).filter(Boolean);
+        return addrs.filter(function onlyUnique(val, idx, arr) {
+            return arr.indexOf(val) === idx;
+        });
+    }
+
+    function renderContact(user, primaryEmailEl, extraEmailsEl, phoneEl) {
+        var emails = listEmails(user);
+        var primary = user.primaryEmailAddress && user.primaryEmailAddress.emailAddress;
+        primaryEmailEl.textContent = primary || '(none)';
+        var rest = emails.filter(function (addr) {
+            return addr !== primary;
+        });
+        extraEmailsEl.textContent = rest.length ? rest.join(', ') : '(no additional emails)';
+        var primaryPhoneObj = user.primaryPhoneNumber || (user.phoneNumbers && user.phoneNumbers[0]);
+        var raw = primaryPhoneObj && typeof primaryPhoneObj.phoneNumber === 'string'
+            ? primaryPhoneObj.phoneNumber
+            : '';
+        phoneEl.textContent = raw || '(none on file)';
+    }
+
+    function setPhotoStatus(el, msg, variant) {
+        el.textContent = msg || '';
+        el.className = 'status' + (variant ? ' ' + variant : '');
+    }
+
+    function bootProfile() {
+        if (!window.Clerk) {
+            requestAnimationFrame(bootProfile);
+            return;
+        }
+        window.Clerk.load()
+            .then(function () {
+                var user = window.Clerk.user || (window.Clerk.session && window.Clerk.session.user);
+                if (!user) {
+                    window.location.replace('/login.html');
+                    return;
+                }
+
+                document.body.classList.remove('page-loading');
+
+                function currentUser() {
+                    return (
+                        window.Clerk.user ||
+                        (window.Clerk.session && window.Clerk.session.user) ||
+                        user
+                    );
+                }
+
+                function refreshView() {
+                    user = currentUser();
+                    mountAvatar(document.getElementById('avatarLg'), user);
+                    document.getElementById('fieldName').textContent = displayNameFromUser(user);
+                    document.getElementById('fieldUsername').textContent = user.username || '(none)';
+                    document.getElementById('fieldUserId').textContent = user.id;
+                    renderContact(
+                        user,
+                        document.getElementById('fieldEmail'),
+                        document.getElementById('fieldEmailsExtra'),
+                        document.getElementById('fieldPhone'),
+                    );
+                }
+
+                refreshView();
+
+                var photoInput = document.getElementById('photoInput');
+                var photoPickBtn = document.getElementById('photoPickBtn');
+                var photoStatus = document.getElementById('photoStatus');
+
+                photoPickBtn.addEventListener('click', function () {
+                    photoInput.click();
+                });
+
+                photoInput.addEventListener('change', async function () {
+                    var file = photoInput.files && photoInput.files[0];
+                    if (!file) return;
+                    photoPickBtn.disabled = true;
+                    setPhotoStatus(photoStatus, 'Updating photo…');
+                    try {
+                        if (typeof user.setProfileImage === 'function') {
+                            await user.setProfileImage({ file: file });
+                        } else if (typeof user.updateProfileImage === 'function') {
+                            await user.updateProfileImage({ file: file });
+                        } else {
+                            throw new Error('This Clerk SDK build does not support profile photo updates from this page.');
+                        }
+                        if (typeof user.reload === 'function') {
+                            await user.reload();
+                        }
+                        refreshView();
+                        setPhotoStatus(photoStatus, 'Profile photo saved.', 'ok');
+                    } catch (err) {
+                        var msg = err && err.message ? err.message : 'Could not save photo.';
+                        if (err && err.errors && err.errors[0] && err.errors[0].message) {
+                            msg = err.errors[0].message;
+                        }
+                        setPhotoStatus(photoStatus, msg, 'err');
+                    }
+                    photoPickBtn.disabled = false;
+                    photoInput.value = '';
+                });
+
+                document.getElementById('clerkManageBtn').addEventListener('click', function () {
+                    if (window.Clerk.openUserProfile) {
+                        window.Clerk.openUserProfile();
+                    }
+                });
+
+                document.getElementById('logoutBtn').addEventListener('click', function () {
+                    var after = function () {
+                        window.location.href = '/login.html';
+                    };
+                    try {
+                        var p = window.Clerk.signOut();
+                        if (p && typeof p.then === 'function') {
+                            p.then(after).catch(after);
+                        } else {
+                            after();
+                        }
+                    } catch (e) {
+                        after();
+                    }
+                });
+            })
+            .catch(function () {
+                window.location.replace('/login.html');
+            });
+    }
+
+    bootProfile();
+</script>
+</body>
+</html>
