@@ -19,11 +19,36 @@ app.get('/', (req, res) => {
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_API_URL = 'https://us-west-2.recall.ai/api/v1';
 const AGENTIC_API_URL = process.env.AGENTIC_API_URL || 'http://localhost:8000';
+const TRELLO_KEY = process.env.TRELLO_KEY;
+const TRELLO_TOKEN = process.env.TRELLO_TOKEN;
+const TRELLO_BOARD_ID = process.env.TRELLO_BOARD_ID;
+
+const TRELLO_API = 'https://api.trello.com/1';
+
+function isDoneListName(name) {
+    const n = (name || '').trim().toLowerCase();
+    if (!n) return false;
+    if (/^(done|complete|completed|closed|released|live)$/i.test(n)) return true;
+    return /\b(done|completed)\b/i.test(n);
+}
+
+function isBlockedListName(name) {
+    return /\b(blocked|stuck|on hold|hold)\b/i.test(name || '');
+}
+
+async function trelloGet(resourcePath, query = {}) {
+    const { data } = await axios.get(`${TRELLO_API}${resourcePath}`, {
+        params: { key: TRELLO_KEY, token: TRELLO_TOKEN, ...query },
+        timeout: 25000
+    });
+    return data;
+}
 
 console.log('Starting Meeting Transcriber...');
 console.log(`Using US West 2 region`);
 console.log(`API Key: ${RECALL_API_KEY ? 'Set' : 'Missing!'}`);
 console.log(`Agentic API: ${AGENTIC_API_URL}`);
+console.log(`Trello: ${TRELLO_KEY && TRELLO_TOKEN ? 'Configured' : 'Not configured (dashboard analytics need TRELLO_KEY + TRELLO_TOKEN)'}`);
 
 // Store active bots and their transcripts
 const activeBots = new Map();
@@ -568,6 +593,156 @@ app.get('/api/rag/stats', async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.response?.data?.detail || error.message
+        });
+    }
+});
+
+// === TRELLO DASHBOARD (cards, completion %, burndown proxy) ===
+app.get('/api/trello/dashboard', async (req, res) => {
+    if (!TRELLO_KEY || !TRELLO_TOKEN) {
+        return res.status(503).json({
+            success: false,
+            error: 'Trello is not configured. Set TRELLO_KEY and TRELLO_TOKEN in .env.'
+        });
+    }
+
+    const WINDOW_DAYS = 14;
+    const windowStart = Date.now() - WINDOW_DAYS * 86400000;
+
+    try {
+        let boardId = TRELLO_BOARD_ID;
+        let boardName = '';
+
+        if (!boardId) {
+            const boards = await trelloGet('/members/me/boards', {
+                fields: 'id,name,closed',
+                filter: 'open'
+            });
+            const first = (boards || []).find((b) => !b.closed);
+            if (!first) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'No open Trello boards found. Create a board or set TRELLO_BOARD_ID.'
+                });
+            }
+            boardId = first.id;
+            boardName = first.name;
+        } else {
+            const b = await trelloGet(`/boards/${boardId}`, { fields: 'id,name' });
+            boardName = b.name;
+        }
+
+        const lists = await trelloGet(`/boards/${boardId}/lists`, {
+            fields: 'id,name,closed'
+        });
+        const openLists = (lists || []).filter((l) => !l.closed);
+        const doneListIds = new Set(
+            openLists.filter((l) => isDoneListName(l.name)).map((l) => l.id)
+        );
+        const blockedListIds = new Set(
+            openLists.filter((l) => isBlockedListName(l.name)).map((l) => l.id)
+        );
+
+        const cards = await trelloGet(`/boards/${boardId}/cards`, {
+            filter: 'visible',
+            fields: 'id,idList,closed,dateLastActivity,name'
+        });
+
+        const isDoneCard = (c) => Boolean(c.closed) || doneListIds.has(c.idList);
+        const total = cards.length;
+        const done = cards.filter(isDoneCard).length;
+        const open = total - done;
+        const blocked = cards.filter(
+            (c) => !isDoneCard(c) && blockedListIds.has(c.idList)
+        ).length;
+        const completionPercent = total ? Math.round((100 * done) / total) : 100;
+
+        const firstDoneDateByCard = new Map();
+
+        let before;
+        for (let page = 0; page < 30; page++) {
+            const params = { filter: 'updateCard:idList', limit: 1000 };
+            if (before) params.before = before;
+            const actions = await trelloGet(`/boards/${boardId}/actions`, params);
+            if (!actions.length) break;
+
+            for (const a of actions) {
+                const listAfter = a.data?.listAfter;
+                const cardId = a.data?.card?.id;
+                if (!cardId || !listAfter || !doneListIds.has(listAfter.id)) continue;
+                const d = new Date(a.date).getTime();
+                const prev = firstDoneDateByCard.get(cardId);
+                if (prev == null || d < prev) firstDoneDateByCard.set(cardId, d);
+            }
+
+            const oldest = actions[actions.length - 1];
+            before = oldest.id;
+            if (new Date(oldest.date).getTime() < windowStart && page > 2) break;
+            if (actions.length < 1000) break;
+        }
+
+        for (const c of cards) {
+            if (!isDoneCard(c)) continue;
+            if (firstDoneDateByCard.has(c.id)) continue;
+            const t = new Date(c.dateLastActivity).getTime();
+            if (!Number.isNaN(t)) firstDoneDateByCard.set(c.id, t);
+        }
+
+        let completedInWindow = 0;
+        firstDoneDateByCard.forEach((t) => {
+            if (t >= windowStart) completedInWindow += 1;
+        });
+
+        const initialScope = open + completedInWindow;
+
+        const dayEnds = [];
+        for (let i = 0; i <= WINDOW_DAYS; i++) {
+            const d = new Date();
+            d.setHours(23, 59, 59, 999);
+            d.setDate(d.getDate() - (WINDOW_DAYS - i));
+            dayEnds.push(d.getTime());
+        }
+
+        const burndown = dayEnds.map((endTs, i) => {
+            let cum = 0;
+            firstDoneDateByCard.forEach((t) => {
+                if (t <= endTs && t >= windowStart) cum += 1;
+            });
+            const actualRemaining = Math.max(0, initialScope - cum);
+            const idealRemaining =
+                initialScope > 0
+                    ? Math.max(0, Math.round(initialScope * (1 - i / WINDOW_DAYS)))
+                    : 0;
+            return {
+                date: new Date(endTs).toISOString().slice(0, 10),
+                actualRemaining,
+                idealRemaining
+            };
+        });
+
+        res.json({
+            success: true,
+            board: { id: boardId, name: boardName },
+            totals: {
+                cards: total,
+                done,
+                open,
+                blocked
+            },
+            completionPercent,
+            doneListNames: openLists.filter((l) => doneListIds.has(l.id)).map((l) => l.name),
+            burndown,
+            windowDays: WINDOW_DAYS
+        });
+    } catch (error) {
+        const msg =
+            error.response?.data ||
+            error.response?.data?.message ||
+            error.message;
+        console.error('Trello dashboard error:', msg);
+        res.status(error.response?.status || 500).json({
+            success: false,
+            error: typeof msg === 'string' ? msg : JSON.stringify(msg)
         });
     }
 });
