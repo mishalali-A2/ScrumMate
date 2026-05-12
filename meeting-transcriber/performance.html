@@ -3,81 +3,677 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScrumMate - Performance</title>
-    <link rel="stylesheet" href="style.css">
+    <title>ScrumMate - Trello Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(180deg, #fff7eb 0%, #ffe6c4 35%, #ffd3a0 100%);
-            padding: 24px;
+        :root {
+            --bg: #f4f7fb;
+            --bg-elevated: #ffffff;
+            --bg-panel: #ffffff;
+            --bg-hover: rgba(79, 124, 255, 0.05);
+            --line: rgba(15, 23, 42, 0.08);
+            --line-strong: rgba(15, 23, 42, 0.14);
+            --text-1: #111827;
+            --text-2: #475467;
+            --text-3: #667085;
+            --text-4: #98a2b3;
+            --accent: #4f7cff;
+            --accent-2: #5de4ff;
+            --accent-soft: rgba(79, 124, 255, 0.18);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 12px;
+            --glow: 0 0 0 1px rgba(79, 124, 255, 0.14), 0 12px 32px rgba(79, 124, 255, 0.1);
+            --transition: 140ms ease;
         }
-        .page-shell { max-width: 1200px; margin: 0 auto; }
-        .top-bar {
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-1);
+            background: linear-gradient(180deg, #fbfdff 0%, #f4f7fb 100%);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            letter-spacing: -0.01em;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--line);
+            padding: 0 24px;
+            height: 58px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.9);
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .brand img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .brand-text h1 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-1);
+        }
+
+        .brand-text p {
+            font-size: 11px;
+            color: var(--text-4);
+            margin: 2px 0 0;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .nav a {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-3);
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all var(--transition);
+        }
+
+        .nav a:hover {
+            color: var(--text-1);
+            background: rgba(79, 124, 255, 0.08);
+        }
+
+        .nav a.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .refresh-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.82);
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .refresh-btn:hover {
+            color: var(--text-1);
+            border-color: rgba(79, 124, 255, 0.24);
+            background: rgba(79, 124, 255, 0.08);
+        }
+
+        .refresh-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .toggle-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 26px 26px 40px;
+        }
+
+        .main::-webkit-scrollbar { width: 6px; }
+        .main::-webkit-scrollbar-thumb {
+            background: rgba(124, 138, 165, 0.32);
             border-radius: 999px;
-            padding: 10px 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-2);
+            margin-bottom: 8px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
             margin-bottom: 24px;
         }
-        .brand { display:flex;align-items:center;gap:8px; }
-        .brand img { width:40px;height:40px;object-fit:contain; }
-        .brand span { font-weight:700;font-size:1.1rem;color:#059669; }
-        .nav-pills { display:flex;gap:16px;margin:0 24px;flex:1;justify-content:center; }
-        .nav-pill {
-            padding:8px 20px;border-radius:999px;border:none;background:#ffffff;
-            box-shadow:0 4px 10px rgba(0,0,0,0.06);font-size:0.95rem;font-weight:600;
-            color:#444444;cursor:pointer;text-decoration:none;display:inline-flex;
-            align-items:center;justify-content:center;
+
+        .metric-card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.98));
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px;
+            transition: all var(--transition);
         }
-        .nav-pill.active { background:#059669;color:#ffffff; }
-        .right-controls { display:flex;align-items:center;gap:12px; }
-        .search-box {
-            display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
-            background:#ffffff;box-shadow:0 4px 10px rgba(0,0,0,0.06);
+
+        .metric-card:hover {
+            border-color: rgba(79, 124, 255, 0.18);
+            box-shadow: 0 0 0 1px rgba(79, 124, 255, 0.08), 0 14px 30px rgba(79, 124, 255, 0.08);
+            transform: translateY(-1px);
         }
-        .search-box input { border:none;outline:none;background:transparent;font-size:0.9rem;min-width:140px; }
-        .avatar { width:32px;height:32px;border-radius:999px;background:#111827;
-            display:flex;align-items:center;justify-content:center;color:white;font-size:0.9rem; }
-        .card {
-            background:#fffdf8;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,0.08);
-            padding:24px;
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+            margin-bottom: 12px;
         }
-        .card h1 { margin:0 0 8px;font-size:1.4rem;color:#111827; }
-        .card p { margin:0;color:#6b7280;font-size:0.9rem; }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.06em;
+            color: var(--text-1);
+            margin-bottom: 8px;
+        }
+
+        .metric-footer {
+            font-size: 11px;
+            color: var(--text-4);
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .boards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .board-card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.98));
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all var(--transition);
+        }
+
+        .board-card:hover {
+            border-color: rgba(79, 124, 255, 0.18);
+            box-shadow: var(--glow);
+            transform: translateY(-2px);
+        }
+
+        .board-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .board-name::before {
+            content: '📋';
+            font-size: 16px;
+        }
+
+        .board-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .board-stat {
+            background: rgba(79, 124, 255, 0.04);
+            border: 1px solid rgba(79, 124, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .board-stat-label {
+            font-size: 10px;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .board-stat-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-1);
+        }
+
+        .board-progress {
+            background: rgba(79, 124, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(79, 124, 255, 0.1);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            border-radius: 999px;
+            transition: width 0.6s ease;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-3);
+            padding: 6px 0;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .status-dot.done { background: var(--success); }
+        .status-dot.open { background: var(--warning); }
+        .status-dot.blocked { background: var(--danger); }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 40px 20px;
+            color: var(--text-4);
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(79, 124, 255, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 999px;
+            animation: spin 1s linear infinite;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            color: #b91c1c;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .error-icon {
+            margin-right: 8px;
+        }
+
+        .last-updated {
+            font-size: 11px;
+            color: var(--text-4);
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-wrap: wrap;
+                padding: 12px;
+                height: auto;
+                min-height: 58px;
+            }
+
+            .nav {
+                order: 3;
+                width: 100%;
+                margin-top: 12px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .boards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="page-shell">
-        <header class="top-bar">
-            <div class="brand">
-                <img src="logo_gallery/Logo.png" alt="ScrumMate logo">
-                <span>ScrumMate</span>
+    <header class="header">
+        <a href="dashboard.html" class="brand">
+            <img src="logo_gallery/Logo.png" alt="ScrumMate">
+            <div class="brand-text">
+                <h1>ScrumMate</h1>
+                <p>Analytics</p>
             </div>
-            <nav class="nav-pills">
-                <a href="dashboard.html" class="nav-pill">Dashboard</a>
-                <a href="meetings.html" class="nav-pill">Meetings</a>
-                <a href="projects.html" class="nav-pill">Projects</a>
-                <a href="performance.html" class="nav-pill active">Performance</a>
-            </nav>
-            <div class="right-controls">
-                <div class="search-box">
-                    <span>🔍</span>
-                    <input type="text" placeholder="Search performance">
-                </div>
-                <div class="avatar">👤</div>
-            </div>
-        </header>
+        </a>
 
-        <main class="card">
-            <h1>Performance</h1>
-            <p>This page will show team and individual performance metrics.</p>
-        </main>
-    </div>
+        <nav class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="meetings.html">Meetings</a>
+            <a href="projects.html">Projects</a>
+            <a href="performance.html" class="active">Analytics</a>
+        </nav>
+
+        <div class="controls">
+            <label class="auto-refresh-toggle">
+                <input type="checkbox" id="autoRefreshToggle" class="toggle-checkbox">
+                <span>Auto-refresh</span>
+            </label>
+            <button class="refresh-btn" id="refreshBtn" title="Refresh analytics">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1.5 4a6.5 6.5 0 1 0 6.5-6.5"></path>
+                    <path d="M8 1.5V5.5h4"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="page-header">
+            <div class="eyebrow">Trello Integration</div>
+            <h1 class="page-title">Board Analytics</h1>
+            <p class="page-subtitle">Real-time insights from all your Trello boards</p>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="loadingContainer" class="loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <span>Loading analytics...</span>
+        </div>
+
+        <div id="analyticsContainer" style="display: none;">
+            <!-- Workspace Metrics -->
+            <div class="metrics-grid" id="metricsGrid"></div>
+
+            <!-- Individual Boards -->
+            <div class="section">
+                <div class="section-title">Board Breakdown</div>
+                <div class="boards-grid" id="boardsGrid"></div>
+            </div>
+
+            <div class="last-updated" id="lastUpdated"></div>
+        </div>
+    </main>
+
+    <script>
+        const refreshBtn = document.getElementById('refreshBtn');
+        const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+        const errorContainer = document.getElementById('errorContainer');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const analyticsContainer = document.getElementById('analyticsContainer');
+        const metricsGrid = document.getElementById('metricsGrid');
+        const boardsGrid = document.getElementById('boardsGrid');
+        const lastUpdated = document.getElementById('lastUpdated');
+
+        let autoRefreshInterval = null;
+
+        async function fetchAnalytics() {
+            try {
+                refreshBtn.classList.add('loading');
+                errorContainer.innerHTML = '';
+                loadingContainer.style.display = 'flex';
+
+                const response = await fetch('/api/trello/boards-detailed');
+                const data = await response.json();
+
+                loadingContainer.style.display = 'none';
+
+                if (!response.ok || !data.success) {
+                    showError(data.error || 'Failed to load analytics');
+                    return;
+                }
+
+                analyticsContainer.style.display = 'block';
+                renderMetrics(data);
+                renderBoards(data);
+                updateLastFetched();
+
+                refreshBtn.classList.remove('loading');
+            } catch (error) {
+                loadingContainer.style.display = 'none';
+                analyticsContainer.style.display = 'block';
+                showError(error.message || 'Connection error');
+                refreshBtn.classList.remove('loading');
+            }
+        }
+
+        function renderMetrics(data) {
+            const t = data.totals.workspace;
+            metricsGrid.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Total Tasks</div>
+                    <div class="metric-value">${t.cards}</div>
+                    <div class="metric-footer">${data.workspace.boardCount} boards</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Completed</div>
+                    <div class="metric-value">${t.done}</div>
+                    <div class="metric-footer">${data.totals.completionPercent}% complete</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">In Progress</div>
+                    <div class="metric-value">${t.open}</div>
+                    <div class="metric-footer">${t.cards ? Math.round(100 * t.open / t.cards) : 0}% of total</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Blocked</div>
+                    <div class="metric-value">${t.blocked}</div>
+                    <div class="metric-footer" id="blockedFooter">Requires attention</div>
+                </div>
+            `;
+        }
+
+        function renderBoards(data) {
+            boardsGrid.innerHTML = data.workspace.boardsDetail.map(board => {
+                const m = board.metrics;
+                const completion = m.total ? Math.round(100 * m.done / m.total) : 0;
+                return `
+                    <div class="board-card">
+                        <div class="board-name">${board.name}</div>
+                        <div class="board-stats">
+                            <div class="board-stat">
+                                <div class="board-stat-label">Total</div>
+                                <div class="board-stat-value">${m.total}</div>
+                            </div>
+                            <div class="board-stat">
+                                <div class="board-stat-label">Done</div>
+                                <div class="board-stat-value">${m.done}</div>
+                            </div>
+                            <div class="board-stat">
+                                <div class="board-stat-label">Open</div>
+                                <div class="board-stat-value">${m.open}</div>
+                            </div>
+                            <div class="board-stat">
+                                <div class="board-stat-label">Blocked</div>
+                                <div class="board-stat-value">${m.blocked}</div>
+                            </div>
+                        </div>
+                        <div class="board-progress">
+                            <div class="progress-label">
+                                <span>Completion</span>
+                                <span>${completion}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${completion}%"></div>
+                            </div>
+                        </div>
+                        ${m.blocked > 0 ? `
+                            <div class="status-row">
+                                <div class="status-dot blocked"></div>
+                                <span>${m.blocked} blocked task${m.blocked !== 1 ? 's' : ''}</span>
+                            </div>
+                        ` : ''}
+                        <div class="status-row">
+                            <div class="status-dot done"></div>
+                            <span>${m.done} completed</span>
+                        </div>
+                        <div class="status-row">
+                            <div class="status-dot open"></div>
+                            <span>${m.open} in progress</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateLastFetched() {
+            const now = new Date();
+            lastUpdated.textContent = `Last updated: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        }
+
+        function showError(message) {
+            errorContainer.innerHTML = `
+                <div class="error">
+                    <span class="error-icon">⚠️</span>
+                    ${message}
+                </div>
+            `;
+            analyticsContainer.style.display = 'block';
+        }
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Event listeners
+        refreshBtn.addEventListener('click', fetchAnalytics);
+        autoRefreshToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+
+        // Load analytics on page load
+        fetchAnalytics();
+
+        // Load preference from localStorage
+        const savedAutoRefresh = localStorage.getItem('trelloAutoRefresh') === 'true';
+        if (savedAutoRefresh) {
+            autoRefreshToggle.checked = true;
+            startAutoRefresh();
+        }
+
+        // Save preference to localStorage
+        autoRefreshToggle.addEventListener('change', (e) => {
+            localStorage.setItem('trelloAutoRefresh', e.target.checked);
+        });
+    </script>
 </body>
 </html>
 
