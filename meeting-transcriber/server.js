@@ -598,29 +598,186 @@ app.get('/api/rag/stats', async (req, res) => {
     }
 });
 
-// === PROJECTS FOR CURRENT USER ===
-// GET /api/projects?email=i221125@nu.edu.pk
-// Returns all projects whose `team` JSONB array contains the profile id
-// that matches the given email.
+// === PROJECTS CRUD ===
+
+// GET /api/projects  — all projects (optionally filtered by member email)
 app.get('/api/projects', async (req, res) => {
     const { email } = req.query;
-    if (!email) {
-        return res.status(400).json({ success: false, error: 'email query param required' });
-    }
     try {
-        const result = await pgPool.query(
-            `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count
-             FROM project p
-             WHERE p.team @> to_jsonb(ARRAY(
-                 SELECT pr.id FROM profile pr WHERE pr.email = $1
-             ))
-             ORDER BY p.created_at DESC`,
-            [email]
-        );
+        let result;
+        if (email) {
+            result = await pgPool.query(
+                `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count,
+                        p.trello_board_id, p.team, p.created_at,
+                        COALESCE(jsonb_array_length(p.us_done), 0)    AS us_done_count,
+                        COALESCE(jsonb_array_length(p.us_pending), 0) AS us_pending_count
+                 FROM project p
+                 WHERE p.team @> to_jsonb(ARRAY(
+                     SELECT pr.id FROM profile pr WHERE pr.email = $1
+                 ))
+                 ORDER BY p.created_at DESC`,
+                [email]
+            );
+        } else {
+            result = await pgPool.query(
+                `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count,
+                        p.trello_board_id, p.team, p.created_at,
+                        COALESCE(jsonb_array_length(p.us_done), 0)    AS us_done_count,
+                        COALESCE(jsonb_array_length(p.us_pending), 0) AS us_pending_count
+                 FROM project p
+                 ORDER BY p.created_at DESC`
+            );
+        }
         res.json({ success: true, projects: result.rows });
     } catch (err) {
-        console.error('DB error /api/projects:', err.message);
+        console.error('DB error GET /api/projects:', err.message);
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/projects — create a project
+// Body: { name, status, description, emoji, color, sprints, teamEmails[], trelloBoardId? }
+app.post('/api/projects', async (req, res) => {
+    const { name, status, description, emoji, color, sprints, teamEmails, trelloBoardId } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+        return res.status(400).json({ success: false, error: 'name is required' });
+    }
+
+    // Validate teamEmails if provided
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (Array.isArray(teamEmails)) {
+        const invalid = teamEmails.filter(e => typeof e !== 'string' || !EMAIL_RE.test(e));
+        if (invalid.length) {
+            return res.status(400).json({ success: false, error: `Invalid email(s): ${invalid.join(', ')}` });
+        }
+    }
+
+    // Validate trelloBoardId if provided (alphanumeric/dash/underscore, 4–32 chars)
+    if (trelloBoardId && !/^[A-Za-z0-9_-]{4,32}$/.test(trelloBoardId)) {
+        return res.status(400).json({ success: false, error: 'Invalid Trello board ID' });
+    }
+
+    try {
+        // Resolve profile IDs from emails (ignore unknown emails)
+        let teamIds = [];
+        if (Array.isArray(teamEmails) && teamEmails.length) {
+            const lookup = await pgPool.query(
+                `SELECT id FROM profile WHERE email = ANY($1::text[])`,
+                [teamEmails.map(e => e.toLowerCase())]
+            );
+            teamIds = lookup.rows.map(r => r.id);
+        }
+
+        const result = await pgPool.query(
+            `INSERT INTO project (name, status, sprints, user_stories_count, team, trello_board_id)
+             VALUES ($1, $2, $3, 0, $4::jsonb, $5)
+             RETURNING id, name, status, sprints, user_stories_count, trello_board_id, team, created_at`,
+            [
+                name,
+                status || 'Not Started',
+                sprints || null,
+                JSON.stringify(teamIds),
+                trelloBoardId || null,
+            ]
+        );
+        // Store extra display fields client-side; return core DB row
+        res.json({ success: true, project: { ...result.rows[0], emoji, color, description } });
+    } catch (err) {
+        console.error('DB error POST /api/projects:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// PUT /api/projects/:id — update a project
+app.put('/api/projects/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, status, sprints, teamEmails, trelloBoardId } = req.body;
+    try {
+        let teamIds = null;
+        if (Array.isArray(teamEmails)) {
+            const lookup = await pgPool.query(
+                `SELECT id FROM profile WHERE email = ANY($1::text[])`,
+                [teamEmails]
+            );
+            teamIds = lookup.rows.map(r => r.id);
+        }
+
+        const fields = [];
+        const vals = [];
+        let idx = 1;
+        if (name !== undefined)          { fields.push(`name = $${idx++}`);             vals.push(name); }
+        if (status !== undefined)        { fields.push(`status = $${idx++}`);           vals.push(status); }
+        if (sprints !== undefined)       { fields.push(`sprints = $${idx++}`);          vals.push(sprints); }
+        if (teamIds !== null)            { fields.push(`team = $${idx++}::jsonb`);      vals.push(JSON.stringify(teamIds)); }
+        if (trelloBoardId !== undefined) { fields.push(`trello_board_id = $${idx++}`); vals.push(trelloBoardId || null); }
+
+        if (!fields.length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+
+        vals.push(id);
+        const result = await pgPool.query(
+            `UPDATE project SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+            vals
+        );
+        if (!result.rows.length) return res.status(404).json({ success: false, error: 'Project not found' });
+        res.json({ success: true, project: result.rows[0] });
+    } catch (err) {
+        console.error('DB error PUT /api/projects:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// DELETE /api/projects/:id
+app.delete('/api/projects/:id', async (req, res) => {
+    try {
+        await pgPool.query(`DELETE FROM project WHERE id = $1`, [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('DB error DELETE /api/projects:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// GET /api/profiles/lookup?email=foo@bar.com — check if a profile exists
+app.get('/api/profiles/lookup', async (req, res) => {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
+
+    // Server-side email format check
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+
+    try {
+        const r = await pgPool.query(`SELECT id, name, email, role FROM profile WHERE email = $1`, [email.toLowerCase()]);
+        if (!r.rows.length) return res.status(404).json({ success: false, error: 'Profile not found' });
+        res.json({ success: true, profile: r.rows[0] });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/projects/trello/create — create a Trello board and return its ID/URL
+// Body: { projectName }
+app.post('/api/projects/trello/create', async (req, res) => {
+    const { projectName } = req.body;
+    if (!projectName || typeof projectName !== 'string' || !projectName.trim()) {
+        return res.status(400).json({ success: false, error: 'projectName is required' });
+    }
+    const key   = process.env.TRELLO_KEY;
+    const token = process.env.TRELLO_TOKEN;
+    if (!key || !token) return res.status(500).json({ success: false, error: 'Trello credentials not configured' });
+    try {
+        const response = await axios.post(
+            `https://api.trello.com/1/boards/`,
+            null,
+            { params: { name: projectName || 'ScrumMate Project', key, token, defaultLists: true } }
+        );
+        const board = response.data;
+        res.json({ success: true, boardId: board.id, boardUrl: board.url, boardName: board.name });
+    } catch (err) {
+        console.error('Trello create board error:', err.response?.data || err.message);
+        res.status(500).json({ success: false, error: err.response?.data?.message || err.message });
     }
 });
 
