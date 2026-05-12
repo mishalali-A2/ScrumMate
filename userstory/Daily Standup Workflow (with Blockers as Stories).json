@@ -1,0 +1,843 @@
+{
+  "name": "Daily Standup Workflow (with Blockers as Stories)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "daily_standup",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "rawBody": "={ \"project_name\": \"Task Tracker App Development\", \"meeting_minutes\": \"...\", \"blockers\": [\"...\"], \"report_date\": \"2026-04-17\" }"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5136,
+        -208
+      ],
+      "id": "1dbe4327-b4cc-4ba3-9334-db865e5231ca",
+      "name": "Standup Input",
+      "webhookId": "daily_standup_webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $node[\"Standup Input\"].json;\nconst body = input.body ?? input;\nconst projectName = body.project_name || body.projectName || body.project || \"\";\nconst meetingMinutes = body.meeting_minutes || body.meetingMinutes || body.minutes || \"\";\nconst blockers = Array.isArray(body.blockers) ? body.blockers : (body.blockers ? [body.blockers] : []);\nconst reportDate = body.report_date || body.date || new Date().toISOString().slice(0, 10);\n\nif (!projectName) throw new Error(\"project_name is required\");\n\nconst prompt = `You are an operations assistant for a Scrum board.\n\nExtract a strict JSON object from the daily standup notes.\n\nINPUTS\nProject name: ${projectName}\nReport date: ${reportDate}\nMeeting minutes:\n${meetingMinutes}\n\nBlockers:\n${JSON.stringify(blockers, null, 2)}\n\nReturn ONLY valid JSON with this exact shape:\n{\n  \"project_name\": string,\n  \"summary\": string,\n  \"completed_tasks\": [\n    {\n      \"user_story_id\": string | null,\n      \"user_story_title\": string,\n      \"priority\": \"Low\" | \"Medium\" | \"High\",\n      \"assignee_email\": string | null,\n      \"trello_card_id\": string | null,\n      \"behind_schedule\": boolean,\n      \"current_status\": string | null,\n      \"target_status\": \"Done\",\n      \"reason\": string\n    }\n  ],\n  \"notifications\": [\n    {\n      \"user_story_id\": string | null,\n      \"user_story_title\": string,\n      \"assignee_email\": string | null,\n      \"priority\": \"Low\" | \"Medium\" | \"High\",\n      \"behind_schedule\": true,\n      \"message\": string,\n      \"reason\": string\n    }\n  ]\n}\n\nRules:\n- completed_tasks must include any task explicitly marked done, finished, merged, shipped, or completed in the minutes.\n- behind_schedule must be true when the person is blocked, late, waiting on dependency, or missed a due date.\n- notifications must include all behind schedule assigned tasks.\n- priority should be High for blockers that stop delivery, Medium for normal risk, Low for minor delays.\n- Return JSON only. No markdown. No explanation.\n\nProject name to normalize in output: ${projectName}`;\n\nreturn [{\n  json: {\n    project_name: projectName,\n    meeting_minutes: meetingMinutes,\n    blockers,\n    report_date: reportDate,\n    prompt,\n    bodyForOllama: {\n      model: \"gpt-oss:120b\",\n      prompt,\n      format: \"json\",\n      stream: false\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4896,
+        -208
+      ],
+      "id": "6949a635-42bb-4f7d-89bc-4b92f8801c94",
+      "name": "buildStandupPrompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ollama.com/api/generate",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer 751a6c5a5f5a402fa391a99d2b6d3e46.ikDku8a4-zLW_KqmOn23eFSL\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.bodyForOllama) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4656,
+        -208
+      ],
+      "id": "584000ac-4c5d-4bd1-8e8f-75d31c097785",
+      "name": "LLM Node"
+    },
+    {
+      "parameters": {
+        "jsCode": "function stripFences(s) {\n  if (!s) return s;\n  s = String(s).trim();\n  if (s.startsWith(\"```\")) {\n    s = s.replace(/^```(?:json)?\\s*/, \"\").replace(/\\s*```$/, \"\");\n  }\n  return s;\n}\n\nfunction readResponse(j) {\n  if (!j) return null;\n  if (typeof j.response === \"string\") return j.response;\n  if (typeof j.text === \"string\") return j.text;\n  if (typeof j.output === \"string\") return j.output;\n  if (Array.isArray(j) && j[0]) return readResponse(j[0]);\n  if (j.choices && j.choices[0]?.message?.content) return j.choices[0].message.content;\n  return null;\n}\n\nconst llmOut = $node[\"LLM Node\"].json;\nconst raw = readResponse(llmOut);\nif (!raw) throw new Error(\"LLM response not found\");\n\nlet parsed;\ntry {\n  parsed = JSON.parse(stripFences(raw));\n} catch (e) {\n  throw new Error(\"Failed to parse standup JSON: \" + e.message);\n}\n\n// Also get the raw blockers from the build node (original array)\nconst rawBlockers = $node[\"buildStandupPrompt\"].json.blockers || [];\n\nreturn [{\n  json: {\n    project_name: parsed.project_name || $node[\"buildStandupPrompt\"].json.project_name,\n    summary: parsed.summary || \"\",\n    completed_tasks: Array.isArray(parsed.completed_tasks) ? parsed.completed_tasks : [],\n    notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],\n    raw_blockers: rawBlockers\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4416,
+        -208
+      ],
+      "id": "42bd15e8-34a5-45d1-ac57-ab01c5acaf36",
+      "name": "ParseLLM"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, status, trello_board_id, us_pending, us_done FROM project WHERE name ILIKE '{{ $node[\"ParseLLM\"].json.project_name.replace(/'/g, \"''\") }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4176,
+        -208
+      ],
+      "id": "2054e500-bbb7-4acb-86fd-1e3ffd79e466",
+      "name": "Get Project",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$node[\"Get Project\"].json.trello_board_id}}/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "id,name,idList,desc,due,idMembers"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3936,
+        -208
+      ],
+      "id": "5bee4f44-6361-46a3-af8f-8b00886a4fea",
+      "name": "Get Trello Cards"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$node[\"Get Project\"].json.trello_board_id}}/lists",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "id,name,closed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3696,
+        -208
+      ],
+      "id": "ad2f42e1-29e5-4c4f-8479-bb27413770ba",
+      "name": "Get Board Lists"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper: extract story ID from card name (e.g., \"US-001: Login page\" -> \"US-001\")\nfunction extractStoryId(cardName) {\n  const match = String(cardName || \"\").match(/^([A-Z]{2,}-\\d+)/);\n  return match ? match[1] : null;\n}\n\n// Get data from previous nodes\nconst parsed = $node[\"ParseLLM\"].json;\nconst project = $node[\"Get Project\"].json;\nconst cards = $items(\"Get Trello Cards\").map(i => i.json);\nconst lists = $items(\"Get Board Lists\").map(i => i.json);\n\n// Find the \"Done\" list\nconst doneList = lists.find(l => /^(done|completed?|closed)$/i.test(String(l.name || \"\").trim()))\n  || lists.find(l => /done|complete|close/i.test(String(l.name || \"\")))\n  || null;\n\n// Find \"Blockers\" list or fallback\nconst blockersList = lists.find(l => /^blockers?$/i.test(String(l.name || \"\").trim()))\n  || lists.find(l => /backlog/i.test(String(l.name || \"\")))\n  || lists[0];\n\n// Build maps for quick lookup\nconst cardById = new Map();\nconst cardByStoryId = new Map();\nconst cardByName = new Map();\n\nfor (const card of cards) {\n  cardById.set(card.id, card);\n  const storyId = extractStoryId(card.name);\n  if (storyId) cardByStoryId.set(storyId, card);\n  cardByName.set(card.name.toLowerCase(), card);\n}\n\nfunction resolveCard(task) {\n  if (!task) return null;\n  if (task.trello_card_id) return cardById.get(task.trello_card_id);\n  if (task.user_story_id) return cardByStoryId.get(task.user_story_id);\n  if (task.user_story_title) return cardByName.get(task.user_story_title.toLowerCase());\n  return null;\n}\n\n// Grouped arrays\nconst moveItems = [];\nconst notifyItems = [];\nconst blockerItems = [];\nconst completedStoryIds = [];\n\n// 1. Process completed tasks -> move group\nfor (const task of (parsed.completed_tasks || [])) {\n  const card = resolveCard(task);\n  if (!card) continue;\n  if (!doneList?.id) continue;\n  const alreadyDone = card.idList === doneList.id;\n  if (!alreadyDone) {\n    moveItems.push({\n      card_id: card.id,\n      done_list_id: doneList.id,\n      story_id: extractStoryId(card.name) || task.user_story_id,\n      story_title: card.name,\n      project_id: project.id\n    });\n    const storyId = extractStoryId(card.name);\n    if (storyId) completedStoryIds.push(storyId);\n  }\n}\n\n// 2. Process notifications -> notify group\nfor (const note of (parsed.notifications || [])) {\n  const card = resolveCard(note);\n  if (!card) continue;\n  const memberIds = card.idMembers || [];\n  if (memberIds.length === 0) continue;\n  notifyItems.push({\n    card_id: card.id,\n    story_id: extractStoryId(card.name) || note.user_story_id,\n    story_title: card.name,\n    member_ids: memberIds,\n    priority: note.priority || \"Medium\",\n    message: note.message || note.reason || \"Task is behind schedule.\",\n    reason: note.reason || \"\",\n    project_id: project.id,\n    project_name: parsed.project_name \n  });\n}\n\n// 3. Process blockers -> blocker group\nconst blockers = parsed.raw_blockers || [];\nfor (const blockerText of blockers) {\n  if (!blockerText || blockerText.trim() === \"\") continue;\n  blockerItems.push({\n    title: `Blocker: ${blockerText.substring(0, 100)}`,\n    description: `Reported on ${parsed.report_date || new Date().toISOString().slice(0, 10)} during daily standup.\\n\\nDetails: ${blockerText}`,\n    list_id: blockersList?.id,\n    project_id: project.id\n  });\n}\n\n// Output items: one per group\nconst outputItems = [];\n\nif (moveItems.length > 0) {\n  outputItems.push({\n    json: {\n      type: \"move\",\n      items: moveItems,\n      completedStoryIds: completedStoryIds,  // optional: include for DB update later\n      project_id: project.id\n    }\n  });\n}\n\nif (notifyItems.length > 0) {\n  outputItems.push({\n    json: {\n      type: \"notify\",\n      items: notifyItems,\n      project_id: project.id\n      \n    }\n  });\n}\n\nif (blockerItems.length > 0) {\n  outputItems.push({\n    json: {\n      type: \"create_blocker\",\n      items: blockerItems,\n      project_id: project.id\n    }\n  });\n}\n\n// Always output a database update item (even if no moves)\noutputItems.push({\n  json: {\n    type: \"update_db\",\n    completedStoryIds: completedStoryIds,\n    project_id: project.id,\n    us_pending: project.us_pending || [],\n    us_done: project.us_done || []\n  }\n});\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3456,
+        -208
+      ],
+      "id": "095127d7-e4f5-434b-b6d0-8d89ef3e90fb",
+      "name": "Prepare Actions"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "d00af7eb-2cf2-4a8e-9158-09db28e3daa7",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "move",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2976,
+        -288
+      ],
+      "id": "84227d56-800f-4729-96f5-610933a01e60",
+      "name": "Move IF",
+      "alwaysOutputData": true,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "fb6a8bf0-0b7d-4abb-a701-82484c3a52d5",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "create_blocker",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2976,
+        -160
+      ],
+      "id": "1619a962-5618-4adc-80a8-0ec8d18368f6",
+      "name": "Blocker IF"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "3b5dc4a9-0cf3-46b9-84dc-0c40abe2b54f",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "=notify",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2976,
+        0
+      ],
+      "id": "84cd7f42-9e93-47a1-bb95-61fc4d593cd3",
+      "name": "Notify IF"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.trello.com/1/cards/{{ $json.card_id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "idList",
+              "value": "={{ $json.done_list_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2592,
+        -400
+      ],
+      "id": "111ce296-8b3d-459d-8ac7-2ba817d1061e",
+      "name": "Move Card To Done"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "idList",
+              "value": "={{ $json.list_id }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "desc",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "labels",
+              "value": "High Priority"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2448,
+        -208
+      ],
+      "id": "1d000065-01d2-420b-b202-e10a1eff33bc",
+      "name": "Create Blocker Card"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/members/{{$json.member_ids}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "email,fullName"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2368,
+        0
+      ],
+      "id": "252a7d54-9f6b-4673-86b5-cdaa32fd3ff4",
+      "name": "Get Member Email",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ 'noreply@example.com' }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ '[' + ($json.priority || 'Medium') + '] Standup follow-up: ' + $json.story_title }}",
+        "text": "=Hello,\n\nYour assigned task is behind schedule.\n\nProject: {{ $json.project_name }}\nTask: {{ $json.story_title }}\nPriority: {{ $json.priority }}\n\nDetails: {{ $json.message || $json.reason }}\n\nThis is an automated standup notification.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        32
+      ],
+      "id": "93b41dad-29c8-4999-aaff-162b6f2e1abd",
+      "name": "Send Email",
+      "webhookId": "74e49ae2-b5c2-44e2-aeaa-0c92944e08ec",
+      "credentials": {
+        "smtp": {
+          "id": "1wsNOPIy294pIVUc",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email error handler\nconsole.error('Email failed to send:', $input.item().json);\nreturn [{ json: { email_error: true, original: $input.item().json } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        -16
+      ],
+      "id": "cb84d45a-0574-49ac-b7d0-e05749328d5f",
+      "name": "Email Error Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// After all move actions, update project's us_pending and us_done in DB\nconst prepNode = $node[\"Prepare Actions\"].json;\nconst completedIds = prepNode.completedStoryIds || [];\nconst projectId = prepNode.project_id;\nconst oldPending = prepNode.us_pending || [];\nconst oldDone = prepNode.us_done || [];\n\n// Remove completed IDs from pending, add to done\nconst newPending = oldPending.filter(id => !completedIds.includes(id));\nconst newDone = [...new Set([...oldDone, ...completedIds])];\n\n// Return as item for PostgreSQL node\nreturn [{\n  json: {\n    project_id: projectId,\n    us_pending: newPending,\n    us_done: newDone\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2432,
+        -400
+      ],
+      "id": "89d32612-2830-409d-951a-c8c2da502ad2",
+      "name": "Prepare DB Update"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE project SET us_pending = '{{ JSON.stringify($json.us_pending) }}'::jsonb, us_done = '{{ JSON.stringify($json.us_done) }}'::jsonb WHERE id = {{ $json.project_id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2256,
+        -400
+      ],
+      "id": "d90b36a7-2da4-46a4-924d-e1c5a40e2cfe",
+      "name": "Update Project DB",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2768,
+        -368
+      ],
+      "id": "cfcfa15e-33e6-462a-8a97-080a38c6312b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2768,
+        -160
+      ],
+      "id": "63f6966d-b43b-41ed-a436-51ab5591e3dc",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2800,
+        0
+      ],
+      "id": "e135d35a-a5ff-46d7-b345-3cbbaa030bb6",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "member_ids",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2560,
+        144
+      ],
+      "id": "4d64b4b2-fde6-49eb-866b-7fea584a9307",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT email FROM profile WHERE name ILIKE '{{ $json.fullName }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2192,
+        0
+      ],
+      "id": "ac70928f-1e5f-4cf1-ac10-86ea9bc1adbb",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -2352,
+        208
+      ],
+      "id": "f7378dc1-8f83-46f0-be54-88b45da9f93d",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1984,
+        0
+      ],
+      "id": "efea1a4f-d1c7-49e6-895d-70fd6ea267c0",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {
+    "Standup Input": [
+      {
+        "json": {
+          "project_name": "Task Tracker App Development",
+          "meeting_minutes": "**Team updates:**\n- Alex: Completed US-001 (User signup/login) and US-002 (Create task). Started US-003 (Dashboard listing). No blockers.\n- Jamie: Worked on US-004 (Deadline field) but waiting for design approval. US-005 (Edit task) is 50% done.\n- Taylor: Finished US-006 (Mark complete) and US-007 (Delete task). US-008 (Pending/Completed sections) is behind schedule because of API changes.\n\n**Blockers:**\n- US-004 blocked by design review\n- US-008 delayed by backend API refactor",
+          "blockers": [
+            "Design review pending for date picker (US-004)",
+            "Backend API refactor affecting task status grouping (US-008)"
+          ],
+          "report_date": "2026-04-17"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Standup Input": {
+      "main": [
+        [
+          {
+            "node": "buildStandupPrompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buildStandupPrompt": {
+      "main": [
+        [
+          {
+            "node": "LLM Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Node": {
+      "main": [
+        [
+          {
+            "node": "ParseLLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseLLM": {
+      "main": [
+        [
+          {
+            "node": "Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Project": {
+      "main": [
+        [
+          {
+            "node": "Get Trello Cards",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Board Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trello Cards": {
+      "main": [
+        [
+          {
+            "node": "Prepare Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Board Lists": {
+      "main": [
+        [
+          {
+            "node": "Prepare Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move IF": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move Card To Done": {
+      "main": [
+        [
+          {
+            "node": "Prepare DB Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare DB Update": {
+      "main": [
+        [
+          {
+            "node": "Update Project DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blocker IF": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify IF": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member Email": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Actions": {
+      "main": [
+        [
+          {
+            "node": "Notify IF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Move IF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Blocker IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Move Card To Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Create Blocker Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Email Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "Get Member Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5620cb79-3f00-4d9f-919a-e6edf4e0213c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "744490006193b9cc367739a2f1c78dafedf1298ed7a63abc616d759e1dd3d8a1"
+  },
+  "id": "pUShyHnBYDWXl5Qv",
+  "tags": []
+}
