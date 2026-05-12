@@ -1030,13 +1030,13 @@
         </nav>
 
         <div class="sidebar-footer">
-            <div class="profile">
-                <div class="profile-avatar">MZ</div>
+            <a href="profile.html" class="profile" id="sidebarProfileLink" aria-label="Open your profile">
+                <div class="profile-avatar" id="sidebarAvatar" aria-hidden="true"></div>
                 <div class="profile-copy">
-                    <div class="profile-name">Muaz</div>
+                    <div class="profile-name" id="sidebarProfileName">Loading…</div>
                     <div class="profile-role">Workspace owner</div>
                 </div>
-            </div>
+            </a>
         </div>
     </aside>
 
@@ -1382,6 +1382,163 @@
             }
         }, 32);
     });
+
+    function initialsFromUser(user) {
+        const fn = user.firstName && String(user.firstName).trim();
+        const ln = user.lastName && String(user.lastName).trim();
+        if (fn && ln) return (fn[0] + ln[0]).toUpperCase();
+        const full = user.fullName && String(user.fullName).trim();
+        if (full) {
+            const parts = full.split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            if (parts.length === 1 && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+        }
+        if (user.username) return String(user.username).slice(0, 2).toUpperCase();
+        const email = user.primaryEmailAddress && user.primaryEmailAddress.emailAddress;
+        if (email) return email.slice(0, 2).toUpperCase();
+        return '?';
+    }
+
+    function displayNameFromUser(user) {
+        const full = user.fullName && String(user.fullName).trim();
+        if (full) return full;
+        const fn = user.firstName && String(user.firstName).trim();
+        const ln = user.lastName && String(user.lastName).trim();
+        const combo = [fn, ln].filter(Boolean).join(' ');
+        if (combo) return combo;
+        if (user.username) return user.username;
+        if (user.primaryEmailAddress && user.primaryEmailAddress.emailAddress) {
+            return user.primaryEmailAddress.emailAddress;
+        }
+        return 'Signed-in user';
+    }
+
+    function mountSidebarAvatar(avatarEl, user) {
+        avatarEl.replaceChildren();
+        const url = user.imageUrl;
+        if (url) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '10px';
+            avatarEl.appendChild(img);
+        } else {
+            const initials = document.createElement('span');
+            initials.textContent = initialsFromUser(user);
+            avatarEl.appendChild(initials);
+        }
+    }
+    function bootDashboardClerk() {
+        if (!window.Clerk) {
+            requestAnimationFrame(bootDashboardClerk);
+            return;
+        }
+        window.Clerk.load()
+            .then(() => {
+                const user = window.Clerk.user || (window.Clerk.session && window.Clerk.session.user);
+                if (!user) {
+                    window.location.replace('login.html');
+                    return;
+                }
+                const nameEl = document.getElementById('sidebarProfileName');
+                const avatarEl = document.getElementById('sidebarAvatar');
+                if (nameEl) nameEl.textContent = displayNameFromUser(user);
+                if (avatarEl) mountSidebarAvatar(avatarEl, user);
+            })
+            .catch(() => window.location.replace('login.html'));
+    }
+
+    bootDashboardClerk();
+
+    // Load Trello dashboard
+    async function loadTrelloDashboard() {
+        const boardLabel = document.getElementById('trelloBoardLabel');
+        const syncMeta = document.getElementById('trelloSyncMeta');
+        const chartErr = document.getElementById('trelloChartError');
+        const svg = document.getElementById('burndownSvg');
+
+        try {
+            const base = window.location.origin && window.location.origin !== 'null'
+                ? window.location.origin
+                : '';
+            const res = await fetch(`${base}/api/trello/dashboard`);
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok || !data.success) {
+                boardLabel.textContent = 'not connected';
+                syncMeta.textContent = '';
+                chartErr.hidden = false;
+                chartErr.textContent = data.error || `Could not load Trello (${res.status}). Run the server from meeting-transcriber and open this page over http://localhost.`;
+                return;
+            }
+
+            chartErr.hidden = true;
+            const ws = data.workspace || {};
+            const nBoards = ws.boardCount ?? data.board?.name;
+            const loaded = ws.boardsLoaded ?? nBoards;
+            const cards = data.totals?.cards ?? 0;
+            if (typeof nBoards === 'number') {
+                boardLabel.textContent =
+                    `${nBoards} board${nBoards === 1 ? '' : 's'} · ${cards} task${cards === 1 ? '' : 's'}` +
+                    (loaded < nBoards ? ` (${loaded} loaded)` : '');
+            } else {
+                boardLabel.textContent = data.board?.name || 'Trello';
+            }
+            syncMeta.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+            const t = data.totals || {};
+            animateNumber(document.getElementById('metricTotal'), t.cards);
+            animateNumber(document.getElementById('metricDone'), t.done);
+            animateNumber(document.getElementById('metricPct'), data.completionPercent, '%');
+            animateNumber(document.getElementById('metricOpen'), t.open);
+
+            const ratio = t.cards ? `${t.done} / ${t.cards}` : '—';
+            document.getElementById('metricDoneRatio').textContent = ratio;
+            document.getElementById('metricBlockedBadge').textContent =
+                t.blocked ? `${t.blocked} blocked` : '0 blocked';
+
+            const doneNames = (data.doneListNames || []).join(', ');
+            document.getElementById('metricPctFoot').textContent = doneNames
+                ? `Done lists: ${doneNames}`
+                : 'Done = archived or lists named Done / Complete';
+
+            document.getElementById('metricOpenFoot').textContent =
+                t.open === 1 ? '1 card still in progress' : `${t.open} cards still in progress`;
+
+            if (data.burndown?.length) {
+                renderBurndown(svg, data.burndown);
+            }
+        } catch (e) {
+            boardLabel.textContent = 'error';
+            chartErr.hidden = false;
+            chartErr.textContent = e.message || String(e);
+        }
+    }
+
+    loadTrelloDashboard();
+
+    // Auto-refresh Trello dashboard every 60 seconds
+    let trelloDashboardInterval = null;
+    const savedTrelloAutoRefresh = localStorage.getItem('trelloDashboardAutoRefresh') === 'true';
+    
+    function startTrelloDashboardAutoRefresh() {
+        if (trelloDashboardInterval) clearInterval(trelloDashboardInterval);
+        trelloDashboardInterval = setInterval(loadTrelloDashboard, 60000); // Refresh every 60 seconds
+    }
+    
+    function stopTrelloDashboardAutoRefresh() {
+        if (trelloDashboardInterval) {
+            clearInterval(trelloDashboardInterval);
+            trelloDashboardInterval = null;
+        }
+    }
+    
+    if (savedTrelloAutoRefresh) {
+        startTrelloDashboardAutoRefresh();
+    }
 </script>
 </body>
 </html>

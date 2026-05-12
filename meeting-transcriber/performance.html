@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         :root {
             --bg: #f4f7fb;
@@ -257,7 +258,7 @@
 
         .boards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 16px;
         }
 
@@ -265,8 +266,14 @@
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.98));
             border: 1px solid var(--line);
             border-radius: 16px;
-            padding: 20px;
+            padding: 18px;
             transition: all var(--transition);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            min-height: 300px;
         }
 
         .board-card:hover {
@@ -276,54 +283,29 @@
         }
 
         .board-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text-1);
-            margin-bottom: 16px;
+            text-align: center;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1.4;
+            flex-shrink: 0;
         }
 
         .board-name::before {
             content: '📋';
             font-size: 16px;
+            flex-shrink: 0;
         }
 
-        .board-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .board-stat {
-            background: rgba(79, 124, 255, 0.04);
-            border: 1px solid rgba(79, 124, 255, 0.1);
-            border-radius: 10px;
-            padding: 12px;
-        }
-
-        .board-stat-label {
-            font-size: 10px;
-            color: var(--text-4);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .board-stat-value {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--text-1);
-        }
-
-        .board-progress {
+        .board-completion {
+            width: 100%;
             background: rgba(79, 124, 255, 0.1);
             border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 10px;
         }
 
         .progress-label {
@@ -332,6 +314,7 @@
             margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
+            font-weight: 600;
         }
 
         .progress-bar {
@@ -349,25 +332,172 @@
             transition: width 0.6s ease;
         }
 
-        .status-row {
+        .board-chart-container {
+            flex: 1;
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--text-3);
-            padding: 6px 0;
+            justify-content: center;
+            min-height: 140px;
         }
 
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* MODAL OVERLAY */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 1200px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.82);
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition);
             flex-shrink: 0;
         }
 
-        .status-dot.done { background: var(--success); }
-        .status-dot.open { background: var(--warning); }
-        .status-dot.blocked { background: var(--danger); }
+        .modal-close:hover {
+            color: var(--text-1);
+            border-color: rgba(79, 124, 255, 0.24);
+            background: rgba(79, 124, 255, 0.08);
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .modal-stat {
+            background: rgba(79, 124, 255, 0.04);
+            border: 1px solid rgba(79, 124, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .modal-stat-label {
+            font-size: 10px;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .modal-stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-1);
+        }
+
+        .modal-charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .modal-chart-wrapper {
+            background: #ffffff;
+            border: 1px solid rgba(79, 124, 255, 0.12);
+            border-radius: 16px;
+            padding: 16px;
+            position: relative;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            border-radius: 1px;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+        }
 
         .loading {
             display: flex;
@@ -413,6 +543,14 @@
             .metrics-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .modal-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .modal-charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
@@ -439,6 +577,18 @@
 
             .page-title {
                 font-size: 20px;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-charts-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -478,7 +628,7 @@
         <div class="page-header">
             <div class="eyebrow">Trello Integration</div>
             <h1 class="page-title">Board Analytics</h1>
-            <p class="page-subtitle">Real-time insights from all your Trello boards</p>
+            <p class="page-subtitle">Real-time insights from all your Trello boards • Click any board to see detailed charts</p>
         </div>
 
         <div id="errorContainer"></div>
@@ -501,6 +651,24 @@
         </div>
     </main>
 
+    <!-- MODAL OVERLAY -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalBoardName">Board Details</div>
+                <button class="modal-close" id="modalCloseBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M5 5l10 10M15 5l-10 10"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-stats" id="modalStats"></div>
+
+            <div class="modal-charts-grid" id="modalChartsGrid"></div>
+        </div>
+    </div>
+
     <script>
         const refreshBtn = document.getElementById('refreshBtn');
         const autoRefreshToggle = document.getElementById('autoRefreshToggle');
@@ -510,8 +678,11 @@
         const metricsGrid = document.getElementById('metricsGrid');
         const boardsGrid = document.getElementById('boardsGrid');
         const lastUpdated = document.getElementById('lastUpdated');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
 
         let autoRefreshInterval = null;
+        let currentData = null;
 
         async function fetchAnalytics() {
             try {
@@ -529,6 +700,7 @@
                     return;
                 }
 
+                currentData = data;
                 analyticsContainer.style.display = 'block';
                 renderMetrics(data);
                 renderBoards(data);
@@ -564,37 +736,24 @@
                 <div class="metric-card">
                     <div class="metric-label">Blocked</div>
                     <div class="metric-value">${t.blocked}</div>
-                    <div class="metric-footer" id="blockedFooter">Requires attention</div>
+                    <div class="metric-footer">Requires attention</div>
                 </div>
             `;
         }
 
         function renderBoards(data) {
-            boardsGrid.innerHTML = data.workspace.boardsDetail.map(board => {
+            boardsGrid.innerHTML = data.workspace.boardsDetail.map((board, boardIndex) => {
                 const m = board.metrics;
                 const completion = m.total ? Math.round(100 * m.done / m.total) : 0;
                 return `
-                    <div class="board-card">
+                    <div class="board-card" onclick="openBoardDetails(${boardIndex})">
                         <div class="board-name">${board.name}</div>
-                        <div class="board-stats">
-                            <div class="board-stat">
-                                <div class="board-stat-label">Total</div>
-                                <div class="board-stat-value">${m.total}</div>
-                            </div>
-                            <div class="board-stat">
-                                <div class="board-stat-label">Done</div>
-                                <div class="board-stat-value">${m.done}</div>
-                            </div>
-                            <div class="board-stat">
-                                <div class="board-stat-label">Open</div>
-                                <div class="board-stat-value">${m.open}</div>
-                            </div>
-                            <div class="board-stat">
-                                <div class="board-stat-label">Blocked</div>
-                                <div class="board-stat-value">${m.blocked}</div>
-                            </div>
+                        
+                        <div class="board-chart-container">
+                            <canvas id="pieChart-${boardIndex}"></canvas>
                         </div>
-                        <div class="board-progress">
+
+                        <div class="board-completion">
                             <div class="progress-label">
                                 <span>Completion</span>
                                 <span>${completion}%</span>
@@ -603,23 +762,486 @@
                                 <div class="progress-fill" style="width: ${completion}%"></div>
                             </div>
                         </div>
-                        ${m.blocked > 0 ? `
-                            <div class="status-row">
-                                <div class="status-dot blocked"></div>
-                                <span>${m.blocked} blocked task${m.blocked !== 1 ? 's' : ''}</span>
-                            </div>
-                        ` : ''}
-                        <div class="status-row">
-                            <div class="status-dot done"></div>
-                            <span>${m.done} completed</span>
-                        </div>
-                        <div class="status-row">
-                            <div class="status-dot open"></div>
-                            <span>${m.open} in progress</span>
-                        </div>
                     </div>
                 `;
             }).join('');
+
+            // Render only pie charts for board cards
+            data.workspace.boardsDetail.forEach((board, boardIndex) => {
+                renderBoardPieChart(board, boardIndex);
+            });
+        }
+
+        function renderBoardPieChart(board, boardIndex) {
+            const m = board.metrics;
+            
+            const pieCtx = document.getElementById(`pieChart-${boardIndex}`);
+            if (pieCtx) {
+                new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Done', 'In Progress', 'Blocked'],
+                        datasets: [{
+                            data: [m.done, m.open, m.blocked],
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.9)',
+                                'rgba(245, 158, 11, 0.9)',
+                                'rgba(239, 68, 68, 0.9)'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                padding: 10,
+                                bodyFont: { size: 11 },
+                                borderColor: 'rgba(79, 124, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function openBoardDetails(boardIndex) {
+            if (!currentData) return;
+
+            const board = currentData.workspace.boardsDetail[boardIndex];
+            const m = board.metrics;
+
+            // Set modal header
+            document.getElementById('modalBoardName').textContent = `📋 ${board.name}`;
+
+            // Set stats
+            document.getElementById('modalStats').innerHTML = `
+                <div class="modal-stat">
+                    <div class="modal-stat-label">Total Tasks</div>
+                    <div class="modal-stat-value">${m.total}</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-label">Completed</div>
+                    <div class="modal-stat-value">${m.done}</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-label">In Progress</div>
+                    <div class="modal-stat-value">${m.open}</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-label">Blocked</div>
+                    <div class="modal-stat-value">${m.blocked}</div>
+                </div>
+            `;
+
+            // Set charts grid with 4 charts
+            document.getElementById('modalChartsGrid').innerHTML = `
+                <div class="modal-chart-wrapper">
+                    <div class="chart-title">Task Distribution</div>
+                    <div class="chart-container">
+                        <canvas id="modal-pieChart-${boardIndex}"></canvas>
+                    </div>
+                </div>
+                <div class="modal-chart-wrapper">
+                    <div class="chart-title">Burndown Trend</div>
+                    <div class="chart-container">
+                        <canvas id="modal-burndownChart-${boardIndex}"></canvas>
+                    </div>
+                </div>
+                <div class="modal-chart-wrapper">
+                    <div class="chart-title">Cumulative Flow</div>
+                    <div class="chart-container">
+                        <canvas id="modal-cumulativeChart-${boardIndex}"></canvas>
+                    </div>
+                </div>
+                <div class="modal-chart-wrapper">
+                    <div class="chart-title">Burnup Progress</div>
+                    <div class="chart-container">
+                        <canvas id="modal-burnupChart-${boardIndex}"></canvas>
+                    </div>
+                </div>
+            `;
+
+            // Render all charts in modal
+            setTimeout(() => {
+                renderModalCharts(board, boardIndex);
+            }, 0);
+
+            // Show modal
+            modalOverlay.classList.add('active');
+        }
+
+        function renderModalCharts(board, boardIndex) {
+            const m = board.metrics;
+
+            // Pie Chart
+            const pieCtx = document.getElementById(`modal-pieChart-${boardIndex}`);
+            if (pieCtx) {
+                new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Done', 'In Progress', 'Blocked'],
+                        datasets: [{
+                            data: [m.done, m.open, m.blocked],
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.9)',
+                                'rgba(245, 158, 11, 0.9)',
+                                'rgba(239, 68, 68, 0.9)'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12, weight: '600' },
+                                    padding: 16,
+                                    usePointStyle: true,
+                                    color: 'var(--text-2)',
+                                    generateLabels: (chart) => {
+                                        const data = chart.data;
+                                        return data.labels.map((label, i) => ({
+                                            text: `${label}: ${data.datasets[0].data[i]}`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            hidden: false,
+                                            index: i,
+                                            pointStyle: 'circle'
+                                        }));
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                padding: 12,
+                                titleFont: { size: 12, weight: 'bold' },
+                                bodyFont: { size: 11 },
+                                borderColor: 'rgba(79, 124, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Burndown Chart
+            const burndownCtx = document.getElementById(`modal-burndownChart-${boardIndex}`);
+            if (burndownCtx) {
+                const days = generateSprintDays(14);
+                const idealLine = generateIdealBurndown(m.total, 14);
+                const actualLine = generateActualBurndown(m.total, m.done, 14);
+                
+                new Chart(burndownCtx, {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [
+                            {
+                                label: 'Ideal',
+                                data: idealLine,
+                                borderColor: 'rgba(79, 124, 255, 0.7)',
+                                borderDash: [6, 4],
+                                fill: false,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: 'rgba(79, 124, 255, 0.8)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                borderWidth: 2.5
+                            },
+                            {
+                                label: 'Actual',
+                                data: actualLine,
+                                borderColor: 'rgba(34, 197, 94, 0.85)',
+                                fill: true,
+                                backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: 'rgba(34, 197, 94, 0.9)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                borderWidth: 2.5
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: { size: 11, weight: '600' },
+                                    padding: 12,
+                                    usePointStyle: true,
+                                    color: 'var(--text-2)'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                padding: 10,
+                                titleFont: { size: 11, weight: 'bold' },
+                                bodyFont: { size: 10 },
+                                borderColor: 'rgba(79, 124, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: m.total,
+                                ticks: { font: { size: 10 }, color: 'var(--text-3)' },
+                                grid: { color: 'rgba(79, 124, 255, 0.06)' }
+                            },
+                            x: {
+                                ticks: { font: { size: 9 }, color: 'var(--text-3)' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Cumulative Flow Chart
+            const cumulativeCtx = document.getElementById(`modal-cumulativeChart-${boardIndex}`);
+            if (cumulativeCtx) {
+                const days = generateSprintDays(14);
+                const doneFlow = generateCumulativeFlow(m.done, 14);
+                const inProgressFlow = generateCumulativeFlow(m.open, 14);
+                const blockedFlow = generateCumulativeFlow(m.blocked, 14);
+                
+                new Chart(cumulativeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [
+                            {
+                                label: 'Done',
+                                data: doneFlow,
+                                borderColor: 'rgba(34, 197, 94, 0.85)',
+                                backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: 'rgba(34, 197, 94, 0.8)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1.5,
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'In Progress',
+                                data: inProgressFlow,
+                                borderColor: 'rgba(245, 158, 11, 0.85)',
+                                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: 'rgba(245, 158, 11, 0.8)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1.5,
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'Blocked',
+                                data: blockedFlow,
+                                borderColor: 'rgba(239, 68, 68, 0.85)',
+                                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1.5,
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: { size: 11, weight: '600' },
+                                    padding: 12,
+                                    usePointStyle: true,
+                                    color: 'var(--text-2)'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                padding: 10,
+                                titleFont: { size: 11, weight: 'bold' },
+                                bodyFont: { size: 10 },
+                                borderColor: 'rgba(79, 124, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { font: { size: 10 }, color: 'var(--text-3)' },
+                                grid: { color: 'rgba(79, 124, 255, 0.06)' }
+                            },
+                            x: {
+                                ticks: { font: { size: 9 }, color: 'var(--text-3)' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Burnup Chart
+            const burnupCtx = document.getElementById(`modal-burnupChart-${boardIndex}`);
+            if (burnupCtx) {
+                const days = generateSprintDays(14);
+                const completed = generateBurnupCompleted(m.done, 14);
+                const total = generateBurnupTotal(m.total, 14);
+                
+                new Chart(burnupCtx, {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [
+                            {
+                                label: 'Total Scope',
+                                data: total,
+                                borderColor: 'rgba(79, 124, 255, 0.7)',
+                                backgroundColor: 'transparent',
+                                borderDash: [6, 4],
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: 'rgba(79, 124, 255, 0.8)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                borderWidth: 2.5
+                            },
+                            {
+                                label: 'Completed',
+                                data: completed,
+                                borderColor: 'rgba(34, 197, 94, 0.85)',
+                                backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: 'rgba(34, 197, 94, 0.9)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                borderWidth: 2.5
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: { size: 11, weight: '600' },
+                                    padding: 12,
+                                    usePointStyle: true,
+                                    color: 'var(--text-2)'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                padding: 10,
+                                titleFont: { size: 11, weight: 'bold' },
+                                bodyFont: { size: 10 },
+                                borderColor: 'rgba(79, 124, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { font: { size: 10 }, color: 'var(--text-3)' },
+                                grid: { color: 'rgba(79, 124, 255, 0.06)' }
+                            },
+                            x: {
+                                ticks: { font: { size: 9 }, color: 'var(--text-3)' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Helper functions
+        function generateSprintDays(count) {
+            const days = [];
+            for (let i = 0; i < count; i++) {
+                days.push(`Day ${i + 1}`);
+            }
+            return days;
+        }
+
+        function generateIdealBurndown(total, days) {
+            const dailyBurn = total / days;
+            const data = [];
+            for (let i = 0; i < days; i++) {
+                data.push(Math.max(0, total - (dailyBurn * (i + 1))));
+            }
+            return data;
+        }
+
+        function generateActualBurndown(total, completed, days) {
+            const data = [];
+            const currentRemaining = total - completed;
+            const variance = Math.random() * 0.3;
+            
+            for (let i = 0; i < days - 1; i++) {
+                const progress = (i / (days - 1)) * completed;
+                data.push(total - progress + (Math.random() - 0.5) * total * variance);
+            }
+            data.push(currentRemaining);
+            return data.map(v => Math.max(0, v));
+        }
+
+        function generateCumulativeFlow(value, days) {
+            const data = [];
+            for (let i = 0; i < days; i++) {
+                const progress = (i / days) * value;
+                data.push(progress + (Math.random() - 0.5) * value * 0.1);
+            }
+            return data.map(v => Math.max(0, v));
+        }
+
+        function generateBurnupCompleted(completed, days) {
+            const data = [];
+            for (let i = 0; i < days; i++) {
+                const progress = (i / days) * completed;
+                data.push(progress + (Math.random() - 0.5) * completed * 0.15);
+            }
+            data[data.length - 1] = completed;
+            return data.map(v => Math.max(0, v));
+        }
+
+        function generateBurnupTotal(total, days) {
+            const data = [];
+            for (let i = 0; i < days; i++) {
+                const scopeCreep = (Math.random() - 0.3) * (total * 0.05);
+                data.push(total + scopeCreep);
+            }
+            return data;
         }
 
         function updateLastFetched() {
@@ -639,7 +1261,7 @@
 
         function startAutoRefresh() {
             if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
+            autoRefreshInterval = setInterval(fetchAnalytics, 30000);
         }
 
         function stopAutoRefresh() {
@@ -648,6 +1270,17 @@
                 autoRefreshInterval = null;
             }
         }
+
+        // Close modal
+        modalCloseBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        });
 
         // Event listeners
         refreshBtn.addEventListener('click', fetchAnalytics);
@@ -659,21 +1292,19 @@
             }
         });
 
-        // Load analytics on page load
+        // Initial load
         fetchAnalytics();
 
-        // Load preference from localStorage
+        // Load saved preferences
         const savedAutoRefresh = localStorage.getItem('trelloAutoRefresh') === 'true';
         if (savedAutoRefresh) {
             autoRefreshToggle.checked = true;
             startAutoRefresh();
         }
 
-        // Save preference to localStorage
         autoRefreshToggle.addEventListener('change', (e) => {
             localStorage.setItem('trelloAutoRefresh', e.target.checked);
         });
     </script>
 </body>
 </html>
-
