@@ -19,7 +19,7 @@ app.use(express.static('.', { index: false }));
 
 // Default route: show Clerk-powered login/signup landing page
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
+    res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
