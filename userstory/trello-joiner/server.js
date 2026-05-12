@@ -168,17 +168,17 @@ async function detectState(page) {
     }
 
     // <-- ADDED: RESET PASSWORD DETECTION
+    // Detect reset password page – even if the text is 'can't log in?'
+    // RESET PASSWORD – only when actually needed
     if (
+        url.includes('resetpassword') ||
         txt.includes('reset password') ||
-        txt.includes('forgot password') ||
+        txt.includes('recovery link') ||
         txt.includes('new password') ||
-        txt.includes('confirm password') ||
-        (txt.includes('password') && txt.includes('reset')) ||
-        (url.includes('reset') && txt.includes('password'))
+        txt.includes('confirm password')
     ) {
         return 'RESET_PASSWORD';
     }
-
     // ATLASSIAN LOGIN PAGE
 
     if (
@@ -339,13 +339,19 @@ async function handleAtlassianLogin(page) {
     // must NOT click continue again
     // -------------------------------------------------
 
-    const loginClicked =
-        await clickByText(page, [
-            'log in',
-            'login',
-            'sign in'
-        ]);
-
+    const loginClicked = await page.evaluate(() => {
+        const normalize = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const buttons = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="submit"]'));
+        for (const btn of buttons) {
+            const text = normalize(btn.innerText || btn.textContent || btn.value);
+            // Must contain 'log in' or 'login' but NOT contain 'can\'t' or 'reset'
+            if ((text.includes('log in') || text === 'login') && !text.includes('can\'t') && !text.includes('reset')) {
+                btn.click();
+                return text;
+            }
+        }
+        return null;
+    });
     console.log(
         'Clicked login:',
         loginClicked
@@ -465,42 +471,12 @@ async function handleJoin(page) {
     console.log('NEW URL:', page.url());
 }
 
-// <-- ADDED: RESET PASSWORD RECOVERY HANDLER
 async function handleResetPassword(page, originalInviteUrl, attemptCount) {
     console.log('Handling RESET_PASSWORD state (attempt', attemptCount, ')');
-
-    // Try to click "Back to login" or "Log in" link first
-    const clicked = await page.evaluate(() => {
-        const normalize = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        const els = Array.from(document.querySelectorAll('a, button, [role="button"]'));
-        for (const el of els) {
-            const text = normalize(el.innerText || el.textContent);
-            if (text.includes('back to login') || text === 'log in' || text === 'login') {
-                el.click();
-                return text;
-            }
-        }
-        return null;
-    });
-
-    if (clicked) {
-        console.log('Clicked', clicked, '- returning to login flow');
-        await waitForPageStabilize(page);
-        return;
-    }
-
-    // No login link found – try to go back in history
-    console.log('No login link found, trying to go back');
-    await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => { });
+    // Directly reload the original invite URL to restart the flow cleanly
+    console.log('Reloading original invite URL to restart login');
+    await page.goto(originalInviteUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await sleep(2000);
-
-    // If we're still on a reset page after back, force reload original invite URL
-    const stillReset = (await bodyText(page)).includes('reset password');
-    if (stillReset) {
-        console.log('Still on reset page after back – reloading original invite URL');
-        await page.goto(originalInviteUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await sleep(2000);
-    }
 }
 
 /* =========================================================
