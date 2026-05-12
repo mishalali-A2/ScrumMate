@@ -156,6 +156,60 @@ class MeetingPipeline:
             if N8N_ENABLED:
                 print("⚠️ n8n integration enabled but missing config (BASE_URL/WORKFLOW_ID) – skipping")
 
+    @staticmethod
+    def _extract_project_name(minutes: str, meeting_id: str) -> str:
+        """
+        Best-effort extraction of the project/product name from meeting minutes text.
+
+        Tries the following patterns in order:
+          1. Markdown H1 heading:            # RetailEdge App — Sprint 6
+          2. Bold title line:                **RetailEdge App - Meeting Minutes**
+          3. Intro sentence:                 "Here are the ... minutes for <Name> —"
+                                             "Here are the <Name> minutes:"
+          4. Any bold capitalised phrase on its own line longer than 4 words
+          5. Fallback: the meeting_id itself
+        """
+        # Strip the metadata block so we don't match fields inside it
+        body = re.sub(r'\*\*MEETING METADATA\*\*.*?---', '', minutes, flags=re.DOTALL).strip()
+
+        # 1. Markdown H1: # Some Project Name — extra stuff
+        m = re.search(r'^#\s+(.+?)(?:\s+[—–-]|\s*$)', body, re.MULTILINE)
+        if m:
+            return m.group(1).strip()
+
+        # 2. Bold title line: **Some Project Name — Meeting Minutes**
+        m = re.search(r'^\*\*([^*\n]{6,}?)\s*(?:[—–-][^*\n]*)?\*\*\s*$', body, re.MULTILINE)
+        if m:
+            candidate = m.group(1).strip()
+            # Skip generic section headers (all caps, single word, or very short)
+            if not re.match(r'^[A-Z\s&]+$', candidate) and len(candidate) > 8:
+                return candidate
+
+        # 3. Intro sentence patterns
+        #    "Here are the meeting minutes for RetailEdge App — Sprint 6 PO session:"
+        m = re.search(
+            r'(?:here are the [a-z\s]+ minutes for|minutes for the)\s+([^\n\u2014\u2013:]{4,80}?)(?:\s+[\u2014\u2013]|\s*[:\n])',
+            body, re.IGNORECASE
+        )
+        if m:
+            candidate = re.sub(r'^(?:the|a|an)\s+', '', m.group(1).strip(), flags=re.IGNORECASE)
+            return candidate.strip('\u2014\u2013- ') or meeting_id
+
+        #    "Here are the concise HealthTrack standup minutes:" — extract the product word
+        m = re.search(r'here are the (?:concise |final |)(\w[\w\s&.]{3,40?}) (?:meeting |standup |)minutes', body, re.IGNORECASE)
+        if m:
+            candidate = m.group(1).strip()
+            if candidate.lower() not in ('meeting', 'standup', 'sprint', 'po', 'retro', 'retrospective'):
+                return candidate
+
+        # 4. Any standalone bold line that looks like a proper name (Title Case, ≥3 words)
+        for m in re.finditer(r'^\*\*([A-Z][A-Za-z0-9 &.,\-]{8,60})\*\*\s*$', body, re.MULTILINE):
+            candidate = m.group(1).strip()
+            if re.search(r'[A-Z]', candidate) and not re.match(r'^[A-Z\s]+$', candidate):
+                return candidate
+
+        return meeting_id
+
     def extract_meeting_id(self, transcript_data: Dict[str, Any]) -> str:
         meeting_url = transcript_data.get("meeting_url", "")
         match = re.search(r"meet\.google\.com/([a-z]{3}-[a-z]{4}-[a-z]{3})", meeting_url)
@@ -222,6 +276,18 @@ class MeetingPipeline:
                 f.write(minutes)
             result.minutes_path = minutes_path
             print(f"      Minutes saved to {minutes_path}")
+
+            # Also save a companion JSON: { project_name, meeting_minutes }
+            # Prefer the project_name injected by the Node server (from the user's
+            # project dropdown) — only fall back to regex extraction if absent.
+            project_name = (
+                transcript_data.get("project_name")
+                or self._extract_project_name(minutes, meeting_id)
+            )
+            minutes_json_path = SUMMARIES_DIR / f"{meeting_id}_minutes.json"
+            with open(minutes_json_path, "w", encoding="utf-8") as f:
+                json.dump({"project_name": project_name, "meeting_minutes": minutes}, f, ensure_ascii=False, indent=2)
+            print(f"      Minutes JSON saved to {minutes_json_path}")
         except Exception as e:
             result.error = f"Summarization failed: {e}"
             result.error_stage = "summarization"

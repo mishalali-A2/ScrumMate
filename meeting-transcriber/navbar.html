@@ -53,11 +53,35 @@
 </nav>
 
 <div class="sidebar-footer">
-    <div class="profile">
-        <div class="profile-avatar">MZ</div>
-        <div class="profile-copy">
-            <div class="profile-name">Muaz</div>
-            <div class="profile-role">Workspace owner</div>
+    <div class="profile-wrap" id="profileWrap">
+        <!-- Main card: clicking name/avatar goes to profile.html -->
+        <a href="profile.html" class="profile" id="profileBtn" aria-label="Your profile">
+            <div class="profile-avatar" id="profileAvatar">MZ</div>
+            <div class="profile-copy">
+                <div class="profile-name" id="profileName">…</div>
+                <div class="profile-role" id="profileRole">Loading…</div>
+            </div>
+        </a>
+        <!-- Separate chevron button to open sign-out dropdown -->
+        <button class="profile-chevron-btn" id="profileChevronBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account options">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4.5l3 3 3-3"/></svg>
+        </button>
+        <div class="profile-menu" id="profileMenu" role="menu">
+            <a href="profile.html" class="profile-menu-item" role="menuitem">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="5.5" r="2.5"/>
+                    <path d="M2.5 13.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>
+                </svg>
+                View profile
+            </a>
+            <button class="profile-menu-item profile-menu-signout" id="signOutBtn" type="button" role="menuitem">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
+                    <path d="M11 11l3-3-3-3"/>
+                    <path d="M14 8H6"/>
+                </svg>
+                Sign out
+            </button>
         </div>
     </div>
 </div>

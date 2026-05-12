@@ -3,12 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScrumMate - Control Center</title>
+    <title>ScrumMate - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="workspace-shell.css">
+    <style>
+        /* ── project workspace cards ─────────────────────── */
+        .workspace-section { margin-bottom: 32px; }
+        .workspace-label {
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em;
+            color: var(--text-4); margin-bottom: 14px;
+        }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .project-card {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            cursor: pointer;
+            transition: box-shadow 140ms ease, transform 140ms ease;
+            background: #fff;
+            text-decoration: none;
+        }
+        .project-card:hover { box-shadow: 0 4px 20px rgba(15,23,42,.1); transform: translateY(-2px); }
+        .project-card-bg {
+            height: 80px;
+            position: relative;
+            display: flex; align-items: flex-end; padding: 10px 12px;
+        }
+        .project-card-name {
+            font-size: 13px; font-weight: 700; color: #fff;
+            text-shadow: 0 1px 4px rgba(0,0,0,.4);
+            line-height: 1.3;
+        }
+        .project-card-foot {
+            padding: 8px 12px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .project-status-pill {
+            font-size: 10px; font-weight: 600; border-radius: 99px;
+            padding: 2px 8px; letter-spacing: .02em;
+        }
+        .status-active   { background: rgba(34,197,94,.12);  color: #16a34a; }
+        .status-planning { background: rgba(79,124,255,.12); color: #4f7cff; }
+        .status-inactive { background: rgba(148,163,184,.15); color: #64748b; }
+        .project-members { font-size: 11px; color: var(--text-4); }
 
+        /* palette for project cards */
+        .proj-0 { background: linear-gradient(135deg, #1e3a5f 0%, #2d5282 100%); }
+        .proj-1 { background: linear-gradient(135deg, #1a3c34 0%, #2d6a4f 100%); }
+        .proj-2 { background: linear-gradient(135deg, #3d1c63 0%, #6b21a8 100%); }
+        .proj-3 { background: linear-gradient(135deg, #7c2d12 0%, #c2410c 100%); }
+        .proj-4 { background: linear-gradient(135deg, #134e4a 0%, #0f766e 100%); }
+
+        /* ── metrics row ─────────────────────────────────── */
+        .metrics { grid-template-columns: repeat(2, 1fr); max-width: 420px; }
+
+        /* ── content grid ────────────────────────────────── */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        /* ── meetings table ──────────────────────────────── */
+        .table-status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+        .status-dot-sm { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .dot-healthy    { background: var(--success); }
+        .dot-warn       { background: var(--warning); }
+        .dot-error      { background: var(--danger); }
+        .dot-neutral    { background: var(--text-4); }
+
+        .type-badge {
+            font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px;
+            text-transform: capitalize; white-space: nowrap;
+        }
+        .type-standup  { background: rgba(79,124,255,.12); color: #3b60cc; }
+        .type-po       { background: rgba(245,158,11,.12); color: #b45309; }
+        .type-retro    { background: rgba(139,92,246,.12); color: #7c3aed; }
+        .type-planning { background: rgba(34,197,94,.12);  color: #15803d; }
+        .type-unknown  { background: rgba(148,163,184,.12);color: #64748b; }
+
+        .meeting-project { font-size: 11px; color: var(--text-4); margin-top: 2px; }
+
+        /* ── latest output panel ─────────────────────────── */
+        .output-panel {}
+        .output-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .output-badge {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+            padding: 3px 8px; border-radius: 6px;
+        }
+        .badge-blockers { background: rgba(239,68,68,.1);  color: #dc2626; }
+        .badge-summary  { background: rgba(79,124,255,.1); color: #4f7cff; }
+        .badge-empty    { background: rgba(148,163,184,.1);color: #64748b; }
+
+        .output-item {
+            padding: 10px 0 10px 12px;
+            border-bottom: 1px solid var(--line);
+        }
+        .output-item:last-child { border-bottom: none; }
+        .output-item-title { font-size: 12.5px; font-weight: 600; color: var(--text-1); margin-bottom: 3px; line-height: 1.4; }
+        .output-item-meta  { font-size: 11px; color: var(--text-4); }
+
+        .blocker-owner-chip {
+            display: inline-block; font-size: 10px; font-weight: 600;
+            background: rgba(239,68,68,.08); color: #b91c1c;
+            border-radius: 5px; padding: 1px 7px; margin-top: 4px;
+        }
+
+        .output-meet-id { font-size: 11px; color: var(--text-4); font-family: 'JetBrains Mono', monospace; }
+
+        .view-all-link {
+            display: block; text-align: center; padding: 10px;
+            font-size: 12px; font-weight: 600; color: var(--accent);
+            text-decoration: none; border-top: 1px solid var(--line); margin-top: 4px;
+        }
+        .view-all-link:hover { color: #3b60cc; }
+
+        .empty-state-sm { padding: 24px 0; text-align: center; font-size: 13px; color: var(--text-4); }
+    </style>
 </head>
 <body data-nav="dashboard">
 <div class="shell">
@@ -23,307 +142,117 @@
                     <path d="M2.5 12h11"></path>
                 </svg>
             </button>
-
             <div class="topbar-title">
-                <div class="topbar-heading">Control Center</div>
+                <div class="topbar-heading">Dashboard</div>
                 <div class="topbar-meta" id="topbarMeta"></div>
             </div>
-
             <div class="topbar-spacer"></div>
-
             <label class="search">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
                     <circle cx="7" cy="7" r="4.5"></circle>
                     <path d="M10.5 10.5L14 14"></path>
                 </svg>
-                <input type="text" placeholder="Search meetings, blockers, projects">
+                <input type="text" placeholder="Search meetings, projects…" id="searchInput">
             </label>
-
-            <button class="icon-btn" aria-label="Notifications">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                    <path d="M8 2a3 3 0 0 0-3 3v2.1c0 .7-.2 1.4-.6 2L3.5 10h9l-.9-.9c-.4-.6-.6-1.3-.6-2V5a3 3 0 0 0-3-3z"></path>
-                    <path d="M6.4 12a1.6 1.6 0 0 0 3.2 0"></path>
-                </svg>
-                <span class="notification-dot"></span>
-            </button>
-
             <a href="index.html" class="primary-btn">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M6 2v8"></path>
-                    <path d="M2 6h8"></path>
+                    <path d="M6 2v8"></path><path d="M2 6h8"></path>
                 </svg>
                 Start meeting
             </a>
         </header>
 
-        <section class="page">
+        <section class="page" id="pageContent" style="display:none">
             <div class="page-header">
                 <div>
-                    <div class="eyebrow">Workspace status</div>
-                    <h1 class="page-title">Operate your <span>sprint pipeline</span></h1>
-                    <p class="page-subtitle">
-                        Track live meeting intelligence, pipeline health, and delivery risks from one high-signal view.
-                    </p>
-                </div>
-
-                <div class="page-actions">
-                    <button class="ghost-btn">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-                            <path d="M2 3.5h8"></path>
-                            <path d="M4 6h6"></path>
-                            <path d="M6 8.5h4"></path>
-                        </svg>
-                        Filters
-                    </button>
-                    <button class="ghost-btn">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-                            <path d="M2 6h8"></path>
-                            <path d="M6 2v8"></path>
-                        </svg>
-                        New project
-                    </button>
+                    <div class="eyebrow">Workspace overview</div>
+                    <h1 class="page-title">Your <span>sprint workspace</span></h1>
                 </div>
             </div>
 
-            <div class="metrics">
+            <!-- Stat cards -->
+            <div class="metrics" style="margin-bottom:28px">
                 <div class="metric primary">
                     <div class="metric-top">
-                        <div class="metric-label">Meetings processed</div>
+                        <div class="metric-label">Meetings conducted</div>
                         <div class="metric-icon">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v6A1.5 1.5 0 0 1 12.5 11H8l-3 2v-2H3.5A1.5 1.5 0 0 1 2 9.5z"></path>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <circle cx="8" cy="8" r="6.5"></circle>
+                                <path d="M8 5v3.5l2.5 1.5"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="metric-value" data-count="18">18</div>
-                    <div class="metric-foot">
-                        <span class="delta positive">+4</span>
-                        <span>from last sprint</span>
-                    </div>
+                    <div class="metric-value" id="statMeetings">—</div>
+                    <div class="metric-foot"><span>total recorded sessions</span></div>
                 </div>
-
                 <div class="metric">
                     <div class="metric-top">
-                        <div class="metric-label">Stories generated</div>
+                        <div class="metric-label">Active projects</div>
                         <div class="metric-icon">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 2.5h8A1.5 1.5 0 0 1 12.5 4v8A1.5 1.5 0 0 1 11 13.5H3A1.5 1.5 0 0 1 1.5 12V4A1.5 1.5 0 0 1 3 2.5z"></path>
-                                <path d="M4.5 5.5h5"></path>
-                                <path d="M4.5 8h7"></path>
-                                <path d="M4.5 10.5h4"></path>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <path d="M1.5 4A1.5 1.5 0 0 1 3 2.5h3.4l1.2 1.2H13A1.5 1.5 0 0 1 14.5 5v7A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12z"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="metric-value" data-count="34">34</div>
-                    <div class="metric-foot">
-                        <span class="delta positive">+12</span>
-                        <span>new outputs this sprint</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="metric-top">
-                        <div class="metric-label">Pipeline completion</div>
-                        <div class="metric-icon">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M2.5 11.5L6 8l2.2 2.2L13.5 4.5"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="metric-value" data-count="92">92</div>
-                    <div class="metric-foot">
-                        <span class="delta neutral">%</span>
-                        <span>successful automated runs</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="metric-top">
-                        <div class="metric-label">Open blockers</div>
-                        <div class="metric-icon">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M8 2L14 13H2L8 2z"></path>
-                                <path d="M8 6v3"></path>
-                                <path d="M8 11.2h.01"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="metric-value" data-count="4">4</div>
-                    <div class="metric-foot">
-                        <span class="delta negative">-3</span>
-                        <span>resolved since Monday</span>
-                    </div>
+                    <div class="metric-value" id="statProjects">—</div>
+                    <div class="metric-foot"><span>in progress</span></div>
                 </div>
             </div>
 
+            <!-- Projects workspace -->
+            <div class="workspace-section">
+                <div class="workspace-label">Your workspaces</div>
+                <div class="projects-grid" id="projectsGrid"></div>
+            </div>
+
+            <!-- Meetings + Output -->
             <div class="content-grid">
+                <!-- Meetings table -->
                 <div class="panel">
                     <div class="panel-header">
                         <div>
-                            <div class="panel-title">Meeting operations</div>
-                            <div class="panel-meta">Live queue, outputs, and action state</div>
+                            <div class="panel-title">Meeting history</div>
+                            <div class="panel-meta" id="meetingCount">—</div>
                         </div>
-                        <div class="panel-meta">12 records</div>
+                        <a href="meetings.html" style="font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;">View all →</a>
                     </div>
-
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Meeting</th>
                                     <th>Type</th>
-                                    <th>Window</th>
+                                    <th>Date</th>
                                     <th>Duration</th>
-                                    <th>Pipeline</th>
                                     <th>Status</th>
-                                    <th></th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="meeting-title">Daily Standup - Sprint 14</div>
-                                        <div class="meeting-id">wxo-vcsx-ycq</div>
-                                    </td>
-                                    <td><span class="table-tag">Standup</span></td>
-                                    <td>Today 07:01</td>
-                                    <td>2m 14s</td>
-                                    <td>Completed</td>
-                                    <td><span class="status done"><span class="status-dot"></span>Healthy</span></td>
-                                    <td>
-                                        <div class="table-actions">
-                                            <a href="#" class="table-btn">View</a>
-                                            <a href="#" class="table-btn">Results</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="meeting-title">Sprint Planning - Q2 Roadmap</div>
-                                        <div class="meeting-id">ewv-wjpn-hpq</div>
-                                    </td>
-                                    <td><span class="table-tag">Planning</span></td>
-                                    <td>Yesterday 14:22</td>
-                                    <td>38m 04s</td>
-                                    <td>Completed</td>
-                                    <td><span class="status done"><span class="status-dot"></span>Healthy</span></td>
-                                    <td>
-                                        <div class="table-actions">
-                                            <a href="#" class="table-btn">View</a>
-                                            <a href="#" class="table-btn">Stories</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="meeting-title">Retrospective - Sprint 13</div>
-                                        <div class="meeting-id">qwe-ryug-ipw</div>
-                                    </td>
-                                    <td><span class="table-tag">Retro</span></td>
-                                    <td>Apr 14 15:10</td>
-                                    <td>47m 30s</td>
-                                    <td>Failed</td>
-                                    <td><span class="status error"><span class="status-dot"></span>No transcript</span></td>
-                                    <td>
-                                        <div class="table-actions">
-                                            <a href="index.html" class="table-btn">Retry</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="meeting-title">Daily Standup - Sprint 13</div>
-                                        <div class="meeting-id">hhq-cyzh-vmp</div>
-                                    </td>
-                                    <td><span class="table-tag">Standup</span></td>
-                                    <td>Apr 13 09:02</td>
-                                    <td>6m 08s</td>
-                                    <td>Processing</td>
-                                    <td><span class="status pending"><span class="status-dot"></span>Needs review</span></td>
-                                    <td>
-                                        <div class="table-actions">
-                                            <a href="#" class="table-btn">Inspect</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
+                            <tbody id="meetingsBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <div class="side-column">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <div class="panel-title">Pipeline health</div>
-                                <div class="panel-meta">Latest automation events</div>
-                            </div>
+                <!-- Latest output -->
+                <div class="panel output-panel" id="outputPanel">
+                    <div class="panel-header output-header">
+                        <div>
+                            <div class="panel-title" id="outputTitle">Latest output</div>
+                            <div class="panel-meta" id="outputMeetId"></div>
                         </div>
-
-                        <div class="feed-row">
-                            <div class="feed-dot success"></div>
-                            <div class="feed-copy">
-                                <div class="feed-title">wxo-vcsx-ycq completed</div>
-                                <div class="feed-meta">0 chunks generated · standup pipeline · 07:03</div>
-                            </div>
-                        </div>
-                        <div class="feed-row">
-                            <div class="feed-dot success"></div>
-                            <div class="feed-copy">
-                                <div class="feed-title">ewv-wjpn-hpq stories assigned</div>
-                                <div class="feed-meta">18 chunks embedded · assignments written · 14:28</div>
-                            </div>
-                        </div>
-                        <div class="feed-row">
-                            <div class="feed-dot error"></div>
-                            <div class="feed-copy">
-                                <div class="feed-title">qwe-ryug-ipw failed</div>
-                                <div class="feed-meta">Pipeline stopped after empty transcript ingest</div>
-                            </div>
-                        </div>
-                        <div class="feed-row">
-                            <div class="feed-dot warning"></div>
-                            <div class="feed-copy">
-                                <div class="feed-title">Webhook reliability degraded</div>
-                                <div class="feed-meta">Tunnel stability risk detected on recent sessions</div>
-                            </div>
-                        </div>
+                        <span class="output-badge" id="outputBadge"></span>
                     </div>
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <div class="panel-title">Attention required</div>
-                                <div class="panel-meta">Current blockers to clear</div>
-                            </div>
-                        </div>
-
-                        <div class="blocker-row">
-                            <div class="blocker-dot" style="background: var(--warning);"></div>
-                            <div class="blocker-copy">
-                                <div class="blocker-title">ngrok tunnel drops on long sessions</div>
-                                <div class="blocker-meta">Webhook delivery instability during live meeting capture</div>
-                            </div>
-                            <div class="blocker-owner">Muaz</div>
-                        </div>
-                        <div class="blocker-row">
-                            <div class="blocker-dot" style="background: var(--danger);"></div>
-                            <div class="blocker-copy">
-                                <div class="blocker-title">Cold start timeout in embedding service</div>
-                                <div class="blocker-meta">Model bootstrap exceeds expected startup window</div>
-                            </div>
-                            <div class="blocker-owner">Infra</div>
-                        </div>
-                        <div class="blocker-row">
-                            <div class="blocker-dot" style="background: var(--warning);"></div>
-                            <div class="blocker-copy">
-                                <div class="blocker-title">Planning output needs manual review</div>
-                                <div class="blocker-meta">Story assignment confidence below target threshold</div>
-                            </div>
-                            <div class="blocker-owner">PM</div>
-                        </div>
-                    </div>
+                    <div id="outputBody"><div class="empty-state-sm">No outputs yet</div></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Loading state -->
+        <section class="page" id="loadingState">
+            <div style="display:flex;align-items:center;gap:10px;padding:60px 0;color:var(--text-4)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="animation:spin 1s linear infinite">
+                    <path d="M8 1.5v3M8 14.5v-3M1.5 8h3M14.5 8h-3M3.6 3.6l2.1 2.1M10.3 10.3l2.1 2.1M3.6 12.4l2.1-2.1M10.3 5.7l2.1-2.1" stroke-linecap="round"/>
+                </svg>
+                Loading dashboard…
             </div>
         </section>
     </main>
@@ -331,18 +260,230 @@
 
 <script src="navbar-loader.js"></script>
 <script>
-    document.querySelectorAll('.metric-value[data-count]').forEach((node) => {
-        const target = Number(node.dataset.count);
-        let current = 0;
-        const step = Math.max(1, Math.ceil(target / 22));
-        const timer = setInterval(() => {
-            current = Math.min(current + step, target);
-            node.textContent = current;
-            if (current >= target) {
-                clearInterval(timer);
+    // ── project card colours (by index) ──────────────────────
+    const PROJ_CLASSES = ['proj-0','proj-1','proj-2','proj-3','proj-4'];
+
+    function statusClass(p) {
+        if (p.status === 'In Progress') return 'status-active';
+        if (p.status === 'Planning')    return 'status-planning';
+        return 'status-inactive';
+    }
+    function statusLabel(p) {
+        return p.status || 'Unknown';
+    }
+
+    function meetTypeBadge(t) {
+        const type = (t || '').toLowerCase();
+        if (type.includes('standup') || type === 'daily-standup') return `<span class="type-badge type-standup">Standup</span>`;
+        if (type.includes('po'))       return `<span class="type-badge type-po">PO</span>`;
+        if (type.includes('retro'))    return `<span class="type-badge type-retro">Retro</span>`;
+        if (type.includes('plan'))     return `<span class="type-badge type-planning">Planning</span>`;
+        return `<span class="type-badge type-unknown">Meeting</span>`;
+    }
+
+    function formatDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 86400000) return `Today ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+        if (diff < 172800000) return `Yesterday ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+        return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    }
+
+    function meetStatusCell(m) {
+        if (m.status === 'no-transcript')
+            return `<div class="table-status"><span class="status-dot-sm dot-error"></span><span style="color:var(--danger)">No transcript</span></div>`;
+        if (m.status === 'no-pipeline')
+            return `<div class="table-status"><span class="status-dot-sm dot-warn"></span><span style="color:var(--warning)">No pipeline output</span></div>`;
+        return `<div class="table-status"><span class="status-dot-sm dot-healthy"></span><span style="color:var(--success)">Healthy</span></div>`;
+    }
+
+    // ── render projects grid ──────────────────────────────────
+    function renderProjects(projects) {
+        const grid = document.getElementById('projectsGrid');
+        if (!projects.length) { grid.innerHTML = '<div style="color:var(--text-4);font-size:13px">No projects yet.</div>'; return; }
+        grid.innerHTML = projects.map((p, i) => `
+            <a href="projects.html" class="project-card">
+                <div class="project-card-bg ${PROJ_CLASSES[i % PROJ_CLASSES.length]}">
+                    <div class="project-card-name">${p.name}</div>
+                </div>
+                <div class="project-card-foot">
+                    <span class="project-status-pill ${statusClass(p)}">${statusLabel(p)}</span>
+                    <span class="project-members">${p.member_count || 0} member${p.member_count !== 1 ? 's' : ''}</span>
+                </div>
+            </a>
+        `).join('');
+    }
+
+    // ── render meetings table ─────────────────────────────────
+    function renderMeetings(meetings) {
+        const tbody = document.getElementById('meetingsBody');
+        document.getElementById('meetingCount').textContent = `${meetings.length} most recent records`;
+        if (!meetings.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-4)">No meetings recorded yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = meetings.map(m => `
+            <tr>
+                <td>
+                    <div class="meeting-title">${m.meetId}</div>
+                    ${m.projectName ? `<div class="meeting-project">${m.projectName}</div>` : ''}
+                </td>
+                <td>${meetTypeBadge(m.meeting_type)}</td>
+                <td style="font-size:12px;white-space:nowrap">${formatDate(m.created_at)}</td>
+                <td style="font-size:12px;color:var(--text-3)">${m.duration}</td>
+                <td>${meetStatusCell(m)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // ── render latest output panel ────────────────────────────
+    function renderOutput(output) {
+        const title  = document.getElementById('outputTitle');
+        const meetEl = document.getElementById('outputMeetId');
+        const badge  = document.getElementById('outputBadge');
+        const body   = document.getElementById('outputBody');
+
+        if (!output) {
+            badge.textContent = 'None';
+            badge.className = 'output-badge badge-empty';
+            body.innerHTML = '<div class="empty-state-sm">No outputs from recent meetings.</div>';
+            return;
+        }
+
+        meetEl.textContent = output.meetId;
+
+        if (output.type === 'stories') {
+            const stories = output.data;
+            badge.textContent = 'User Stories';
+            badge.className = 'output-badge badge-summary';
+            title.textContent = 'Latest user stories';
+
+            body.innerHTML = stories.slice(0, 5).map(s => {
+                const primary = s.assigned_to?.find(a => a.role === 'primary');
+                const pts = s.assigned_to?.reduce((sum, a) => sum + (a.effort_points || 0), 0) || 0;
+                return `
+                    <div class="output-item">
+                        <div class="output-item-title">${s.id}${s.title ? ' — ' + s.title : ''}</div>
+                        <div class="output-item-meta">
+                            ${primary ? `<span class="blocker-owner-chip" style="background:rgba(79,124,255,.08);color:#3b60cc">${primary.name}</span>` : ''}
+                            ${pts ? `<span style="font-size:11px;color:var(--text-4);margin-left:4px">${pts} pts</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('') + (stories.length > 5
+                ? `<div class="output-item-meta" style="padding:8px 0;text-align:center">${stories.length - 5} more stories…</div>` : '')
+            + `<a href="meetings.html" class="view-all-link">View meeting →</a>`;
+
+        } else if (output.type === 'blockers') {
+            const d = output.data;
+            badge.textContent = 'Blockers';
+            badge.className = 'output-badge badge-blockers';
+            title.textContent = 'Latest standup output';
+
+            if (!d.blockers || !d.blockers.length) {
+                body.innerHTML = `
+                    <div class="output-item">
+                        <div class="output-item-title" style="color:var(--success)">✓ No blockers reported</div>
+                        <div class="output-item-meta">${d.team_updates?.length || 0} team member${d.team_updates?.length !== 1 ? 's' : ''} updated</div>
+                    </div>
+                    ${(d.action_items||[]).slice(0,3).map(a => `
+                        <div class="output-item">
+                            <div class="output-item-title">${a.description || a.action || a}</div>
+                            <div class="output-item-meta">Action item${a.owner ? ` · ${a.owner}` : ''}</div>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                body.innerHTML = d.blockers.slice(0, 5).map(b => `
+                    <div class="output-item">
+                        <div class="output-item-title">${b.description || b.title || b}</div>
+                        ${b.owner ? `<span class="blocker-owner-chip">${b.owner}</span>` : ''}
+                    </div>
+                `).join('') + `<a href="meetings.html" class="view-all-link">View full standup →</a>`;
             }
-        }, 32);
+        } else {
+            // summary
+            const d = output.data;
+            badge.textContent = 'Minutes';
+            badge.className = 'output-badge badge-summary';
+            title.textContent = `Latest ${(output.meetingType || 'meeting').replace('-',' ')} output`;
+
+            // Extract first few bullet lines from minutes
+            const lines = (d.meeting_minutes || '')
+                .split('\n')
+                .map(l => l.trim())
+                .filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('*'))
+                .slice(0, 5);
+
+            if (lines.length) {
+                body.innerHTML = lines.map(l => `
+                    <div class="output-item">
+                        <div class="output-item-title">${l.replace(/^[-•*]\s*/, '')}</div>
+                    </div>
+                `).join('') + `<a href="meetings.html" class="view-all-link">View full minutes →</a>`;
+            } else {
+                body.innerHTML = `
+                    <div class="output-item">
+                        <div class="output-item-title">${d.project_name ? `Project: ${d.project_name}` : 'Meeting minutes available'}</div>
+                        <div class="output-item-meta">Click below to view full minutes</div>
+                    </div>
+                    <a href="meetings.html" class="view-all-link">View full minutes →</a>
+                `;
+            }
+        }
+    }
+
+    // ── search filter ─────────────────────────────────────────
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#meetingsBody tr').forEach(row => {
+            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
     });
+
+    // ── main load ─────────────────────────────────────────────
+    async function loadDashboard() {
+        try {
+            const r = await fetch('/api/dashboard');
+            const data = await r.json();
+
+            if (!data.success) throw new Error(data.error);
+
+            // stat counters (animate up)
+            animateCount('statMeetings', data.stats.totalMeetings);
+            animateCount('statProjects', data.stats.activeProjects);
+
+            renderProjects(data.projects || []);
+            renderMeetings(data.meetings || []);
+            renderOutput(data.latestOutput);
+
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('pageContent').style.display = '';
+        } catch (err) {
+            document.getElementById('loadingState').innerHTML =
+                `<div style="color:var(--danger);padding:40px 0">Failed to load dashboard: ${err.message}</div>`;
+        }
+    }
+
+    function animateCount(id, target) {
+        const el = document.getElementById(id);
+        let cur = 0;
+        const step = Math.max(1, Math.ceil(target / 22));
+        const t = setInterval(() => {
+            cur = Math.min(cur + step, target);
+            el.textContent = cur;
+            if (cur >= target) clearInterval(t);
+        }, 32);
+    }
+
+    // spin keyframe for loading spinner
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+
+    loadDashboard();
 </script>
 </body>
 </html>

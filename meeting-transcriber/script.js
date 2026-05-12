@@ -632,7 +632,12 @@ async function runPipeline(filename) {
         const response = await fetch('/api/pipeline/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcriptFile: filename, meetingType: selectedMeetingType })
+            body: JSON.stringify({
+                transcriptFile: filename,
+                meetingType:    selectedMeetingType,
+                projectId:      sessionStorage.getItem('selectedProjectId')   || null,
+                projectName:    sessionStorage.getItem('selectedProjectName') || null,
+            })
         });
         
         const data = await response.json();

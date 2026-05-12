@@ -25,11 +25,110 @@ app.get('/', (req, res) => {
 const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_API_URL = 'https://us-west-2.recall.ai/api/v1';
 const AGENTIC_API_URL = process.env.AGENTIC_API_URL || 'http://localhost:8000';
+const TRELLO_KEY   = process.env.TRELLO_KEY;
+const TRELLO_TOKEN = process.env.TRELLO_TOKEN;
+const TRELLO_API   = 'https://api.trello.com/1';
 
 console.log('Starting Meeting Transcriber...');
 console.log(`Using US West 2 region`);
 console.log(`API Key: ${RECALL_API_KEY ? 'Set' : 'Missing!'}`);
 console.log(`Agentic API: ${AGENTIC_API_URL}`);
+console.log(`Trello: ${TRELLO_KEY && TRELLO_TOKEN ? 'Configured' : 'Not configured'}`);
+
+// === TRELLO HELPER FUNCTIONS ===
+function isDoneListName(name) {
+    const n = (name || '').trim().toLowerCase();
+    if (!n) return false;
+    if (/^(done|complete|completed|closed|released|live)$/i.test(n)) return true;
+    return /\b(done|completed)\b/i.test(n);
+}
+
+function isBlockedListName(name) {
+    return /\b(blocked|stuck|on hold|hold)\b/i.test(name || '');
+}
+
+async function trelloGet(resourcePath, query = {}) {
+    const { data } = await axios.get(`${TRELLO_API}${resourcePath}`, {
+        params: { key: TRELLO_KEY, token: TRELLO_TOKEN, ...query },
+        timeout: 25000
+    });
+    return data;
+}
+
+function buildDayEndTimestamps(windowDays) {
+    const dayEnds = [];
+    for (let i = 0; i <= windowDays; i++) {
+        const d = new Date();
+        d.setHours(23, 59, 59, 999);
+        d.setDate(d.getDate() - (windowDays - i));
+        dayEnds.push(d.getTime());
+    }
+    return dayEnds;
+}
+
+async function loadSingleBoardAnalytics(boardId, windowStart, WINDOW_DAYS, dayEnds) {
+    const lists = await trelloGet(`/boards/${boardId}/lists`, { fields: 'id,name,closed' });
+    const openLists = (lists || []).filter(l => !l.closed);
+    const doneListIds    = new Set(openLists.filter(l => isDoneListName(l.name)).map(l => l.id));
+    const blockedListIds = new Set(openLists.filter(l => isBlockedListName(l.name)).map(l => l.id));
+
+    const cards = await trelloGet(`/boards/${boardId}/cards`, {
+        filter: 'visible', fields: 'id,idList,closed,dateLastActivity,name'
+    });
+
+    const isDoneCard = c => Boolean(c.closed) || doneListIds.has(c.idList);
+    const total   = cards.length;
+    const done    = cards.filter(isDoneCard).length;
+    const open    = total - done;
+    const blocked = cards.filter(c => !isDoneCard(c) && blockedListIds.has(c.idList)).length;
+
+    const firstDoneDateByCard = new Map();
+    let before;
+    for (let page = 0; page < 30; page++) {
+        const params = { filter: 'updateCard:idList', limit: 1000 };
+        if (before) params.before = before;
+        const actions = await trelloGet(`/boards/${boardId}/actions`, params);
+        if (!actions.length) break;
+        for (const a of actions) {
+            const listAfter = a.data?.listAfter;
+            const cardId = a.data?.card?.id;
+            if (!cardId || !listAfter || !doneListIds.has(listAfter.id)) continue;
+            const t = new Date(a.date).getTime();
+            const prev = firstDoneDateByCard.get(cardId);
+            if (prev == null || t < prev) firstDoneDateByCard.set(cardId, t);
+        }
+        const oldest = actions[actions.length - 1];
+        before = oldest.id;
+        if (new Date(oldest.date).getTime() < windowStart && page > 2) break;
+        if (actions.length < 1000) break;
+    }
+
+    for (const c of cards) {
+        if (!isDoneCard(c)) continue;
+        if (firstDoneDateByCard.has(c.id)) continue;
+        const t = new Date(c.dateLastActivity).getTime();
+        if (!Number.isNaN(t)) firstDoneDateByCard.set(c.id, t);
+    }
+
+    let completedInWindow = 0;
+    firstDoneDateByCard.forEach(t => { if (t >= windowStart) completedInWindow += 1; });
+
+    const initialScope = open + completedInWindow;
+    const burndown = dayEnds.map((endTs, i) => {
+        let cum = 0;
+        firstDoneDateByCard.forEach(t => { if (t <= endTs && t >= windowStart) cum += 1; });
+        const actualRemaining = Math.max(0, initialScope - cum);
+        const idealRemaining  = initialScope > 0 ? Math.max(0, Math.round(initialScope * (1 - i / WINDOW_DAYS))) : 0;
+        return { date: new Date(endTs).toISOString().slice(0, 10), actualRemaining, idealRemaining };
+    });
+
+    return {
+        boardId,
+        totals: { cards: total, done, open, blocked },
+        burndown,
+        doneListNames: openLists.filter(l => doneListIds.has(l.id)).map(l => l.name)
+    };
+}
 
 // Store active bots and their transcripts
 const activeBots = new Map();
@@ -435,7 +534,7 @@ app.get('/api/download/:filename', (req, res) => {
 // Trigger the agentic pipeline on a transcript
 app.post('/api/pipeline/run', async (req, res) => {
     try {
-        const { transcriptFile } = req.body;
+        const { transcriptFile, projectId, projectName } = req.body;
 
         if (!transcriptFile) {
             return res.status(400).json({ success: false, error: 'transcriptFile is required' });
@@ -453,6 +552,29 @@ app.post('/api/pipeline/run', async (req, res) => {
         // api.py uses bot_id[:12] — must match exactly or polling will 404.
         const botId = transcriptData.bot_id || '';
         const meeting_id = botId.substring(0, 12) || transcriptData.meeting_id || transcriptFile.replace(/\.json$/, '');
+
+        // Inject project info into transcript_data so the agentic pipeline
+        // can write the real project_name into _minutes.json without guessing.
+        const googleMeetId = transcriptData.meeting_url?.match(/meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})/)?.[1] || meeting_id;
+        if (projectName) transcriptData.project_name = projectName;
+        if (projectId)   transcriptData.project_id   = parseInt(projectId, 10) || null;
+
+        // Upsert a row in the meetings table so we track which project this belongs to.
+        try {
+            const pid = projectId ? (parseInt(projectId, 10) || null) : null;
+            await pgPool.query(
+                `INSERT INTO meetings (google_meet_id, transcript_path, project_id)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (google_meet_id) DO UPDATE
+                   SET transcript_path = EXCLUDED.transcript_path,
+                       project_id      = COALESCE(EXCLUDED.project_id, meetings.project_id)`,
+                [googleMeetId, filepath, pid]
+            );
+            console.log(`📋 meetings row upserted for ${googleMeetId} (project_id: ${pid})`);
+        } catch (dbErr) {
+            // Non-fatal — pipeline still runs; log and continue.
+            console.warn(`⚠️  meetings DB upsert failed: ${dbErr.message}`);
+        }
 
         // Fire the pipeline request WITHOUT awaiting it — the agentic API runs
         // the pipeline asynchronously and the old 10-second timeout was killing
@@ -598,37 +720,307 @@ app.get('/api/rag/stats', async (req, res) => {
     }
 });
 
+// === PROFILE SYNC / ONBOARDING ===
+
+// POST /api/profiles/sync
+// Called immediately after Clerk auth. Checks if a profile row exists for the
+// email. If yes, returns it. If no, returns needsOnboarding: true so the
+// frontend shows the onboarding form.
+// Body: { email, name }
+app.post('/api/profiles/sync', async (req, res) => {
+    const { email, name } = req.body;
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ success: false, error: 'Invalid email format' });
+
+    try {
+        const r = await pgPool.query(
+            `SELECT id, name, email, role, experience_years, skills, strengths FROM profile WHERE email = $1`,
+            [email.toLowerCase()]
+        );
+        if (r.rows.length) {
+            const p = r.rows[0];
+            // Check if key fields are missing / empty
+            const skillsEmpty    = !p.skills    || (Array.isArray(p.skills)    && p.skills.length    === 0);
+            const strengthsEmpty = !p.strengths || (Array.isArray(p.strengths) && p.strengths.length === 0);
+            const incomplete = !p.role || skillsEmpty || strengthsEmpty;
+            if (incomplete) {
+                return res.json({
+                    success: true,
+                    needsOnboarding: true,
+                    partial: true,          // tells frontend to pre-fill what we have
+                    profile: p,
+                    suggestedName: p.name || name || '',
+                });
+            }
+            return res.json({ success: true, needsOnboarding: false, profile: p });
+        }
+        // Profile doesn't exist yet
+        res.json({ success: true, needsOnboarding: true, partial: false, suggestedName: name || '' });
+    } catch (err) {
+        console.error('DB error /api/profiles/sync:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/profiles
+// Creates a new profile after onboarding.
+// Body: { name, email, role, experience_years, skills[], strengths[] }
+app.post('/api/profiles', async (req, res) => {
+    const { name, email, role, experience_years, skills, strengths } = req.body;
+
+    if (!name || !email) return res.status(400).json({ success: false, error: 'name and email are required' });
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ success: false, error: 'Invalid email format' });
+
+    const expYears = parseFloat(experience_years);
+    if (experience_years !== undefined && experience_years !== null && experience_years !== '' && (isNaN(expYears) || expYears < 0 || expYears > 80)) {
+        return res.status(400).json({ success: false, error: 'experience_years must be a number between 0 and 80' });
+    }
+
+    const skillsArr    = Array.isArray(skills)    ? skills.filter(s => typeof s === 'string' && s.trim())    : [];
+    const strengthsArr = Array.isArray(strengths) ? strengths.filter(s => typeof s === 'string' && s.trim()) : [];
+
+    try {
+        // Upsert: create if not exists, update if already there (handles double-submit)
+        const r = await pgPool.query(
+            `INSERT INTO profile (name, email, role, experience_years, skills, strengths, current_projects, assigned_effort_points)
+             VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, '[]'::jsonb, 0)
+             ON CONFLICT (email) DO UPDATE
+               SET name              = EXCLUDED.name,
+                   role              = EXCLUDED.role,
+                   experience_years  = EXCLUDED.experience_years,
+                   skills            = EXCLUDED.skills,
+                   strengths         = EXCLUDED.strengths
+             RETURNING id, name, email, role, experience_years, skills, strengths`,
+            [
+                name.trim(),
+                email.toLowerCase(),
+                role || null,
+                isNaN(expYears) ? null : expYears,
+                JSON.stringify(skillsArr),
+                JSON.stringify(strengthsArr),
+            ]
+        );
+        res.json({ success: true, profile: r.rows[0] });
+    } catch (err) {
+        console.error('DB error POST /api/profiles:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // === PROJECTS CRUD ===
 
+// === DASHBOARD DATA ===
+app.get('/api/dashboard', async (req, res) => {
+    try {
+        const agenticBase   = path.join(__dirname, '..', 'scrummate_agentic');
+        const summariesDir  = path.join(agenticBase, 'summaries');
+        const standupsDir   = path.join(agenticBase, 'standups');
+        const transcriptsDir = path.join(__dirname, 'transcripts');
+
+        // ── Projects from DB ──────────────────────────────────
+        const projectsResult = await pgPool.query(
+            `SELECT id, name, status, trello_board_id,
+                    jsonb_array_length(COALESCE(team, '[]'::jsonb)) AS member_count
+             FROM project ORDER BY id`
+        );
+        const projects = projectsResult.rows;
+        const activeCount = projects.filter(p => p.status === 'In Progress').length;
+
+        // ── Meetings from filesystem ──────────────────────────
+        const transcriptFiles = fs.existsSync(transcriptsDir)
+            ? fs.readdirSync(transcriptsDir).filter(f => f.endsWith('.json')).sort().reverse()
+            : [];
+
+        // Build project ID lookup by position (deterministic but random-looking)
+        const projectIds = projects.map(p => p.id);
+        function assignProject(meetId) {
+            // Stable hash so same meeting always maps to same project
+            let h = 0;
+            for (const c of meetId) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+            return projectIds[h % projectIds.length] || null;
+        }
+
+        // Load DB meeting rows for project lookup
+        const dbMeetings = await pgPool.query('SELECT google_meet_id, project_id FROM meetings');
+        const dbMeetMap = new Map(dbMeetings.rows.map(r => [r.google_meet_id, r.project_id]));
+
+        const meetings = [];
+        for (const filename of transcriptFiles) {
+            try {
+                const raw  = JSON.parse(fs.readFileSync(path.join(transcriptsDir, filename), 'utf-8'));
+                const meetUrl = raw.meeting_url || '';
+                const meetId  = meetUrl.replace('https://meet.google.com/', '').replace('http://meet.google.com/', '').split('?')[0].trim() || filename;
+
+                const hasTranscript = Array.isArray(raw.transcript) && raw.transcript.length > 0;
+                const hasSummary    = fs.existsSync(path.join(summariesDir, `${meetId}_final.txt`));
+                const hasBlockers   = fs.existsSync(path.join(standupsDir,  `${meetId}_blockers.json`));
+
+                let status = 'healthy';
+                if (!hasTranscript && (raw.statistics?.total_words || 0) === 0) status = 'no-transcript';
+                else if (!hasSummary && !hasBlockers) status = 'no-pipeline';
+
+                const stats = raw.statistics || {};
+                const dur   = stats.duration_seconds
+                    ? `${Math.floor(stats.duration_seconds / 60)}m ${stats.duration_seconds % 60}s`
+                    : (raw.stopped_at && raw.created_at
+                        ? (() => { const s = Math.round((new Date(raw.stopped_at) - new Date(raw.created_at)) / 1000); return `${Math.floor(s/60)}m ${s%60}s`; })()
+                        : '—');
+
+                const projectId = dbMeetMap.get(meetId) || raw.project_id || assignProject(meetId);
+                const project   = projects.find(p => p.id === projectId);
+
+                meetings.push({
+                    filename,
+                    meetId,
+                    meeting_type: raw.meeting_type || 'unknown',
+                    created_at:   raw.created_at,
+                    duration:     dur,
+                    status,
+                    hasTranscript,
+                    hasSummary,
+                    hasBlockers,
+                    projectId,
+                    projectName: project?.name || null,
+                    wordCount: stats.total_words || 0,
+                    speakerCount: stats.total_speakers || 0
+                });
+            } catch (_) { /* skip malformed */ }
+        }
+
+        // ── Latest meeting output ─────────────────────────────
+        // Priority: user stories (assignments) → blockers → meeting minutes
+        const userStoriesDir = path.join(agenticBase, 'user_stories');
+
+        let latestOutput = null;
+
+        // 1. User stories — pick the most recent assignments file
+        if (!latestOutput && fs.existsSync(userStoriesDir)) {
+            const storyFiles = fs.readdirSync(userStoriesDir)
+                .filter(f => f.endsWith('_assignments.json'))
+                .sort()
+                .reverse();
+            for (const sf of storyFiles) {
+                try {
+                    const meetId = sf.replace('_assignments.json', '');
+                    const raw = JSON.parse(fs.readFileSync(path.join(userStoriesDir, sf), 'utf-8'));
+                    if (Array.isArray(raw) && raw.length > 0) {
+                        latestOutput = { type: 'stories', meetId, meetingType: 'po-meeting', data: raw };
+                        break;
+                    }
+                } catch (_) {}
+            }
+        }
+
+        // 2. Blockers from standups
+        if (!latestOutput) {
+            for (const m of meetings) {
+                if (m.hasBlockers) {
+                    try {
+                        const raw = JSON.parse(fs.readFileSync(path.join(standupsDir, `${m.meetId}_blockers.json`), 'utf-8'));
+                        latestOutput = { type: 'blockers', meetId: m.meetId, meetingType: m.meeting_type, data: raw };
+                        break;
+                    } catch (_) {}
+                }
+            }
+        }
+
+        // 3. Meeting minutes summary
+        if (!latestOutput) {
+            for (const m of meetings) {
+                if (m.hasSummary) {
+                    try {
+                        const jsonPath = path.join(summariesDir, `${m.meetId}_minutes.json`);
+                        const raw = fs.existsSync(jsonPath)
+                            ? JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+                            : { project_name: m.projectName, meeting_minutes: fs.readFileSync(path.join(summariesDir, `${m.meetId}_final.txt`), 'utf-8') };
+                        latestOutput = { type: 'summary', meetId: m.meetId, meetingType: m.meeting_type, data: raw };
+                        break;
+                    } catch (_) {}
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            stats: { totalMeetings: transcriptFiles.length, activeProjects: activeCount },
+            projects,
+            meetings: meetings.slice(0, 10),
+            latestOutput
+        });
+    } catch (err) {
+        console.error('/api/dashboard error:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// GET /api/projects/user-boards — Trello board IDs for projects the user is a member of
+// Team field stores numeric profile IDs; join through profile table to match by email.
+app.get('/api/projects/user-boards', async (req, res) => {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ success: false, error: 'email query param required' });
+    try {
+        const result = await pgPool.query(
+            `SELECT p.trello_board_id
+             FROM project p
+             JOIN profile pr ON p.team @> to_jsonb(pr.id)
+             WHERE pr.email = $1
+               AND p.trello_board_id IS NOT NULL
+               AND p.trello_board_id <> ''`,
+            [email]
+        );
+        const ids = result.rows.map(r => r.trello_board_id);
+        res.json({ success: true, boardIds: [...new Set(ids)] });
+    } catch (err) {
+        console.error('DB error GET /api/projects/user-boards:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // GET /api/projects  — all projects (optionally filtered by member email)
+// Returns member details (name, email, role) by joining with profile table.
 app.get('/api/projects', async (req, res) => {
     const { email } = req.query;
     try {
-        let result;
-        if (email) {
-            result = await pgPool.query(
-                `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count,
-                        p.trello_board_id, p.team, p.created_at,
-                        COALESCE(jsonb_array_length(p.us_done), 0)    AS us_done_count,
-                        COALESCE(jsonb_array_length(p.us_pending), 0) AS us_pending_count
-                 FROM project p
-                 WHERE p.team @> to_jsonb(ARRAY(
-                     SELECT pr.id FROM profile pr WHERE pr.email = $1
-                 ))
-                 ORDER BY p.created_at DESC`,
-                [email]
+        const baseSelect = `
+            SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count,
+                   p.description, p.trello_board_id, p.team, p.created_at,
+                   COALESCE(jsonb_array_length(p.us_done), 0)    AS us_done_count,
+                   COALESCE(jsonb_array_length(p.us_pending), 0) AS us_pending_count
+            FROM project p`;
+
+        const result = email
+            ? await pgPool.query(baseSelect + `
+                WHERE p.team @> to_jsonb(ARRAY(SELECT pr.id FROM profile pr WHERE pr.email = $1))
+                ORDER BY p.created_at DESC`, [email])
+            : await pgPool.query(baseSelect + ` ORDER BY p.created_at DESC`);
+
+        // Collect all profile IDs referenced across all projects
+        const allIds = [...new Set(result.rows.flatMap(p => {
+            const t = p.team;
+            if (Array.isArray(t)) return t.filter(Number.isInteger);
+            return [];
+        }))];
+
+        let profileMap = {};
+        if (allIds.length) {
+            const profiles = await pgPool.query(
+                `SELECT id, name, email, role FROM profile WHERE id = ANY($1::int[])`,
+                [allIds]
             );
-        } else {
-            result = await pgPool.query(
-                `SELECT p.id, p.name, p.status, p.sprints, p.user_stories_count,
-                        p.trello_board_id, p.team, p.created_at,
-                        COALESCE(jsonb_array_length(p.us_done), 0)    AS us_done_count,
-                        COALESCE(jsonb_array_length(p.us_pending), 0) AS us_pending_count
-                 FROM project p
-                 ORDER BY p.created_at DESC`
-            );
+            profiles.rows.forEach(r => { profileMap[r.id] = r; });
         }
-        res.json({ success: true, projects: result.rows });
+
+        const projects = result.rows.map(p => {
+            const teamIds = Array.isArray(p.team) ? p.team.filter(Number.isInteger) : [];
+            return {
+                ...p,
+                members: teamIds.map(id => profileMap[id] || { id, name: null, email: null, role: null })
+            };
+        });
+
+        res.json({ success: true, projects });
     } catch (err) {
         console.error('DB error GET /api/projects:', err.message);
         res.status(500).json({ success: false, error: err.message });
@@ -669,19 +1061,19 @@ app.post('/api/projects', async (req, res) => {
         }
 
         const result = await pgPool.query(
-            `INSERT INTO project (name, status, sprints, user_stories_count, team, trello_board_id)
-             VALUES ($1, $2, $3, 0, $4::jsonb, $5)
-             RETURNING id, name, status, sprints, user_stories_count, trello_board_id, team, created_at`,
+            `INSERT INTO project (name, status, sprints, user_stories_count, description, team, trello_board_id)
+             VALUES ($1, $2, $3, 0, $4, $5::jsonb, $6)
+             RETURNING id, name, status, sprints, user_stories_count, description, trello_board_id, team, created_at`,
             [
                 name,
                 status || 'Not Started',
                 sprints || null,
+                description || null,
                 JSON.stringify(teamIds),
                 trelloBoardId || null,
             ]
         );
-        // Store extra display fields client-side; return core DB row
-        res.json({ success: true, project: { ...result.rows[0], emoji, color, description } });
+        res.json({ success: true, project: { ...result.rows[0], emoji, color } });
     } catch (err) {
         console.error('DB error POST /api/projects:', err.message);
         res.status(500).json({ success: false, error: err.message });
@@ -691,7 +1083,7 @@ app.post('/api/projects', async (req, res) => {
 // PUT /api/projects/:id — update a project
 app.put('/api/projects/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, status, sprints, teamEmails, trelloBoardId } = req.body;
+    const { name, status, sprints, description, teamEmails, trelloBoardId } = req.body;
     try {
         let teamIds = null;
         if (Array.isArray(teamEmails)) {
@@ -708,6 +1100,7 @@ app.put('/api/projects/:id', async (req, res) => {
         if (name !== undefined)          { fields.push(`name = $${idx++}`);             vals.push(name); }
         if (status !== undefined)        { fields.push(`status = $${idx++}`);           vals.push(status); }
         if (sprints !== undefined)       { fields.push(`sprints = $${idx++}`);          vals.push(sprints); }
+        if (description !== undefined)   { fields.push(`description = $${idx++}`);      vals.push(description || null); }
         if (teamIds !== null)            { fields.push(`team = $${idx++}::jsonb`);      vals.push(JSON.stringify(teamIds)); }
         if (trelloBoardId !== undefined) { fields.push(`trello_board_id = $${idx++}`); vals.push(trelloBoardId || null); }
 
@@ -887,6 +1280,129 @@ app.get('/api/stories/:meetingId', (req, res) => {
         return res.status(404).json({ success: false, error: 'No stories or blockers found' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// === TRELLO ANALYTICS — AGGREGATED DASHBOARD ===
+app.get('/api/trello/dashboard', async (req, res) => {
+    if (!TRELLO_KEY || !TRELLO_TOKEN) {
+        return res.status(503).json({ success: false, error: 'Trello is not configured. Set TRELLO_KEY and TRELLO_TOKEN in .env.' });
+    }
+    const WINDOW_DAYS = 14;
+    const windowStart = Date.now() - WINDOW_DAYS * 86400000;
+    const CONCURRENCY = 3;
+    try {
+        const boards = await trelloGet('/members/me/boards', { fields: 'id,name,closed', filter: 'open' });
+        const openBoards = (boards || []).filter(b => !b.closed);
+        if (!openBoards.length) return res.status(404).json({ success: false, error: 'No open Trello boards found.' });
+
+        const dayEnds = buildDayEndTimestamps(WINDOW_DAYS);
+        const perBoard = [];
+        for (let i = 0; i < openBoards.length; i += CONCURRENCY) {
+            const chunk = await Promise.all(
+                openBoards.slice(i, i + CONCURRENCY).map(b =>
+                    loadSingleBoardAnalytics(b.id, windowStart, WINDOW_DAYS, dayEnds)
+                        .catch(err => { console.error(`Trello board ${b.id}:`, err.message); return null; })
+                )
+            );
+            perBoard.push(...chunk);
+        }
+        const okBoards = perBoard.filter(Boolean);
+        if (!okBoards.length) return res.status(502).json({ success: false, error: 'Could not load any board data from Trello.' });
+
+        const totals = { cards: 0, done: 0, open: 0, blocked: 0 };
+        const doneNameSet = new Set();
+        const burndown = dayEnds.map((endTs) => ({
+            date: new Date(endTs).toISOString().slice(0, 10), actualRemaining: 0, idealRemaining: 0
+        }));
+        for (const row of okBoards) {
+            totals.cards   += row.totals.cards;
+            totals.done    += row.totals.done;
+            totals.open    += row.totals.open;
+            totals.blocked += row.totals.blocked;
+            row.doneListNames.forEach(n => doneNameSet.add(n));
+            for (let i = 0; i < burndown.length; i++) {
+                burndown[i].actualRemaining += row.burndown[i].actualRemaining;
+                burndown[i].idealRemaining  += row.burndown[i].idealRemaining;
+            }
+        }
+        const completionPercent = totals.cards ? Math.round((100 * totals.done) / totals.cards) : 100;
+        res.json({
+            success: true,
+            workspace: { scope: 'all_open_boards', boardCount: openBoards.length, boardsLoaded: okBoards.length, boards: openBoards.map(b => ({ id: b.id, name: b.name })) },
+            board: { id: null, name: `All open boards (${okBoards.length})` },
+            totals, completionPercent,
+            doneListNames: [...doneNameSet].slice(0, 24),
+            burndown, windowDays: WINDOW_DAYS
+        });
+    } catch (error) {
+        const msg = error.response?.data?.message || error.message;
+        console.error('Trello dashboard error:', msg);
+        res.status(error.response?.status || 500).json({ success: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+    }
+});
+
+// === TRELLO ANALYTICS — PER-BOARD DETAIL ===
+app.get('/api/trello/boards-detailed', async (req, res) => {
+    if (!TRELLO_KEY || !TRELLO_TOKEN) {
+        return res.status(503).json({ success: false, error: 'Trello is not configured. Set TRELLO_KEY and TRELLO_TOKEN in .env.' });
+    }
+    const WINDOW_DAYS = 14;
+    const windowStart = Date.now() - WINDOW_DAYS * 86400000;
+    const CONCURRENCY = 3;
+    try {
+        const boards = await trelloGet('/members/me/boards', { fields: 'id,name,closed', filter: 'open' });
+        const openBoards = (boards || []).filter(b => !b.closed);
+        if (!openBoards.length) return res.status(404).json({ success: false, error: 'No open Trello boards found.' });
+
+        const dayEnds = buildDayEndTimestamps(WINDOW_DAYS);
+        const perBoard = [];
+        for (let i = 0; i < openBoards.length; i += CONCURRENCY) {
+            const chunk = await Promise.all(
+                openBoards.slice(i, i + CONCURRENCY).map(b =>
+                    loadSingleBoardAnalytics(b.id, windowStart, WINDOW_DAYS, dayEnds)
+                        .catch(err => { console.error(`Trello board ${b.id}:`, err.message); return null; })
+                )
+            );
+            perBoard.push(...chunk);
+        }
+        const okBoards = perBoard.filter(Boolean);
+        if (!okBoards.length) return res.status(502).json({ success: false, error: 'Could not load any board data from Trello.' });
+
+        const boardsDetail = okBoards.map(board => {
+            const t = board.totals;
+            const info = openBoards.find(b => b.id === board.boardId);
+            return {
+                id: board.boardId, name: info?.name || 'Unknown Board',
+                metrics: { total: t.cards, done: t.done, open: t.open, blocked: t.blocked, completionPercent: t.cards ? Math.round((100 * t.done) / t.cards) : 100 },
+                burndown: board.burndown, doneListNames: board.doneListNames
+            };
+        });
+
+        const totals = { cards: 0, done: 0, open: 0, blocked: 0 };
+        const doneNameSet = new Set();
+        const burndown = dayEnds.map(endTs => ({ date: new Date(endTs).toISOString().slice(0, 10), actualRemaining: 0, idealRemaining: 0 }));
+        for (const row of okBoards) {
+            totals.cards += row.totals.cards; totals.done += row.totals.done;
+            totals.open  += row.totals.open;  totals.blocked += row.totals.blocked;
+            row.doneListNames.forEach(n => doneNameSet.add(n));
+            for (let i = 0; i < burndown.length; i++) {
+                burndown[i].actualRemaining += row.burndown[i].actualRemaining;
+                burndown[i].idealRemaining  += row.burndown[i].idealRemaining;
+            }
+        }
+        const completionPercent = totals.cards ? Math.round((100 * totals.done) / totals.cards) : 100;
+        res.json({
+            success: true,
+            workspace: { scope: 'all_open_boards', boardCount: openBoards.length, boardsLoaded: okBoards.length, boardsDetail: boardsDetail.sort((a, b) => b.metrics.total - a.metrics.total) },
+            totals: { workspace: totals, completionPercent },
+            doneListNames: [...doneNameSet].slice(0, 24),
+            burndown, windowDays: WINDOW_DAYS, fetchedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        const msg = error.response?.data?.message || error.message;
+        console.error('Trello boards-detailed error:', msg);
+        res.status(error.response?.status || 500).json({ success: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
     }
 });
 

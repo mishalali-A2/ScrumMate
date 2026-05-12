@@ -6,207 +6,191 @@
     <title>ScrumMate — Sign in</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f4f7fb;
             --surface: #ffffff;
-            --line: rgba(15, 23, 42, 0.12);
-            --line-2: rgba(15, 23, 42, 0.18);
+            --line: rgba(15,23,42,0.10);
+            --line-2: rgba(15,23,42,0.18);
             --text-1: #0f172a;
             --text-2: #334155;
             --text-3: #64748b;
-            --accent: #2563eb;
+            --text-4: #94a3b8;
+            --accent: #4f7cff;
             --accent-2: #5de4ff;
-            --accent-soft: rgba(37, 99, 235, 0.08);
-            --radius: 12px;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --radius: 14px;
             --radius-sm: 10px;
             --t: 140ms ease;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: auto; }
-
+        html, body { height: 100%; }
         body {
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             background:
-                radial-gradient(circle at top right, rgba(37, 99, 235, 0.10), transparent 26%),
-                radial-gradient(circle at 18% 0%, rgba(93, 228, 255, 0.07), transparent 18%),
+                radial-gradient(circle at top right,  rgba(79,124,255,0.09), transparent 28%),
+                radial-gradient(circle at 14% 0%,     rgba(93,228,255,0.06), transparent 20%),
                 linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
             color: var(--text-1);
             display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 46px 20px 30px;
-        }
-
-        .wrap {
-            width: 100%;
-            max-width: 860px;
-            padding: 18px;
-            display: grid;
-            grid-template-columns: 0.95fr 1.05fr;
-            gap: 14px;
-            align-items: start;
-        }
-
-        .brand-panel {
-            padding: 16px 16px;
-        }
-
-        .brand-row {
-            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
+            justify-content: flex-start;
+            padding: 44px 20px 30px;
+            min-height: 100%;
         }
 
-        .brand-logo {
-            width: 34px;
-            height: 34px;
-            object-fit: contain;
-            filter: saturate(1.05);
+        /* ── sign-in card ── */
+        .wrap { width: 100%; max-width: 880px; display: grid; grid-template-columns: 1fr 1fr; gap: 0; align-items: stretch; }
+
+        /* ── left panel ── */
+        .brand-panel {
+            padding: 44px 40px;
+            background: linear-gradient(160deg, #0b1120 0%, #0f172a 55%, #111d35 100%);
+            border-radius: 20px 0 0 20px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+        }
+        .brand-panel::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 10% 20%, rgba(79,124,255,0.18) 0%, transparent 55%),
+                radial-gradient(ellipse at 90% 80%, rgba(93,228,255,0.09) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .brand-panel-inner { position: relative; z-index: 1; }
+        .brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 44px; }
+        .brand-logo { width: 28px; height: 28px; object-fit: contain; filter: brightness(1.1); }
+        .brand-name { font-weight: 700; font-size: 14px; color: rgba(255,255,255,0.9); letter-spacing: 0.01em; }
+
+        .brand-headline {
+            font-size: 28px; font-weight: 800; line-height: 1.15; letter-spacing: -0.04em;
+            color: #fff; margin-bottom: 14px;
+        }
+        .brand-headline em {
+            font-style: normal;
+            background: linear-gradient(90deg, #4f7cff, #5de4ff);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .brand-desc {
+            font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.6; margin-bottom: 32px; max-width: 280px;
+        }
+        .feature-list { display: flex; flex-direction: column; gap: 13px; margin-bottom: 40px; }
+        .feature-item { display: flex; align-items: flex-start; gap: 11px; }
+        .feature-check {
+            width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+            background: rgba(79,124,255,0.18); border: 1px solid rgba(79,124,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .feature-check svg { display: block; }
+        .feature-text { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.45; }
+        .feature-text strong { color: rgba(255,255,255,0.88); font-weight: 600; }
+
+        .stats-row {
+            display: flex; gap: 0;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding-top: 24px; position: relative; z-index: 1;
+        }
+        .stat { flex: 1; }
+        .stat + .stat { border-left: 1px solid rgba(255,255,255,0.07); padding-left: 20px; }
+        .stat-num { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+        .stat-label { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+
+        /* ── right card ── */
+        .card { background: var(--surface); border: 1px solid var(--line); border-left: none; border-radius: 0 20px 20px 0; padding: 44px 36px; box-shadow: 0 18px 50px rgba(15,23,42,0.06); display: flex; flex-direction: column; justify-content: center; }
+        .card-head { padding-bottom: 20px; border-bottom: 1px solid rgba(15,23,42,0.07); margin-bottom: 22px; }
+        .card-title { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
+        .card-sub { margin-top: 5px; color: var(--text-3); font-size: 13px; line-height: 1.5; }
+
+        .actions { display: grid; gap: 9px; }
+        .btn { height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: rgba(255,255,255,0.8); color: var(--text-2); font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; transition: border-color var(--t), background var(--t), box-shadow var(--t); }
+        .btn:hover { border-color: var(--line-2); background: rgba(248,250,252,0.95); }
+        /* Google button keeps its white surface — just deepen border + shadow on hover */
+        .btn-google { background: #fff; border-color: rgba(15,23,42,0.13); color: var(--text-1); font-weight: 600; }
+        .btn-google:hover { background: #fff; border-color: rgba(15,23,42,0.22); box-shadow: 0 3px 12px rgba(15,23,42,0.08); }
+        .btn-primary { border-color: rgba(79,124,255,0.28); background: linear-gradient(135deg, rgba(79,124,255,0.97), rgba(62,95,255,0.95) 60%, rgba(93,228,255,0.7) 160%); color: #fff; box-shadow: 0 6px 22px rgba(79,124,255,0.22), 0 0 0 1px rgba(79,124,255,0.12) inset; }
+        .btn-primary:hover { background: linear-gradient(135deg, rgba(79,124,255,0.97), rgba(62,95,255,0.95) 60%, rgba(93,228,255,0.7) 160%); box-shadow: 0 10px 30px rgba(79,124,255,0.28), 0 0 0 1px rgba(79,124,255,0.16) inset; filter: brightness(1.06); }
+        .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; color: var(--text-4); font-size: 11.5px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+        .hint { margin-top: 14px; color: var(--text-4); font-size: 12px; line-height: 1.55; }
+
+        .status-bar { margin-top: 14px; padding: 11px 12px; border-radius: 10px; border: 1px solid rgba(79,124,255,0.18); background: rgba(79,124,255,0.06); color: var(--accent); font-weight: 600; font-size: 12.5px; display: none; align-items: center; gap: 8px; }
+        .status-bar.visible { display: flex; }
+        .spin { width: 14px; height: 14px; border: 2px solid rgba(79,124,255,0.2); border-top-color: var(--accent); border-radius: 999px; animation: spin 700ms linear infinite; flex-shrink: 0; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 820px) {
+            .wrap { grid-template-columns: 1fr; }
+            .brand-panel { border-radius: 20px 20px 0 0; padding: 36px 28px 32px; }
+            .brand-headline { font-size: 22px; }
+            .card { border-left: 1px solid var(--line); border-radius: 0 0 20px 20px; padding: 32px 28px; }
         }
 
-        .brand-name {
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            font-size: 16px;
+        /* ══════════════════════════════════════════
+           ONBOARDING OVERLAY
+        ══════════════════════════════════════════ */
+        #onboarding {
+            display: none; position: fixed; inset: 0;
+            background: linear-gradient(180deg, #fbfdff 0%, #f0f4fb 100%);
+            z-index: 100; overflow-y: auto;
+            padding: 0 20px 40px;
+            flex-direction: column;
+            align-items: center;
         }
+        #onboarding.visible { display: flex; }
+        .ob-shell { width: 100%; max-width: 540px; padding-top: 48px; }
 
-        .brand-sub {
-            color: var(--text-3);
-            font-size: 13px;
-            line-height: 1.5;
-            max-width: 420px;
-        }
+        .ob-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+        .ob-brand img { width: 28px; height: 28px; object-fit: contain; }
+        .ob-brand span { font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
 
-        .proof-list {
-            margin-top: 12px;
-            display: grid;
-            gap: 10px;
-        }
+        .ob-steps { display: flex; gap: 6px; margin-bottom: 32px; }
+        .ob-pip { height: 3px; flex: 1; border-radius: 999px; background: rgba(79,124,255,0.12); transition: background 280ms ease; }
+        .ob-pip.done   { background: var(--accent); }
+        .ob-pip.active { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 
-        .proof-item {
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-            padding: 10px 10px;
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            background: rgba(255,255,255,0.7);
-        }
+        .ob-heading { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.15; margin-bottom: 6px; }
+        .ob-heading span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .ob-sub { font-size: 13px; color: var(--text-3); line-height: 1.55; margin-bottom: 28px; }
 
-        .proof-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.20);
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            margin-top: 4px;
-            flex-shrink: 0;
-        }
+        .ob-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .ob-label { font-size: 12px; font-weight: 700; color: var(--text-2); letter-spacing: 0.02em; text-transform: uppercase; }
+        .ob-input, .ob-select { width: 100%; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(15,23,42,0.14); background: rgba(255,255,255,0.95); color: var(--text-1); font: inherit; font-size: 13.5px; outline: none; transition: border-color var(--t), box-shadow var(--t); }
+        .ob-input:focus, .ob-select:focus { border-color: rgba(79,124,255,0.45); box-shadow: 0 0 0 3px rgba(79,124,255,0.11); }
+        .ob-input.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .ob-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
 
-        .proof-title {
-            font-weight: 700;
-            font-size: 13px;
-            color: var(--text-2);
-            margin-bottom: 2px;
-        }
+        .field-error { font-size: 11.5px; color: var(--danger); display: none; align-items: center; gap: 4px; margin-top: 2px; }
+        .field-error.visible { display: flex; }
 
-        .proof-meta {
-            font-size: 12.5px;
-            color: var(--text-3);
-            line-height: 1.5;
-        }
+        .exp-row { display: flex; align-items: center; gap: 10px; }
+        .exp-stepper { display: flex; align-items: center; border: 1px solid rgba(15,23,42,0.14); border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.95); height: 44px; }
+        .exp-btn { width: 44px; height: 44px; border: none; background: transparent; color: var(--text-2); font-size: 20px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background var(--t); flex-shrink: 0; }
+        .exp-btn:hover { background: rgba(79,124,255,0.07); }
+        .exp-val { min-width: 54px; text-align: center; font-size: 15px; font-weight: 700; color: var(--text-1); border-left: 1px solid rgba(15,23,42,0.08); border-right: 1px solid rgba(15,23,42,0.08); height: 100%; display: flex; align-items: center; justify-content: center; }
+        .exp-unit { font-size: 12.5px; color: var(--text-3); font-weight: 500; }
 
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
-        }
+        .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag-opt { padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(15,23,42,0.12); background: rgba(255,255,255,0.92); color: var(--text-2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color var(--t), background var(--t), color var(--t), box-shadow var(--t); user-select: none; }
+        .tag-opt:hover { border-color: rgba(79,124,255,0.28); background: rgba(79,124,255,0.05); }
+        .tag-opt.selected { border-color: rgba(79,124,255,0.45); background: rgba(79,124,255,0.1); color: var(--accent); box-shadow: 0 0 0 1px rgba(79,124,255,0.12); }
+        .tag-hint { font-size: 11.5px; color: var(--text-4); margin-top: 8px; }
 
-        .card-head {
-            padding: 6px 6px 12px;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-            margin-bottom: 12px;
-        }
+        .ob-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 28px; }
+        .ob-back { height: 42px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--text-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background var(--t), border-color var(--t); }
+        .ob-back:hover { background: rgba(79,124,255,0.05); border-color: rgba(79,124,255,0.18); }
+        .ob-next { height: 42px; padding: 0 22px; border-radius: 12px; border: none; background: linear-gradient(135deg, rgba(79,124,255,0.97), rgba(62,95,255,0.95) 60%, rgba(93,228,255,0.7) 160%); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 22px rgba(79,124,255,0.24); transition: transform var(--t), box-shadow var(--t), filter var(--t); }
+        .ob-next:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(79,124,255,0.3); filter: brightness(1.04); }
+        .ob-next:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
 
-        .card-title {
-            font-size: 16px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .card-sub {
-            margin-top: 4px;
-            color: var(--text-3);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .actions {
-            display: grid;
-            gap: 9px;
-        }
-
-        .btn {
-            height: 42px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--line);
-            background: rgba(255,255,255,0.8);
-            color: var(--text-2);
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
-            transition: border-color var(--t), background var(--t), box-shadow var(--t), color var(--t);
-        }
-
-        .btn:hover {
-            border-color: var(--line-2);
-            background: rgba(255,255,255,1);
-        }
-
-        .btn-primary {
-            border-color: rgba(37, 99, 235, 0.25);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.97), rgba(93, 228, 255, 0.55));
-            color: #ffffff;
-            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12) inset, 0 18px 40px rgba(37, 99, 235, 0.14);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.16) inset, 0 22px 50px rgba(37, 99, 235, 0.18);
-        }
-
-        .hint {
-            margin-top: 12px;
-            color: var(--text-3);
-            font-size: 12.5px;
-            line-height: 1.5;
-        }
-
-        .loading {
-            display: none;
-            margin-top: 14px;
-            padding: 12px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(37, 99, 235, 0.22);
-            background: rgba(37, 99, 235, 0.06);
-            color: rgba(37, 99, 235, 1);
-            font-weight: 700;
-            font-size: 12.5px;
-        }
-
-        body.loading .loading { display: block; }
-
-        @media (max-width: 900px) {
-            .wrap {
-                grid-template-columns: 1fr;
-            }
-            .proof-list { grid-template-columns: 1fr; }
-        }
+        .ob-success { text-align: center; padding-top: 60px; display: none; flex-direction: column; align-items: center; gap: 16px; }
+        .ob-success.visible { display: flex; }
+        .ob-success-icon { width: 64px; height: 64px; border-radius: 999px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.22); display: flex; align-items: center; justify-content: center; }
+        .ob-success h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
+        .ob-success p { font-size: 13px; color: var(--text-3); line-height: 1.55; max-width: 340px; }
+        .ob-success-redirect { font-size: 12px; color: var(--text-4); display: flex; align-items: center; gap: 6px; }
     </style>
 
     <script
@@ -217,32 +201,57 @@
     </script>
 </head>
 
-<body class="loading">
-    <div class="wrap">
+<body>
+    <!-- ── sign-in card ── -->
+    <div class="wrap" id="loginWrap">
         <div class="brand-panel">
-            <div class="brand-row">
-                <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="brand-logo">
-                <div class="brand-name">ScrumMate</div>
-            </div>
+            <div class="brand-panel-inner">
+                <div class="brand-row">
+                    <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="brand-logo">
+                    <div class="brand-name">ScrumMate</div>
+                </div>
 
-            <div class="brand-sub">
-                Operate meeting intelligence with an engineered workflow: transcription, pipeline execution, and delivery-grade outputs.
-            </div>
+                <div class="brand-headline">
+                    Scrum meetings that<br><em>actually ship things.</em>
+                </div>
+                <div class="brand-desc">
+                    ScrumMate turns every standup, retro, and PO session into structured outputs your team can act on — automatically.
+                </div>
 
-            <div class="proof-list">
-                <div class="proof-item">
-                    <div class="proof-dot"></div>
-                    <div>
-                        <div class="proof-title">Pipeline clarity</div>
-                        <div class="proof-meta">Track runs, verify outputs, and surface blockers with a high-signal view.</div>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#4f7cff" stroke-width="1.8" stroke-linecap="round"><path d="M2 5l2.5 2.5L8 3"/></svg>
+                        </div>
+                        <div class="feature-text"><strong>AI meeting minutes</strong> generated from live transcripts, structured by meeting type.</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#4f7cff" stroke-width="1.8" stroke-linecap="round"><path d="M2 5l2.5 2.5L8 3"/></svg>
+                        </div>
+                        <div class="feature-text"><strong>User stories and blockers</strong> extracted, prioritised, and assigned to your team.</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#4f7cff" stroke-width="1.8" stroke-linecap="round"><path d="M2 5l2.5 2.5L8 3"/></svg>
+                        </div>
+                        <div class="feature-text"><strong>Full pipeline visibility</strong> — track runs, review outputs, and audit every decision.</div>
                     </div>
                 </div>
-                <div class="proof-item">
-                    <div class="proof-dot"></div>
-                    <div>
-                        <div class="proof-title">Operator speed</div>
-                        <div class="proof-meta">Fast actions and dense tables built for daily work, not demos.</div>
-                    </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-num">500+</div>
+                    <div class="stat-label">Teams</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">12k</div>
+                    <div class="stat-label">Meetings</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">98%</div>
+                    <div class="stat-label">Accuracy</div>
                 </div>
             </div>
         </div>
@@ -250,97 +259,427 @@
         <div class="card">
             <div class="card-head">
                 <div class="card-title">Sign in to your workspace</div>
-                <div class="card-sub">Use Clerk to authenticate. If you're already signed in, you'll be redirected automatically.</div>
+                <div class="card-sub">Use Google or create an account. New members complete a quick profile setup.</div>
             </div>
-
             <div class="actions">
-                <button id="loginBtn" class="btn btn-primary" type="button">Sign in</button>
-                <button id="signupBtn" class="btn" type="button">Create account</button>
+                <button id="googleBtn" class="btn btn-google" type="button">
+                    <svg width="17" height="17" viewBox="0 0 48 48" fill="none"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 6 1.1 8.1 3l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 17 19.3 14 24 14c3.1 0 6 1.1 8.1 3l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.6 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.8 0 10.7-1.9 14.3-5.2l-6.6-5.4C29.9 36.9 27.1 38 24 38c-5.9 0-10.9-3.9-12.7-9.3l-7 5.4C7.9 41.1 15.4 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.9 2.9-2.8 5.4-5.3 7.1l6.6 5.4C41.1 37.7 44.5 31.4 44.5 24c0-1.3-.2-2.7-.5-4z"/></svg>
+                    Continue with Google
+                </button>
+                <div class="divider">or</div>
+                <button id="signupBtn" class="btn btn-primary" type="button">Create account with email</button>
+                <button id="signinEmailBtn" class="btn" type="button" style="color:var(--text-3);font-size:12.5px;height:36px">Already have an account? Sign in →</button>
+            </div>
+            <div class="hint">By continuing, you agree to ScrumMate's Terms of Service. New members complete a quick one-time profile setup.</div>
+            <div class="status-bar" id="statusBar">
+                <div class="spin"></div>
+                <span id="statusMsg">Checking session…</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         ONBOARDING OVERLAY
+    ═══════════════════════════════════════════ -->
+    <div id="onboarding">
+        <div class="ob-shell">
+            <div class="ob-brand">
+                <img src="logo_gallery/Logo.png" alt="ScrumMate">
+                <span>ScrumMate</span>
             </div>
 
-            <div class="hint">
-                After signing in, you're taken to the dashboard. Your pipeline state remains available for review.
+            <div class="ob-steps" id="obSteps">
+                <div class="ob-pip active" id="obPip0"></div>
+                <div class="ob-pip"        id="obPip1"></div>
+                <div class="ob-pip"        id="obPip2"></div>
             </div>
 
-            <div class="loading" id="loadingStatus">Checking session…</div>
+            <!-- Step 0 – name + role -->
+            <div class="ob-step" id="obStep0">
+                <div class="ob-heading">Welcome to <span>ScrumMate</span></div>
+                <div class="ob-sub" id="obSubText">Let's build your profile. This helps the pipeline assign work intelligently.</div>
+
+                <div class="ob-field">
+                    <label class="ob-label">Full name</label>
+                    <input class="ob-input" id="obName" type="text" placeholder="e.g. Muaz Zaheer" autocomplete="name">
+                    <div class="field-error" id="obNameErr">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5M8 11v.5"/></svg>
+                        <span id="obNameErrMsg">Please enter your name.</span>
+                    </div>
+                </div>
+
+                <div class="ob-field">
+                    <label class="ob-label">Your role</label>
+                    <select class="ob-select" id="obRole">
+                        <option value="">— select your role —</option>
+                        <option>Developer</option>
+                        <option>Scrum Master</option>
+                        <option>Product Owner</option>
+                        <option>QA Engineer</option>
+                        <option>DevOps Engineer</option>
+                        <option>UX/UI Designer</option>
+                        <option>Tech Lead</option>
+                        <option>Engineering Manager</option>
+                        <option>Architect</option>
+                        <option>Data Engineer</option>
+                        <option>ML Engineer</option>
+                    </select>
+                    <div class="field-error" id="obRoleErr">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5M8 11v.5"/></svg>
+                        <span>Please select your role.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1 – experience + skills -->
+            <div class="ob-step" id="obStep1" style="display:none">
+                <div class="ob-heading">Your <span>experience</span></div>
+                <div class="ob-sub">Pick your years in the industry and the technical areas you work in.</div>
+
+                <div class="ob-field">
+                    <label class="ob-label">Years of experience</label>
+                    <div class="exp-row">
+                        <div class="exp-stepper">
+                            <button class="exp-btn" id="expMinus" type="button">−</button>
+                            <div class="exp-val" id="expVal">0</div>
+                            <button class="exp-btn" id="expPlus"  type="button">+</button>
+                        </div>
+                        <span class="exp-unit" id="expLabel">Less than 1 year</span>
+                    </div>
+                </div>
+
+                <div class="ob-field">
+                    <label class="ob-label">Technical skills <span style="text-transform:none;font-weight:500;color:var(--text-4)">(pick all that apply)</span></label>
+                    <div class="tag-grid" id="skillTags">
+                        <span class="tag-opt" data-val="Frontend">Frontend</span>
+                        <span class="tag-opt" data-val="Backend">Backend</span>
+                        <span class="tag-opt" data-val="Full-stack">Full-stack</span>
+                        <span class="tag-opt" data-val="Mobile">Mobile</span>
+                        <span class="tag-opt" data-val="ML / AI">ML / AI</span>
+                        <span class="tag-opt" data-val="DevOps">DevOps</span>
+                        <span class="tag-opt" data-val="Database">Database</span>
+                        <span class="tag-opt" data-val="Cloud">Cloud</span>
+                        <span class="tag-opt" data-val="Security">Security</span>
+                        <span class="tag-opt" data-val="UX/UI">UX/UI</span>
+                        <span class="tag-opt" data-val="QA / Testing">QA / Testing</span>
+                        <span class="tag-opt" data-val="Data Engineering">Data Engineering</span>
+                    </div>
+                    <div class="field-error" id="obSkillErr">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5M8 11v.5"/></svg>
+                        <span>Please select at least one skill.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 – strengths -->
+            <div class="ob-step" id="obStep2" style="display:none">
+                <div class="ob-heading">Your working <span>strengths</span></div>
+                <div class="ob-sub">These help the AI route the right meetings and outputs to you.</div>
+
+                <div class="ob-field">
+                    <label class="ob-label">Strengths <span style="text-transform:none;font-weight:500;color:var(--text-4)">(pick 1–4)</span></label>
+                    <div class="tag-grid" id="strengthTags">
+                        <span class="tag-opt" data-val="Problem Solving">Problem Solving</span>
+                        <span class="tag-opt" data-val="Communication">Communication</span>
+                        <span class="tag-opt" data-val="Leadership">Leadership</span>
+                        <span class="tag-opt" data-val="Attention to Detail">Attention to Detail</span>
+                        <span class="tag-opt" data-val="Fast Learner">Fast Learner</span>
+                        <span class="tag-opt" data-val="Collaboration">Collaboration</span>
+                        <span class="tag-opt" data-val="Mentoring">Mentoring</span>
+                        <span class="tag-opt" data-val="Ownership">Ownership</span>
+                        <span class="tag-opt" data-val="Estimation">Estimation</span>
+                        <span class="tag-opt" data-val="Architecture">Architecture</span>
+                        <span class="tag-opt" data-val="Testing">Testing</span>
+                        <span class="tag-opt" data-val="Delivery Focus">Delivery Focus</span>
+                    </div>
+                    <div class="field-error" id="obStrengthErr">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5M8 11v.5"/></svg>
+                        <span>Please select at least one strength.</span>
+                    </div>
+                    <div class="tag-hint" id="strengthHint"></div>
+                </div>
+            </div>
+
+            <!-- Success screen -->
+            <div class="ob-success" id="obSuccess">
+                <div class="ob-success-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <h2>You're all set!</h2>
+                <p>Your profile has been saved. Taking you to the dashboard…</p>
+                <div class="ob-success-redirect">
+                    <div class="spin" style="border-top-color: var(--text-4)"></div>
+                    Redirecting in a moment…
+                </div>
+            </div>
+
+            <div class="ob-nav" id="obNav">
+                <button class="ob-back" id="obBack" style="visibility:hidden">← Back</button>
+                <button class="ob-next" id="obNext">
+                    Continue
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h6M7 3l3 3-3 3"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        function setUpClerk() {
-            if (!window.Clerk) return false;
-            return true;
-        }
+    // ── Clerk boot ────────────────────────────────────────────────────────────
+    function showStatus(msg) {
+        document.getElementById('statusMsg').textContent = msg;
+        document.getElementById('statusBar').classList.add('visible');
+    }
+    function hideStatus() { document.getElementById('statusBar').classList.remove('visible'); }
+    function redirectToDashboard() { window.location.replace('/dashboard.html'); }
 
-        function redirectToDashboard() {
-            window.location.replace('/dashboard.html');
-        }
-
-        function setupAuthButtons() {
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
-
-            if (!loginBtn || !signupBtn) return;
-
-            loginBtn.addEventListener('click', () => {
-                window.Clerk.openSignIn({
-                    redirectUrl: '/dashboard.html',
-                    afterSignInUrl: '/dashboard.html',
-                });
+    async function handleAuthSuccess(user) {
+        const email = user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || '';
+        const name  = user.fullName || user.firstName || '';
+        showStatus('Checking your profile…');
+        try {
+            const r    = await fetch('/api/profiles/sync', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ email, name }),
             });
-
-            signupBtn.addEventListener('click', () => {
-                window.Clerk.openSignUp({
-                    redirectUrl: '/dashboard.html',
-                    afterSignUpUrl: '/dashboard.html',
-                });
-            });
-        }
-
-        function boot() {
-            if (!setUpClerk()) {
-                setTimeout(boot, 50);
-                return;
+            const data = await r.json();
+            if (data.success && !data.needsOnboarding) {
+                redirectToDashboard();
+            } else {
+                hideStatus();
+                // Pre-fill whatever we already have (partial profile case)
+                const existing = data.profile || {};
+                startOnboarding(
+                    data.suggestedName || name,
+                    email,
+                    existing,
+                    data.partial === true
+                );
             }
+        } catch (e) {
+            console.error('Profile sync failed:', e);
+            redirectToDashboard(); // network failure fallback
+        }
+    }
 
-            window.Clerk.load().then(() => {
-                const clerk = window.Clerk;
-                const isAuthed = () => {
-                    // Clerk v4: after load, `clerk.session.user` is non-null when signed in.
-                    return !!(clerk && clerk.session && clerk.session.user);
-                };
+    function setupAuthButtons() {
+        // Google — bypass Clerk modal, go straight to Google account picker
+        document.getElementById('googleBtn').addEventListener('click', async () => {
+            try {
+                await window.Clerk.client.signIn.authenticateWithRedirect({
+                    strategy:              'oauth_google',
+                    redirectUrl:           window.location.href,
+                    redirectUrlComplete:   window.location.href,
+                });
+            } catch (e) {
+                // Fallback: open Clerk modal with Google pre-selected
+                window.Clerk.openSignIn({ afterSignInUrl: window.location.href });
+            }
+        });
+        document.getElementById('signupBtn').addEventListener('click', () => {
+            window.Clerk.openSignUp({ afterSignUpUrl: window.location.href });
+        });
+        document.getElementById('signinEmailBtn').addEventListener('click', () => {
+            window.Clerk.openSignIn({ afterSignInUrl: window.location.href });
+        });
+    }
 
-                // Some apps get session hydration slightly after `load()`, so retry briefly.
-                if (isAuthed()) {
-                    redirectToDashboard();
-                    return;
-                }
+    function boot() {
+        if (!window.Clerk) { setTimeout(boot, 50); return; }
+        window.Clerk.load().then(() => {
+            const clerk    = window.Clerk;
+            const isAuthed = () => !!(clerk?.session?.user);
+            if (isAuthed()) { handleAuthSuccess(clerk.session.user); return; }
 
-                let tries = 0;
-                const t = setInterval(() => {
-                    tries += 1;
-                    if (isAuthed()) {
-                        clearInterval(t);
-                        redirectToDashboard();
-                        return;
-                    }
-                    if (tries >= 6) {
-                        clearInterval(t);
-                        document.body.classList.remove('loading');
-                        const loading = document.getElementById('loadingStatus');
-                        if (loading) loading.textContent = 'Ready';
-                        setupAuthButtons();
-                    }
-                }, 200);
-            }).catch(() => {
-                // If Clerk fails to initialize, still allow manual sign-in attempts.
-                document.body.classList.remove('loading');
-                setupAuthButtons();
+            let tries = 0;
+            const t = setInterval(() => {
+                if (isAuthed()) { clearInterval(t); handleAuthSuccess(clerk.session.user); return; }
+                if (++tries >= 8) { clearInterval(t); hideStatus(); setupAuthButtons(); }
+            }, 250);
+
+            clerk.addListener(({ session }) => {
+                if (session?.user) { clearInterval(t); handleAuthSuccess(session.user); }
+            });
+        }).catch(() => { hideStatus(); setupAuthButtons(); });
+    }
+    window.addEventListener('load', boot);
+
+    // ── Onboarding state ──────────────────────────────────────────────────────
+    const OB_STEPS  = 3;
+    let obStep      = 0;
+    let obEmail     = '';
+    let obExpYears  = 0;
+    let obSkills    = new Set();
+    let obStrengths = new Set();
+
+    function startOnboarding(suggestedName, email, existing, isPartial) {
+        obEmail    = email;
+        obStep     = 0;
+        obExpYears = existing.experience_years != null ? Math.round(existing.experience_years) : 0;
+        obSkills.clear();
+        obStrengths.clear();
+
+        // Pre-fill name
+        document.getElementById('obName').value = suggestedName || '';
+
+        // Pre-fill role if available
+        const roleEl = document.getElementById('obRole');
+        if (existing.role) roleEl.value = existing.role;
+
+        // Tweak heading/sub if they're completing an incomplete profile
+        if (isPartial) {
+            document.getElementById('obSubText').textContent =
+                'Your profile is missing a few details. Please fill them in to continue.';
+        }
+
+        // Pre-select existing skills
+        if (Array.isArray(existing.skills)) {
+            existing.skills.forEach(s => obSkills.add(s));
+            document.querySelectorAll('#skillTags .tag-opt').forEach(el => {
+                if (obSkills.has(el.dataset.val)) el.classList.add('selected');
             });
         }
 
-        window.addEventListener('load', boot);
+        // Pre-select existing strengths
+        if (Array.isArray(existing.strengths)) {
+            existing.strengths.forEach(s => obStrengths.add(s));
+            document.querySelectorAll('#strengthTags .tag-opt').forEach(el => {
+                if (obStrengths.has(el.dataset.val)) el.classList.add('selected');
+            });
+        }
+
+        updateExpLabel();
+        document.getElementById('onboarding').classList.add('visible');
+        document.getElementById('loginWrap').style.display = 'none';
+        goObStep(0);
+    }
+
+    // ── Step navigation ───────────────────────────────────────────────────────
+    function goObStep(step) {
+        obStep = step;
+        for (let i = 0; i < OB_STEPS; i++) {
+            document.getElementById(`obStep${i}`).style.display = i === step ? '' : 'none';
+        }
+        for (let i = 0; i < OB_STEPS; i++) {
+            document.getElementById(`obPip${i}`).className =
+                'ob-pip ' + (i < step ? 'done' : i === step ? 'active' : '');
+        }
+        document.getElementById('obBack').style.visibility = step === 0 ? 'hidden' : 'visible';
+        const next = document.getElementById('obNext');
+        if (step < OB_STEPS - 1) {
+            next.innerHTML = 'Continue <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h6M7 3l3 3-3 3"/></svg>';
+        } else {
+            next.textContent = 'Finish setup';
+        }
+    }
+
+    // ── Validation ────────────────────────────────────────────────────────────
+    function validateStep(step) {
+        if (step === 0) {
+            const name = document.getElementById('obName').value.trim();
+            const role = document.getElementById('obRole').value;
+            let ok = true;
+            if (!name) {
+                document.getElementById('obNameErr').classList.add('visible');
+                document.getElementById('obName').classList.add('invalid');
+                ok = false;
+            } else {
+                document.getElementById('obNameErr').classList.remove('visible');
+                document.getElementById('obName').classList.remove('invalid');
+            }
+            if (!role) { document.getElementById('obRoleErr').classList.add('visible'); ok = false; }
+            else        { document.getElementById('obRoleErr').classList.remove('visible'); }
+            return ok;
+        }
+        if (step === 1) {
+            if (!obSkills.size) { document.getElementById('obSkillErr').classList.add('visible'); return false; }
+            document.getElementById('obSkillErr').classList.remove('visible'); return true;
+        }
+        if (step === 2) {
+            if (!obStrengths.size) { document.getElementById('obStrengthErr').classList.add('visible'); return false; }
+            document.getElementById('obStrengthErr').classList.remove('visible'); return true;
+        }
+        return true;
+    }
+
+    document.getElementById('obNext').addEventListener('click', async () => {
+        if (!validateStep(obStep)) return;
+        if (obStep < OB_STEPS - 1) { goObStep(obStep + 1); return; }
+        await saveProfile();
+    });
+    document.getElementById('obBack').addEventListener('click', () => {
+        if (obStep > 0) goObStep(obStep - 1);
+    });
+    document.getElementById('obName').addEventListener('input', () => {
+        document.getElementById('obName').classList.remove('invalid');
+        document.getElementById('obNameErr').classList.remove('visible');
+    });
+    document.getElementById('obRole').addEventListener('change', () => {
+        document.getElementById('obRoleErr').classList.remove('visible');
+    });
+
+    // ── Experience stepper ────────────────────────────────────────────────────
+    function updateExpLabel() {
+        document.getElementById('expVal').textContent = obExpYears;
+        const map = { 0:'Less than 1 year', 1:'1 year', 2:'2 years', 3:'3 years', 4:'4 years', 5:'5 years' };
+        document.getElementById('expLabel').textContent =
+            obExpYears > 5 ? obExpYears + ' years' : (map[obExpYears] || obExpYears + ' years');
+    }
+    document.getElementById('expMinus').addEventListener('click', () => { if (obExpYears > 0)  { obExpYears--; updateExpLabel(); } });
+    document.getElementById('expPlus').addEventListener('click',  () => { if (obExpYears < 40) { obExpYears++; updateExpLabel(); } });
+
+    // ── Tag pickers ───────────────────────────────────────────────────────────
+    function setupTagGrid(gridId, set, errorId, maxSelect) {
+        document.getElementById(gridId).addEventListener('click', e => {
+            const tag = e.target.closest('.tag-opt'); if (!tag) return;
+            const val = tag.dataset.val;
+            if (set.has(val)) { set.delete(val); tag.classList.remove('selected'); }
+            else {
+                if (maxSelect && set.size >= maxSelect) return;
+                set.add(val); tag.classList.add('selected');
+            }
+            if (errorId && set.size > 0) document.getElementById(errorId).classList.remove('visible');
+            if (gridId === 'strengthTags') {
+                document.getElementById('strengthHint').textContent = set.size ? `${set.size} selected` : '';
+            }
+        });
+    }
+    setupTagGrid('skillTags',    obSkills,    'obSkillErr',    null);
+    setupTagGrid('strengthTags', obStrengths, 'obStrengthErr', 4);
+
+    // ── Save to DB ────────────────────────────────────────────────────────────
+    async function saveProfile() {
+        const nextBtn = document.getElementById('obNext');
+        nextBtn.disabled = true; nextBtn.textContent = 'Saving…';
+        try {
+            const r = await fetch('/api/profiles', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    name:             document.getElementById('obName').value.trim(),
+                    email:            obEmail,
+                    role:             document.getElementById('obRole').value,
+                    experience_years: obExpYears,
+                    skills:           [...obSkills],
+                    strengths:        [...obStrengths],
+                }),
+            });
+            const data = await r.json();
+            if (data.success) {
+                for (let i = 0; i < OB_STEPS; i++) document.getElementById(`obStep${i}`).style.display = 'none';
+                document.getElementById('obNav').style.display    = 'none';
+                document.getElementById('obSteps').style.display  = 'none';
+                document.getElementById('obSuccess').classList.add('visible');
+                setTimeout(redirectToDashboard, 2200);
+            } else {
+                nextBtn.disabled = false; nextBtn.textContent = 'Finish setup';
+                alert('Could not save profile: ' + data.error);
+            }
+        } catch (e) {
+            nextBtn.disabled = false; nextBtn.textContent = 'Finish setup';
+            alert('Network error. Please try again.');
+        }
+    }
     </script>
 </body>
 </html>
-
