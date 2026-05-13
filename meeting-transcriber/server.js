@@ -992,7 +992,8 @@ app.get('/api/projects', async (req, res) => {
 
         const result = email
             ? await pgPool.query(baseSelect + `
-                WHERE p.team @> to_jsonb(ARRAY(SELECT pr.id FROM profile pr WHERE pr.email = $1))
+                JOIN profile pr ON pr.email = $1
+                WHERE p.team @> to_jsonb(pr.id)
                 ORDER BY p.created_at DESC`, [email])
             : await pgPool.query(baseSelect + ` ORDER BY p.created_at DESC`);
 
@@ -1030,7 +1031,7 @@ app.get('/api/projects', async (req, res) => {
 // POST /api/projects — create a project
 // Body: { name, status, description, emoji, color, sprints, teamEmails[], trelloBoardId? }
 app.post('/api/projects', async (req, res) => {
-    const { name, status, description, emoji, color, sprints, teamEmails, trelloBoardId } = req.body;
+    const { name, status, description, emoji, color, sprints, teamEmails, trelloBoardId, creatorEmail } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ success: false, error: 'name is required' });
     }
@@ -1050,19 +1051,24 @@ app.post('/api/projects', async (req, res) => {
     }
 
     try {
-        // Resolve profile IDs from emails (ignore unknown emails)
+        // Resolve profile IDs from emails (always include creator)
+        const allEmails = [...new Set([
+            ...(Array.isArray(teamEmails) ? teamEmails : []),
+            ...(creatorEmail ? [creatorEmail] : [])
+        ].map(e => e.toLowerCase()))];
+
         let teamIds = [];
-        if (Array.isArray(teamEmails) && teamEmails.length) {
+        if (allEmails.length) {
             const lookup = await pgPool.query(
                 `SELECT id FROM profile WHERE email = ANY($1::text[])`,
-                [teamEmails.map(e => e.toLowerCase())]
+                [allEmails]
             );
             teamIds = lookup.rows.map(r => r.id);
         }
 
         const result = await pgPool.query(
-            `INSERT INTO project (name, status, sprints, user_stories_count, description, team, trello_board_id)
-             VALUES ($1, $2, $3, 0, $4, $5::jsonb, $6)
+            `INSERT INTO project (name, status, sprints, user_stories_count, us_done, us_pending, description, team, trello_board_id)
+             VALUES ($1, $2, $3, 0, '[]'::jsonb, '[]'::jsonb, $4, $5::jsonb, $6)
              RETURNING id, name, status, sprints, user_stories_count, description, trello_board_id, team, created_at`,
             [
                 name,

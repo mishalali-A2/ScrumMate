@@ -1,0 +1,885 @@
+{
+  "bot_id": "151cb136-6f39-4550-8f0a-f1ba4b964989",
+  "meeting_url": "https://meet.google.com/ztw-nbkg-dna",
+  "meeting_type": "product-owner",
+  "created_at": "2026-05-13T04:31:51.630Z",
+  "stopped_at": "2026-05-13T04:39:21.968Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Border.",
+      "timestamp": "2026-05-13T04:33:14.560Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Oh, no mission.",
+      "timestamp": "2026-05-13T04:33:14.955Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I'm on.",
+      "timestamp": "2026-05-13T04:33:15.309Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "The transcript on eerie with that.",
+      "timestamp": "2026-05-13T04:33:15.629Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Meeting.",
+      "timestamp": "2026-05-13T04:33:15.970Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Don't you?",
+      "timestamp": "2026-05-13T04:33:16.303Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "oh,",
+      "timestamp": "2026-05-13T04:33:16.665Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Hello.",
+      "timestamp": "2026-05-13T04:33:16.994Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Know, hello. Hello. And",
+      "timestamp": "2026-05-13T04:33:17.346Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Should.",
+      "timestamp": "2026-05-13T04:33:17.668Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "but,",
+      "timestamp": "2026-05-13T04:33:18.331Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Society could work here.",
+      "timestamp": "2026-05-13T04:33:18.677Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "He to be here.",
+      "timestamp": "2026-05-13T04:33:19.005Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Sorry.",
+      "timestamp": "2026-05-13T04:33:19.322Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "session on, like,",
+      "timestamp": "2026-05-13T04:33:19.647Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "You need Mike for this now, okay?",
+      "timestamp": "2026-05-13T04:33:21.367Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Hello. Oh",
+      "timestamp": "2026-05-13T04:33:21.706Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Against my.",
+      "timestamp": "2026-05-13T04:33:29.876Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Right.",
+      "timestamp": "2026-05-13T04:33:32.497Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Permission.",
+      "timestamp": "2026-05-13T04:33:32.948Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "All right.",
+      "timestamp": "2026-05-13T04:33:44.756Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "All right, let's get started. Today is piercing is mainly about progress, on the",
+      "timestamp": "2026-05-13T04:33:47.549Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "meeting dashboard blockers and what we have, realistically shipping by Friday.",
+      "timestamp": "2026-05-13T04:33:47.874Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Also, preferably without setting the database on the first time.",
+      "timestamp": "2026-05-13T04:33:48.197Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "No promises.",
+      "timestamp": "2026-05-13T04:33:49.762Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "I knew this video was going to start violently.",
+      "timestamp": "2026-05-13T04:33:53.760Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Okay. Ali, funded first, Where are we on the Dashboard UI?",
+      "timestamp": "2026-05-13T04:33:58.531Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Okay.",
+      "timestamp": "2026-05-13T04:33:58.950Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Main dashboard is almost done. Users can now sell all, see all meetings under a",
+      "timestamp": "2026-05-13T04:34:05.697Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "project.",
+      "timestamp": "2026-05-13T04:34:06.012Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Open transcripts and view generated maintenance.",
+      "timestamp": "2026-05-13T04:34:09.003Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "I also added loading states because of watching a blank white screen. For 8",
+      "timestamp": "2026-05-13T04:34:16.257Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "seconds feels like an emotional damage.",
+      "timestamp": "2026-05-13T04:34:16.586Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "I was.",
+      "timestamp": "2026-05-13T04:34:16.904Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Good. What's still pending?",
+      "timestamp": "2026-05-13T04:34:18.300Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "But two six, mainly real-time transcription updates in the UA and proper error.",
+      "timestamp": "2026-05-13T04:34:28.838Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Handling for failed transcription.",
+      "timestamp": "2026-05-13T04:34:29.158Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Right now, if back and dies, the front end basically goes down that crazy and",
+      "timestamp": "2026-05-13T04:34:37.808Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "stops functioning.",
+      "timestamp": "2026-05-13T04:34:38.138Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Do we feel?",
+      "timestamp": "2026-05-13T04:34:39.885Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yesterday.",
+      "timestamp": "2026-05-13T04:34:42.058Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Yesterday.",
+      "timestamp": "2026-05-13T04:34:42.468Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Hamza.",
+      "timestamp": "2026-05-13T04:34:46.499Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Thumbs up.",
+      "timestamp": "2026-05-13T04:34:46.839Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Yes.",
+      "timestamp": "2026-05-13T04:34:47.710Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yes.",
+      "timestamp": "2026-05-13T04:34:48.082Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "So about if you",
+      "timestamp": "2026-05-13T04:34:56.131Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "So badly. That's good. So the 80",
+      "timestamp": "2026-05-13T04:35:03.947Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "so, for example,",
+      "timestamp": "2026-05-13T04:35:07.672Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "so, for",
+      "timestamp": "2026-05-13T04:35:08.060Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Being a major data suddenly it makes from yeah, honestly that I before before",
+      "timestamp": "2026-05-13T04:35:21.354Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "that I was parsing mark down like an archaeologist decoding ancient scripts.",
+      "timestamp": "2026-05-13T04:35:21.678Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Next frontend.",
+      "timestamp": "2026-05-13T04:35:22.015Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Yeah, honestly.",
+      "timestamp": "2026-05-13T04:35:22.331Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Nice. What about the transcription storage?",
+      "timestamp": "2026-05-13T04:35:24.557Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "of either say,",
+      "timestamp": "2026-05-13T04:35:29.011Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "While they're safe.",
+      "timestamp": "2026-05-13T04:35:29.333Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "are saved correctly, you know, but there's one issue with concurrent meeting",
+      "timestamp": "2026-05-13T04:35:42.775Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "uploads if two meetings start at the same time finally can collide",
+      "timestamp": "2026-05-13T04:35:43.096Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "That sounds bad.",
+      "timestamp": "2026-05-13T04:35:45.319Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "but,",
+      "timestamp": "2026-05-13T04:35:45.678Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Statistically rare.",
+      "timestamp": "2026-05-13T04:35:47.181Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "But yeah.",
+      "timestamp": "2026-05-13T04:35:48.692Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "What's the status on live transcription streaming?",
+      "timestamp": "2026-05-13T04:35:57.218Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Backend WebSocket endpoint Very slowly front-end receives chunks directly, most",
+      "timestamp": "2026-05-13T04:36:03.934Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "of the time.",
+      "timestamp": "2026-05-13T04:36:04.261Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Pretty good. Thank you. More several time is doing Olympic level lifting here.",
+      "timestamp": "2026-05-13T04:36:07.233Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Okay, fine. Sometimes messages arrive out of order.",
+      "timestamp": "2026-05-13T04:36:11.133Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "like,",
+      "timestamp": "2026-05-13T04:36:11.459Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "okay, why",
+      "timestamp": "2026-05-13T04:36:12.002Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Because the transcript pipeline processes Urdu and English switching",
+      "timestamp": "2026-05-13T04:36:20.034Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "asynchronously. So some chunks take longer depending on language detection",
+      "timestamp": "2026-05-13T04:36:20.361Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Because you,",
+      "timestamp": "2026-05-13T04:36:20.689Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Which means the AI occasionally displays we should deploy biryani meeting",
+      "timestamp": "2026-05-13T04:36:27.328Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "authentication tomorrow.",
+      "timestamp": "2026-05-13T04:36:27.659Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Honest, he's still clear. Then some stakeholder meetings.",
+      "timestamp": "2026-05-13T04:36:32.061Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Honest.",
+      "timestamp": "2026-05-13T04:36:32.414Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "One more concern is from the product owner, they want project level and",
+      "timestamp": "2026-05-13T04:36:40.465Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "analytics visible on the dashboard, by the next sprint.",
+      "timestamp": "2026-05-13T04:36:40.788Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "One.",
+      "timestamp": "2026-05-13T04:36:41.119Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Right. Like participation, graphs and speaker starts.",
+      "timestamp": "2026-05-13T04:36:43.842Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Right. But",
+      "timestamp": "2026-05-13T04:36:44.199Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "yeah, meeting duration, most active speakers sentiment trends eventually",
+      "timestamp": "2026-05-13T04:36:49.249Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "We already stored participation metrics, so exposing them to the API isn't going",
+      "timestamp": "2026-05-13T04:36:56.902Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "to be that hard.",
+      "timestamp": "2026-05-13T04:36:57.221Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "UI ways it's manageable to but we should avoid turning the dashboard into a NASA",
+      "timestamp": "2026-05-13T04:37:01.916Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "control panel.",
+      "timestamp": "2026-05-13T04:37:02.260Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Agreed, keep it readable.",
+      "timestamp": "2026-05-13T04:37:04.737Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "One thing though, are we sure storing generated minutes as this one is better",
+      "timestamp": "2026-05-13T04:37:16.916Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "than Markham files because rendering next to Jason structures in react, it's",
+      "timestamp": "2026-05-13T04:37:17.296Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "likely annoying.",
+      "timestamp": "2026-05-13T04:37:17.662Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Yes, but querying structure data later becomes much easier. Imagine filtering",
+      "timestamp": "2026-05-13T04:37:26.654Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "meetings by action items or attended.",
+      "timestamp": "2026-05-13T04:37:26.992Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Yes.",
+      "timestamp": "2026-05-13T04:37:27.339Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yes, you",
+      "timestamp": "2026-05-13T04:37:27.719Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Can we support both eventually?",
+      "timestamp": "2026-05-13T04:37:28.936Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "yeah, you",
+      "timestamp": "2026-05-13T04:37:33.988Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Yeah, generally JSON internally Port Markdown or PDF later?",
+      "timestamp": "2026-05-13T04:37:34.342Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "That's probably the cleanest approach.",
+      "timestamp": "2026-05-13T04:37:36.804Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Current blockers.",
+      "timestamp": "2026-05-13T04:37:38.708Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "according to you,",
+      "timestamp": "2026-05-13T04:37:39.125Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I,",
+      "timestamp": "2026-05-13T04:37:49.791Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "I need stable API response. Formats yesterday, one endpoint returned, empty part",
+      "timestamp": "2026-05-13T04:37:53.103Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Spence and another into an empty users. I love surprises in life. Just not from",
+      "timestamp": "2026-05-13T04:37:53.421Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "APIs, that's it.",
+      "timestamp": "2026-05-13T04:37:53.756Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "That's good.",
+      "timestamp": "2026-05-13T04:37:54.096Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "On production and points.",
+      "timestamp": "2026-05-13T04:37:57.238Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Technically, yes.",
+      "timestamp": "2026-05-13T04:37:59.246Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Technique.",
+      "timestamp": "2026-05-13T04:37:59.579Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Let me.",
+      "timestamp": "2026-05-13T04:37:59.920Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Please stop Freestyling. Database architecture, made Sprint.",
+      "timestamp": "2026-05-13T04:38:03.570Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Understood.",
+      "timestamp": "2026-05-13T04:38:04.911Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Understand.",
+      "timestamp": "2026-05-13T04:38:05.349Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Can we realistically demo project dashboard? Transcript UA meeting minutes and",
+      "timestamp": "2026-05-13T04:38:14.086Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "basically life transcription by Friday.",
+      "timestamp": "2026-05-13T04:38:14.436Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Is.",
+      "timestamp": "2026-05-13T04:38:15.739Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "If I can responses stabilize today. Yes.",
+      "timestamp": "2026-05-13T04:38:17.994Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "That.",
+      "timestamp": "2026-05-13T04:38:20.418Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Back end should be stable by tonight.",
+      "timestamp": "2026-05-13T04:38:22.229Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "You said that? Yes, you do.",
+      "timestamp": "2026-05-13T04:38:23.550Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "yesterday, I was younger and I",
+      "timestamp": "2026-05-13T04:38:26.142Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Know.",
+      "timestamp": "2026-05-13T04:38:26.489Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yesterday.",
+      "timestamp": "2026-05-13T04:38:26.829Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Alright.",
+      "timestamp": "2026-05-13T04:38:37.805Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Alright.",
+      "timestamp": "2026-05-13T04:38:38.127Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "but,",
+      "timestamp": "2026-05-13T04:38:39.596Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "All right, action items thumbs up, finalizes, API contracts, and file name,",
+      "timestamp": "2026-05-13T04:38:42.503Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "collision, fix alien tickets, the WebSocket updates and handles transcript,",
+      "timestamp": "2026-05-13T04:38:42.838Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "errors properly, I'll prepare the time of flow and update the PU on analytics",
+      "timestamp": "2026-05-13T04:38:43.176Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "planning, anything else.",
+      "timestamp": "2026-05-13T04:38:43.531Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yeah, again we please stop testing directly on the Shade database.",
+      "timestamp": "2026-05-13T04:38:47.239Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Founder Point Chaos builds character.",
+      "timestamp": "2026-05-13T04:38:50.612Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Download.",
+      "timestamp": "2026-05-13T04:38:50.985Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Yeah.",
+      "timestamp": "2026-05-13T04:38:51.473Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Yeah.",
+      "timestamp": "2026-05-13T04:38:51.951Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "And outages build unemployment moving on.",
+      "timestamp": "2026-05-13T04:38:54.387Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "Good progress, overall, though. The products finally, starting to feel cohesive",
+      "timestamp": "2026-05-13T04:39:04.198Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "instead of five machine learning projects, wearing Trent trench coat.",
+      "timestamp": "2026-05-13T04:39:04.516Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Potential. The actual honestly, we are started slogan. I wouldn't",
+      "timestamp": "2026-05-13T04:39:07.764Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I wouldn't miss.",
+      "timestamp": "2026-05-13T04:39:08.085Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "All right. Thanks everyone. Next thing tomorrow morning.",
+      "timestamp": "2026-05-13T04:39:11.645Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Alright.",
+      "timestamp": "2026-05-13T04:39:11.984Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Alright.",
+      "timestamp": "2026-05-13T04:39:12.308Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Goodbye.",
+      "timestamp": "2026-05-13T04:39:13.757Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Alright.",
+      "timestamp": "2026-05-13T04:39:14.119Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 3,
+    "total_words": 740,
+    "total_entries": 145,
+    "duration": 450
+  }
+}

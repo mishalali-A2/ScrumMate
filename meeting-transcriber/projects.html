@@ -1068,7 +1068,7 @@ async function submitProject() {
         if (editingId) {
             data = await api('PUT', `/api/projects/${editingId}`, { name, status, description: desc, sprints, teamEmails, trelloBoardId });
         } else {
-            data = await api('POST', '/api/projects', { name, status, description: desc, sprints, teamEmails, trelloBoardId });
+            data = await api('POST', '/api/projects', { name, status, description: desc, sprints, teamEmails, trelloBoardId, creatorEmail: sessionStorage.getItem('userEmail') || '' });
         }
 
         if (data.success) {
