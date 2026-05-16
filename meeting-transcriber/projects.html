@@ -544,7 +544,7 @@
                         </div>
                         <div class="option-card-icon">✨</div>
                         <div class="option-card-title">Create one for me</div>
-                        <div class="option-card-desc">We'll set up a Trello board automatically and link it to this project.</div>
+                        <div class="option-card-desc">We'll create and configure a Trello board in the background — you'll get added as leader automatically.</div>
                     </div>
                     <!-- Option B: own link -->
                     <div class="option-card" id="optOwn" data-board="own">
@@ -1053,27 +1053,36 @@ async function submitProject() {
     nextBtn.disabled = true;
     nextBtn.textContent = editingId ? 'Saving…' : 'Creating…';
 
-    let trelloBoardId = joinedBoardId || null;
-
-    // Auto-create Trello board if "create for me" was chosen
-    if (boardChoice === 'create' && !editingId) {
-        try {
-            const tData = await api('POST', '/api/projects/trello/create', { projectName: name });
-            if (tData.success) trelloBoardId = tData.boardId;
-        } catch (e) { console.warn('Trello create failed, skipping:', e); }
-    }
+    const trelloBoardId = joinedBoardId || null;
+    const shouldCreateBoard = boardChoice === 'create' && !editingId;
 
     try {
         let data;
         if (editingId) {
             data = await api('PUT', `/api/projects/${editingId}`, { name, status, description: desc, sprints, teamEmails, trelloBoardId });
         } else {
-            data = await api('POST', '/api/projects', { name, status, description: desc, sprints, teamEmails, trelloBoardId, creatorEmail: sessionStorage.getItem('userEmail') || '' });
+            data = await api('POST', '/api/projects', {
+                name, status, description: desc, sprints, teamEmails, trelloBoardId,
+                creatorEmail: sessionStorage.getItem('userEmail') || '',
+                createBoard:  shouldCreateBoard,
+            });
         }
 
         if (data.success) {
             closeModal();
             await loadProjects();
+            if (shouldCreateBoard) {
+                // Non-blocking toast: board setup is async in the background
+                const toast = document.createElement('div');
+                toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+                    background:var(--bg-elevated);border:1px solid var(--line);border-radius:12px;
+                    padding:10px 18px;font-size:12.5px;color:var(--text-2);
+                    box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;display:flex;align-items:center;gap:8px;
+                    animation:fadeIn 0.2s ease`;
+                toast.innerHTML = `<i class="fas fa-spinner fa-spin" style="color:var(--accent)"></i> Trello board is being set up in the background…`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+            }
         } else {
             alert('Error: ' + data.error);
             nextBtn.disabled = false;

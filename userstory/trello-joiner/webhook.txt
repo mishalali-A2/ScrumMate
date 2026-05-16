@@ -1,0 +1,9 @@
+curl --location 'http://13.201.30.41:5678/webhook/setup_board' \
+--header 'Content-Type: text/plain' \
+--header 'Content-Type: application/json' \
+--data-raw ' {
+    "project_name": "ScrumTest",
+    "members": [
+        {"email": "i220861@nu.edu.pk", "name": "Ayaan Mughal", "role": "leader"}
+    ]
+}'

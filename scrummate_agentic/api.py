@@ -9,7 +9,7 @@ Provides REST endpoints for:
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from config import MEETINGS_DIR, USER_STORIES_DIR, SUMMARIES_DIR, STANDUPS_DIR, RETROSPECTIVES_DIR, MEETING_TYPE_PO
 from pipeline import MeetingPipeline, PipelineResult
 from services import RAGService, EmbeddingService
+from services.assignment_service import AssignmentService
 
 
 # Track pipeline status for async operations
@@ -89,6 +90,12 @@ class PipelineStatusResponse(BaseModel):
     error: Optional[str] = None
     result: Optional[dict] = None
     actual_meeting_id: Optional[str] = None  # Use this for fetching results
+
+
+class SuggestAssignmentsRequest(BaseModel):
+    """Request to suggest story assignments using DB team members."""
+    meeting_id: str
+    team_members: List[Dict[str, Any]]  # [{name, role, skills, strengths, experience_years, assigned_effort_points}]
 
 
 # Health check
@@ -272,6 +279,50 @@ async def get_pipeline_results(meeting_id: str):
         "meeting_id": actual_id,
         **results
     }
+
+
+# Assignment suggestion endpoint
+@app.post("/pipeline/suggest-assignments")
+async def suggest_assignments(request: SuggestAssignmentsRequest):
+    """
+    Suggest assignments for user stories from a completed pipeline run.
+    Team members are supplied by the caller (fetched from the Node.js DB layer).
+    Stories are read from the filesystem using the meeting_id.
+    """
+    # Resolve actual meeting ID (may differ from request ID due to bot_id truncation)
+    actual_id = pipeline_meeting_id_map.get(request.meeting_id, request.meeting_id)
+
+    stories_path = USER_STORIES_DIR / f"{actual_id}_stories.json"
+    if not stories_path.exists():
+        # Fallback: try the request meeting_id directly
+        stories_path = USER_STORIES_DIR / f"{request.meeting_id}_stories.json"
+    if not stories_path.exists():
+        raise HTTPException(status_code=404, detail=f"Stories file not found for meeting {actual_id}")
+
+    with open(stories_path, "r", encoding="utf-8") as f:
+        stories = json.load(f)
+
+    if not stories:
+        return {"assignments": [], "meeting_id": actual_id}
+
+    if not request.team_members:
+        raise HTTPException(status_code=400, detail="team_members is required")
+
+    # The GeminiClient singleton's _force_ollama flag may have been set True by a
+    # previous pipeline run in this process. Reset it here so this independent
+    # request gets a fresh Gemini attempt rather than being forced onto Ollama.
+    try:
+        from services.gemini_client import GeminiClient
+        GeminiClient._force_ollama = False
+    except Exception:
+        pass
+
+    try:
+        service = AssignmentService()
+        result = service.assign_stories(stories, request.team_members)
+        return {"assignments": result["assignments"], "meeting_id": actual_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Assignment suggestion failed: {str(e)}")
 
 
 # RAG endpoints

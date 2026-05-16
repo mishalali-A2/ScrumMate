@@ -340,23 +340,6 @@ class MeetingPipeline:
         else:
             print(f"      Skipping assignment step")
 
-        # ---------- NEW: Trigger n8n workflow with the generated user stories ----------
-        if self.n8n and result.stories_path and result.stories_path.exists():
-            print("      Triggering n8n workflow with user stories...")
-            try:
-                with open(result.stories_path, "r", encoding="utf-8") as f:
-                    stories_data = json.load(f)
-                success = self.n8n.trigger_workflow(stories_data)
-                if success:
-                    print("      ✅ n8n workflow triggered successfully")
-                else:
-                    print("      ⚠️ n8n trigger failed (check n8n logs)")
-            except Exception as e:
-                print(f"      ⚠️ n8n trigger error: {e}")
-        else:
-            if N8N_ENABLED and not self.n8n:
-                print("      ℹ️ n8n integration not configured – skipping trigger")
-
         result.success = True
         print(f"\nPipeline completed for {meeting_id} ({MEETING_TYPE_PO})")
         return result

@@ -1,0 +1,39 @@
+{
+  "bot_id": "268d70ed-5f3f-4d43-bb7e-b15c7e0a03a3",
+  "meeting_url": "https://meet.google.com/kmo-dzpw-kzt",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-05-14T07:32:23.442Z",
+  "stopped_at": "2026-05-14T07:33:18.207Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I need someone to test the back end.",
+      "timestamp": "2026-05-14T07:32:46.154Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "We need a better UI. Someone needs to work on the landing page and the dashboard",
+      "timestamp": "2026-05-14T07:33:02.380Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "was can test the neural network.",
+      "timestamp": "2026-05-14T07:33:02.708Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "All right, ML models are not performing well as they were in testing.",
+      "timestamp": "2026-05-14T07:33:12.267Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 43,
+    "total_entries": 4,
+    "duration": 55
+  }
+}

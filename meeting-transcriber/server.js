@@ -1029,9 +1029,9 @@ app.get('/api/projects', async (req, res) => {
 });
 
 // POST /api/projects — create a project
-// Body: { name, status, description, emoji, color, sprints, teamEmails[], trelloBoardId? }
+// Body: { name, status, description, emoji, color, sprints, teamEmails[], trelloBoardId?, creatorEmail?, createBoard? }
 app.post('/api/projects', async (req, res) => {
-    const { name, status, description, emoji, color, sprints, teamEmails, trelloBoardId, creatorEmail } = req.body;
+    const { name, status, description, emoji, color, sprints, teamEmails, trelloBoardId, creatorEmail, createBoard } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ success: false, error: 'name is required' });
     }
@@ -1057,13 +1057,16 @@ app.post('/api/projects', async (req, res) => {
             ...(creatorEmail ? [creatorEmail] : [])
         ].map(e => e.toLowerCase()))];
 
+        // Fetch full profile rows so we have name + email for the webhook
+        let profileRows = [];
         let teamIds = [];
         if (allEmails.length) {
             const lookup = await pgPool.query(
-                `SELECT id FROM profile WHERE email = ANY($1::text[])`,
+                `SELECT id, name, email FROM profile WHERE email = ANY($1::text[])`,
                 [allEmails]
             );
-            teamIds = lookup.rows.map(r => r.id);
+            profileRows = lookup.rows;
+            teamIds = profileRows.map(r => r.id);
         }
 
         const result = await pgPool.query(
@@ -1079,6 +1082,27 @@ app.post('/api/projects', async (req, res) => {
                 trelloBoardId || null,
             ]
         );
+
+        // Fire n8n webhook to set up Trello board (fire-and-forget)
+        if (createBoard && profileRows.length) {
+            const creatorLower = (creatorEmail || '').toLowerCase();
+            const webhookMembers = profileRows.map(p => ({
+                email: p.email,
+                name:  p.name || p.email,
+                role:  p.email.toLowerCase() === creatorLower ? 'leader' : 'normal',
+            }));
+
+            axios.post(
+                'http://13.201.30.41:5678/webhook/setup_board',
+                { project_name: name.trim(), members: webhookMembers },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+            ).then(() => {
+                console.log(`[Trello webhook] Board setup triggered for "${name}"`);
+            }).catch(err => {
+                console.warn(`[Trello webhook] Board setup failed for "${name}":`, err.message);
+            });
+        }
+
         res.json({ success: true, project: { ...result.rows[0], emoji, color } });
     } catch (err) {
         console.error('DB error POST /api/projects:', err.message);
@@ -1122,6 +1146,53 @@ app.put('/api/projects/:id', async (req, res) => {
     } catch (err) {
         console.error('DB error PUT /api/projects:', err.message);
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/suggest-assignments
+// Fetches the project's team from DB then asks the Python agentic API for story assignments.
+// Body: { meetingId, projectId }
+app.post('/api/suggest-assignments', async (req, res) => {
+    const { meetingId, projectId } = req.body;
+    if (!meetingId) return res.status(400).json({ success: false, error: 'meetingId is required' });
+
+    try {
+        // Fetch team members for the project from DB
+        let teamMembers = [];
+        if (projectId) {
+            const projRes = await pgPool.query(
+                `SELECT pr.id, pr.name, pr.role, pr.experience_years,
+                        pr.skills, pr.strengths, pr.assigned_effort_points
+                 FROM project p
+                 JOIN profile pr ON pr.id = ANY(ARRAY(SELECT jsonb_array_elements_text(p.team)::int))
+                 WHERE p.id = $1`,
+                [projectId]
+            );
+            teamMembers = projRes.rows.map(r => ({
+                name:                   r.name,
+                role:                   r.role || 'Developer',
+                experience_years:       r.experience_years || 0,
+                skills:                 Array.isArray(r.skills) ? r.skills : [],
+                strengths:              Array.isArray(r.strengths) ? r.strengths : [],
+                assigned_effort_points: r.assigned_effort_points || 0,
+            }));
+        }
+
+        if (!teamMembers.length) {
+            return res.status(400).json({ success: false, error: 'No team members found for this project. Add members to the project first.' });
+        }
+
+        // Delegate to Python agentic API
+        const agRes = await axios.post(
+            `${AGENTIC_API_URL}/pipeline/suggest-assignments`,
+            { meeting_id: meetingId, team_members: teamMembers },
+            { timeout: 120000 }
+        );
+        res.json({ success: true, assignments: agRes.data.assignments, meeting_id: agRes.data.meeting_id });
+    } catch (err) {
+        const detail = err.response?.data?.detail || err.message;
+        console.error('suggest-assignments error:', detail);
+        res.status(500).json({ success: false, error: detail });
     }
 });
 
