@@ -632,7 +632,12 @@ async function runPipeline(filename) {
         const response = await fetch('/api/pipeline/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcriptFile: filename, meetingType: selectedMeetingType })
+            body: JSON.stringify({
+                transcriptFile: filename,
+                meetingType:    selectedMeetingType,
+                projectId:      sessionStorage.getItem('selectedProjectId')   || null,
+                projectName:    sessionStorage.getItem('selectedProjectName') || null,
+            })
         });
         
         const data = await response.json();
@@ -764,12 +769,27 @@ function showPipelineComplete(meetingId, result, actualMeetingId) {
 
     // Type-aware outputs label
     const typeIsStandup = selectedMeetingType === 'daily-standup';
+    const typeIsPO      = selectedMeetingType === 'product-owner';
     const secondary = typeIsStandup
         ? { num: result?.blockers_count ?? 0, label: 'blockers' }
         : { num: result?.stories_count   ?? 0, label: 'user stories' };
     const chunks = result?.chunks_count ?? 0;
 
     const resultDiv = document.getElementById('pipelineResult');
+
+    // For PO meetings show "Assign Devs" button instead of "View in Past Meetings" as primary
+    const primaryBtn = typeIsPO
+        ? `<button onclick="showAssignPanel('${actualMeetingId || meetingId}')" class="pipe-btn pipe-btn-primary">
+               Assign Devs
+               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h6M6 3l3 3-3 3"/></svg>
+           </button>
+           <a href="meetings.html" class="pipe-btn pipe-btn-ghost">Past Meetings</a>`
+        : `<a href="meetings.html" class="pipe-btn pipe-btn-primary">
+               View in Past Meetings
+               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h6M6 3l3 3-3 3"/></svg>
+           </a>
+           <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>`;
+
     resultDiv.innerHTML = `
         <div class="pipe-result-summary">
             <strong>${chunks}</strong> ${chunks === 1 ? 'chunk' : 'chunks'}
@@ -778,15 +798,100 @@ function showPipelineComplete(meetingId, result, actualMeetingId) {
             <span class="dot-sep"></span>
             Saved to your workspace
         </div>
-        <div class="pipe-result-actions">
-            <a href="meetings.html" class="pipe-btn pipe-btn-primary">
-                View in Past Meetings
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h6M6 3l3 3-3 3"/></svg>
-            </a>
-            <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>
-        </div>`;
+        <div class="pipe-result-actions">${primaryBtn}</div>`;
     resultDiv.style.display = 'block';
     resultDiv.dataset.resultsMeetingId = meetingId;
+}
+
+async function showAssignPanel(meetingId) {
+    const assignDiv = document.getElementById('pipelineAssign');
+    const stageEl   = document.getElementById('pipeStageAssign');
+
+    // Show the Assign stage label in the progress row
+    if (stageEl) { stageEl.style.display = ''; stageEl.className = 'pipe-stage active'; }
+
+    // Swap result buttons so user can't double-click
+    const resultDiv = document.getElementById('pipelineResult');
+    const actionsEl = resultDiv?.querySelector('.pipe-result-actions');
+    if (actionsEl) actionsEl.innerHTML = `<button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>`;
+
+    assignDiv.style.display = 'block';
+    assignDiv.innerHTML = `
+        <div class="pipe-assign-loading">
+            <i class="fas fa-cogs"></i>
+            Fetching project team &amp; generating suggestions…
+        </div>`;
+
+    const projectId = sessionStorage.getItem('selectedProjectId') || '';
+
+    try {
+        const res  = await fetch('/api/suggest-assignments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ meetingId, projectId }),
+        });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error || 'Unknown error');
+
+        if (stageEl) stageEl.className = 'pipe-stage done';
+
+        const assignments = data.assignments || [];
+        if (!assignments.length) {
+            assignDiv.innerHTML = `
+                <div class="pipe-assign-wrap" style="padding-top:0">
+                    <p style="font-size:12.5px;color:var(--text-4);text-align:center;padding:18px 0">No user stories found to assign.</p>
+                    <div class="pipe-assign-actions">
+                        <a href="meetings.html" class="pipe-btn pipe-btn-primary" style="flex:1;justify-content:center">View Past Meetings</a>
+                        <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        const storiesHTML = assignments.map(a => {
+            const chipsHTML = (a.assigned_to || []).map(dev => `
+                <span class="pipe-assignee-chip ${dev.role === 'support' ? 'support' : ''}">
+                    ${dev.name}
+                    <span class="chip-role">${dev.role}</span>
+                    <span class="chip-pts">${dev.effort_points}pt</span>
+                </span>`).join('');
+            return `
+                <div class="pipe-story-card">
+                    <div class="pipe-story-id">${a.id}</div>
+                    <div class="pipe-story-assignee-row">
+                        <span class="pipe-assignee-label">Suggested:</span>
+                        ${chipsHTML || '<span style="font-size:11px;color:var(--text-4)">—</span>'}
+                    </div>
+                </div>`;
+        }).join('');
+
+        assignDiv.innerHTML = `
+            <div class="pipe-assign-header">
+                <div>
+                    <div class="pipe-assign-title">Suggested assignments</div>
+                    <div class="pipe-assign-sub">${assignments.length} ${assignments.length === 1 ? 'story' : 'stories'} · based on skills &amp; current workload</div>
+                </div>
+            </div>
+            <div class="pipe-story-list">${storiesHTML}</div>
+            <div class="pipe-assign-actions">
+                <a href="meetings.html" class="pipe-btn pipe-btn-primary" style="flex:1;justify-content:center">View Past Meetings</a>
+                <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>
+            </div>`;
+    } catch (err) {
+        if (stageEl) stageEl.className = 'pipe-stage';
+        assignDiv.innerHTML = `
+            <div class="pipe-assign-wrap" style="padding-top:0">
+                <div class="pipe-error-card" style="margin-bottom:12px">
+                    <div class="pipe-error-title"><i class="fas fa-exclamation-circle"></i> Could not suggest assignments</div>
+                    <div class="pipe-error-msg">${err.message}</div>
+                </div>
+                <div class="pipe-assign-actions">
+                    <a href="meetings.html" class="pipe-btn pipe-btn-primary" style="flex:1;justify-content:center">View Past Meetings</a>
+                    <button onclick="closePipelineModal()" class="pipe-btn pipe-btn-ghost">Close</button>
+                </div>
+            </div>`;
+    }
 }
 
 function showPipelineError(error, stage = null, meetingIdForResults = null) {
@@ -971,7 +1076,12 @@ function closePipelineModal() {
     document.getElementById('pipelineModal').style.display = 'none';
     // Reset progress bar colour so it's clean next time
     const fill = document.getElementById('pipeProgressFill');
-    if (fill) fill.style.background = '';
+    if (fill) { fill.style.background = ''; fill.style.width = '4%'; fill.classList.remove('pulsing'); }
+    // Reset assign panel
+    const assignDiv = document.getElementById('pipelineAssign');
+    if (assignDiv) { assignDiv.style.display = 'none'; assignDiv.innerHTML = ''; }
+    const stageEl = document.getElementById('pipeStageAssign');
+    if (stageEl) { stageEl.style.display = 'none'; stageEl.className = 'pipe-stage'; }
     // Cancel the "still working" hint if it hasn't fired yet
     if (window._pipeSlowHintTimer) { clearTimeout(window._pipeSlowHintTimer); window._pipeSlowHintTimer = null; }
     if (pipelinePollingInterval) {

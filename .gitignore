@@ -3,11 +3,17 @@ skills-lock.json
 venv
 .gitignore
 .venv
-venv/
-
+venv
+.env.example
+.env
 # Byte-compiled / optimized / DLL files
 
 __pycache__
 *.py[cod]
 *$py.class
 .env
+scrummate_agentic/tests
+chrome-profile*
+debug
+node_modules
+n8n-data

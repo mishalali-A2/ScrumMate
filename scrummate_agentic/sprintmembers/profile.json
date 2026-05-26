@@ -22,7 +22,7 @@
       "Building interactive dashboards",
       "Client-facing web applications"
     ],
-    "assigned_effort_points": 24
+    "assigned_effort_points": 47
   },
   {
     "name": "Ayaan Mughal",
@@ -50,7 +50,7 @@
       "Maintaining API infrastructure",
       "Optimizing backend services for real-time applications"
     ],
-    "assigned_effort_points": 52
+    "assigned_effort_points": 68
   },
   {
     "name": "Muaz Ahmed",
@@ -79,7 +79,7 @@
       "AI-driven meeting assistant",
       "Semantic search and recommendation systems"
     ],
-    "assigned_effort_points": 8
+    "assigned_effort_points": 37
   },
   {
     "name": "Zara Khan",
@@ -102,7 +102,7 @@
       "Assisting with game AI implementation",
       "Integrating RAG-based content generation in games"
     ],
-    "assigned_effort_points": 0
+    "assigned_effort_points": 1
   },
   {
     "name": "Omar Siddiqui",
@@ -126,6 +126,6 @@
       "Building responsive web apps",
       "Optimizing backend algorithms and APIs"
     ],
-    "assigned_effort_points": 28
+    "assigned_effort_points": 36
   }
 ]

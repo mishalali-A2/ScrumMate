@@ -9,3 +9,4 @@ n8n
 ../.agents
 ../skills-lock.json
 __pychache__
+tests/

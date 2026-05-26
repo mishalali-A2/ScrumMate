@@ -1,0 +1,73 @@
+{
+  "total_blockers": 4,
+  "team_updates": [
+    {
+      "member": "Muaz Ahmed",
+      "yesterday": "Not specified",
+      "today": "Focusing on backend/ML models, identifying critical needs for testing and UI development.",
+      "has_blocker": true
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "Muaz",
+      "description": "Backend testing is required. Muaz is awaiting support from another team member(s).",
+      "impact": "Medium",
+      "blocked_task": "unspecified",
+      "dependencies": [
+        "another team member(s)"
+      ],
+      "suggested_resolution": null,
+      "status": "Open"
+    },
+    {
+      "id": "B-002",
+      "owner": "Muaz",
+      "description": "UI, landing page, and dashboard development are needed. Muaz is awaiting support from another team member(s), indicating a significant resource gap.",
+      "impact": "Medium",
+      "blocked_task": "unspecified",
+      "dependencies": [
+        "another team member(s)"
+      ],
+      "suggested_resolution": null,
+      "status": "Open"
+    },
+    {
+      "id": "B-003",
+      "owner": "Muaz",
+      "description": "Neural network testing is required. Muaz is awaiting support from another team member(s).",
+      "impact": "Medium",
+      "blocked_task": "unspecified",
+      "dependencies": [
+        "another team member(s)"
+      ],
+      "suggested_resolution": null,
+      "status": "Open"
+    },
+    {
+      "id": "B-004",
+      "owner": "Muaz",
+      "description": "ML models are experiencing performance regression, underperforming compared to previous testing. This requires Scrum Master / PO attention to assess impact and prioritization.",
+      "impact": "High",
+      "blocked_task": "unspecified",
+      "dependencies": [],
+      "suggested_resolution": null,
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "Muaz Ahmed",
+      "action": "Investigate ML model performance regression.",
+      "relates_to_blocker": "B-004"
+    },
+    {
+      "id": "AI-002",
+      "owner": "Scrum Master / Team",
+      "action": "Identify resources for backend, UI/landing page/dashboard, and neural network testing.",
+      "relates_to_blocker": "B-001"
+    }
+  ]
+}

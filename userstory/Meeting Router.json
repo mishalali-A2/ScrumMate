@@ -1,0 +1,1453 @@
+{
+  "name": "Meeting Router",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, trello_board_id, us_pending, us_done, team FROM project WHERE name ILIKE '{{ $json.project_name }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -80,
+        -192
+      ],
+      "id": "16f369ee-4c9e-4ceb-ae0c-b66852d2cd97",
+      "name": "Get Project",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$json.trello_board_id}}/lists",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,name,closed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        160,
+        -400
+      ],
+      "id": "2841f606-e30f-439b-ba66-6ab510803aa0",
+      "name": "Trello Lists",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$node['Get Project'].json.trello_board_id}}/members",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,fullName,username,email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        160,
+        -256
+      ],
+      "id": "678bcc6a-d77b-408d-885d-df5f935626c0",
+      "name": "Trello Members",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, email, role, skills, experience_years, assigned_effort_points FROM profile WHERE id = ANY(ARRAY[{{ $node['Get Project'].json.team }}]::int[]);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        160,
+        -128
+      ],
+      "id": "58b1b630-e889-4a1c-8989-0113d96a5a60",
+      "name": "Team Profiles",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\n// Helper to find an item by property presence\nfunction findItem(prop) {\n  for (const item of items) {\n    if (item.json[prop] !== undefined) return item.json;\n  }\n  return null;\n}\n\n// Extract Trello lists (objects with 'name' and 'closed', no 'fullName')\nconst lists = items.filter(i => i.json.name && typeof i.json.closed === 'boolean').map(i => i.json);\n\n// Extract Trello members (objects with 'fullName')\nconst members = items.filter(i => i.json.fullName).map(i => i.json);\n\n// Extract profile (object with 'id' and 'assigned_effort_points')\nconst profileItem = findItem('assigned_effort_points');\nconst profiles = profileItem ? [profileItem] : [];\n\n// Extract meeting minutes (from item with 'meeting_minutes')\nconst minutesItem = findItem('meeting_minutes');\nconst minutes = minutesItem ? minutesItem.meeting_minutes : null;\n\n// Extract project name (from item with 'project_name')\nconst projectNameItem = findItem('project_name');\nconst projectName = projectNameItem ? projectNameItem.project_name : 'Unknown Project';\n\nif (!minutes) throw new Error('No meeting_minutes found in input');\n\n// Build list names for the prompt\nconst listNames = lists.map(l => l.name.toLowerCase()).filter(n => n === 'backlog' || n.startsWith('sprint'));\n\n// Prepare team info from profile(s)\nconst teamInfo = profiles.map(p => ({\n  id: p.id,\n  name: p.name,\n  email: p.email,\n  role: p.role,\n  skills: p.skills || [],\n  experience_years: p.experience_years,\n  current_effort: p.assigned_effort_points || 0\n}));\n\nconst project = { name: projectName };\n\nconst prompt = `You are an expert Scrum Master and project planner. Extract user stories from the meeting minutes below.\n\nMeeting minutes:\n${minutes}\n\nProject: ${project.name}\n\nAvailable team members (with skills and current workload):\n${JSON.stringify(teamInfo, null, 2)}\n\nTrello lists available: ${listNames.join(', ')} (Backlog is default; use Sprint1, Sprint2, etc. for sprint numbers).\n\nFor each user story explicitly mentioned or implied in the minutes, produce a JSON object with the following fields:\n{\n  \"id\": \"US-XXX\" (incrementing number),\n  \"title\": \"short title\",\n  \"role\": \"who benefits\",\n  \"goal\": \"what they want to achieve\",\n  \"benefit\": \"why it matters\",\n  \"acceptance_criteria\": [\"list of criteria\"],\n  \"priority\": \"High/Medium/Low\",\n  \"estimate\": number of days (1-10),\n  \"dependencies\": [\"other story IDs or external dependencies\"],\n  \"tags\": [\"dev\", \"backend\", \"frontend\", \"design\", \"qa\", etc.],\n  \"sprint\": null or a sprint number (1,2,3...) matching an available sprint list,\n  \"assigned\": [\n    {\n      \"person_id\": integer (from team member id),\n      \"name\": string,\n      \"email\": string,\n      \"effort\": integer (1-10 per person, total effort across assignees should roughly match estimate)\n    }\n  ]\n}\n\nAssignment rules:\n- Distribute stories to team members based on their skills, role, and current effort (lower current_effort is better).\n- Prefer matching skills (e.g., \"backend\" for API, \"frontend\" for UI, \"dev\" for general coding).\n- If a story has multiple skill requirements, assign multiple people.\n- Total effort (sum of effort values across assignees) should be close to the story's estimate.\n- Use the team members provided; do not invent new names.\n- Try to balance workload across the team.\n\nReturn ONLY valid JSON with a top-level object: { \"stories\": [ ... ] }\nNo markdown, no explanation.`;\n\n// Build listMap for downstream mapping (list name -> Trello list ID)\nconst listMap = {};\nlists.forEach(l => { listMap[l.name.toLowerCase()] = l.id; });\n\nreturn [{\n  json: {\n    prompt,\n    listMap,\n    project,\n    profiles,\n    bodyForOllama: {\n      model: \"gpt-oss:120b\",\n      prompt,\n      format: \"json\",\n      stream: false\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        640,
+        -336
+      ],
+      "id": "d3540bab-e90e-4aca-ad70-0e5dcedc9b75",
+      "name": "Create Prompt",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ollama.com/api/generate",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer 751a6c5a5f5a402fa391a99d2b6d3e46.ikDku8a4-zLW_KqmOn23eFSL\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.bodyForOllama) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        784,
+        -336
+      ],
+      "id": "d76bfa69-9ea0-43f1-ae3b-d2988f7c116f",
+      "name": "LLM",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item (the LLM response)\nconst llmOutput = $input.first().json;\n\n// Extract the raw response text\nlet rawResponse = '';\n\nif (llmOutput.response) {\n  rawResponse = llmOutput.response;\n} else if (llmOutput.text) {\n  rawResponse = llmOutput.text;\n} else if (llmOutput.content) {\n  rawResponse = llmOutput.content;\n} else if (typeof llmOutput === 'string') {\n  rawResponse = llmOutput;\n} else if (Array.isArray(llmOutput) && llmOutput[0]?.response) {\n  rawResponse = llmOutput[0].response;\n} else {\n  throw new Error('Could not find response text in LLM output. Structure: ' + JSON.stringify(llmOutput));\n}\n\n// Clean up markdown fences if present\nlet cleaned = rawResponse.trim();\nif (cleaned.startsWith('```json')) {\n  cleaned = cleaned.replace(/^```json\\s*\\n?/, '').replace(/\\n?```$/, '');\n} else if (cleaned.startsWith('```')) {\n  cleaned = cleaned.replace(/^```\\s*\\n?/, '').replace(/\\n?```$/, '');\n}\n\n// Parse the JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (err) {\n  throw new Error(`Failed to parse LLM response as JSON: ${err.message}\\nRaw text: ${cleaned.substring(0, 500)}`);\n}\n\n// Extract the stories array (handles both { stories: [...] } and direct array)\nlet stories = [];\nif (Array.isArray(parsed)) {\n  stories = parsed;\n} else if (parsed.stories && Array.isArray(parsed.stories)) {\n  stories = parsed.stories;\n} else if (Array.isArray(parsed.story)) {\n  stories = parsed.story;\n} else if (parsed.id && parsed.title) {\n  // Single story object\n  stories = [parsed];\n} else {\n  throw new Error('LLM response does not contain a stories array. Response: ' + JSON.stringify(parsed));\n}\n\nconsole.log(`Extracted ${stories.length} stories`);\n\n// Try to get listMap and project from the \"Create Prompt\" node if available and connected\nlet listMap = {};\nlet project = { name: 'Unknown' };\ntry {\n  const createPromptNode = $node['Create Prompt'];\n  if (createPromptNode && createPromptNode.json) {\n    listMap = createPromptNode.json.listMap || {};\n    project = createPromptNode.json.project || { name: 'Unknown' };\n  }\n} catch (e) {\n  // Node not accessible, ignore\n  console.warn('Could not access Create Prompt node, listMap and project will be empty');\n}\n\nreturn [{\n  json: {\n    stories: stories,\n    listMap: listMap,\n    project: project\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        960,
+        -336
+      ],
+      "id": "9e5e09db-5d81-4c80-ab14-633b505b816f",
+      "name": "Parse LLM",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data (stories, listMap, project)\nconst inputData = $input.first().json;\nconst stories = inputData.stories || [];\nconst listMap = inputData.listMap || {};\n\n// Get Trello members from the \"Trello Members\" node (if connected)\nlet trelloMembers = [];\ntry {\n  const membersNode = $node['Trello Members'];\n  if (membersNode && Array.isArray(membersNode.json)) {\n    trelloMembers = membersNode.json;\n  } else if (membersNode && membersNode.json) {\n    trelloMembers = [membersNode.json];\n  } else {\n    // Try to get from $items if available\n    const membersItems = $('Trello Members').all();\n    if (membersItems.length) {\n      trelloMembers = membersItems.map(i => i.json);\n    }\n  }\n} catch (e) {\n  console.warn('Could not access Trello Members node, member mapping will be skipped.');\n}\n\n// Build name-to-Trello-ID mapping\nconst nameToTrelloId = {};\nif (trelloMembers.length) {\n  trelloMembers.forEach(member => {\n    if (member.fullName) nameToTrelloId[member.fullName] = member.id;\n    if (member.username) nameToTrelloId[member.username] = member.id;\n    if (member.email) nameToTrelloId[member.email] = member.id;\n  });\n  console.log(`Loaded ${Object.keys(nameToTrelloId).length} member mappings`);\n}\n\n// Map each story to its list ID and member IDs\nconst mappedStories = stories.map(story => {\n  let listId = null;\n  \n  // Determine list based on sprint number\n  if (story.sprint && story.sprint > 0) {\n    // Try variations: \"sprint 1\", \"sprint1\", \"sprint 01\", etc.\n    const sprintKey1 = `sprint ${story.sprint}`.toLowerCase();\n    const sprintKey2 = `sprint${story.sprint}`.toLowerCase();\n    const sprintKey3 = `sprint ${story.sprint.toString().padStart(2, '0')}`.toLowerCase();\n    listId = listMap[sprintKey1] || listMap[sprintKey2] || listMap[sprintKey3];\n  }\n  \n  // Fallback to Backlog list if not found\n  if (!listId) {\n    listId = listMap['backlog'] || Object.values(listMap)[0];\n    if (!listId) console.warn(`No list found for story ${story.id}, using fallback`);\n  }\n  \n  // Map assigned team members to Trello member IDs\n  const assigneeIds = (story.assigned || []).map(assignee => {\n    // Try to match by name first, then email\n    return nameToTrelloId[assignee.name] || nameToTrelloId[assignee.email] || null;\n  }).filter(Boolean);\n  \n  if (assigneeIds.length === 0 && story.assigned && story.assigned.length) {\n    console.warn(`Could not map assignees for story ${story.id}: ${JSON.stringify(story.assigned)}`);\n  }\n  \n  return {\n    json: {\n      ...story,\n      listId: listId,\n      assigneeIds: assigneeIds\n    }\n  };\n});\n\nreturn mappedStories;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1152,
+        -336
+      ],
+      "id": "06ca5ea6-72bf-49cf-9a64-38b9c85f22c0",
+      "name": "Map Lists & Members",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the mapped stories from the previous node\nconst items = $input.all();\n\n// Format each story into a Trello card\nconst formattedCards = items.map((item, index) => {\n  const story = item.json;\n  \n  // Calculate due date: today + estimate days\n  const dueDate = new Date();\n  dueDate.setDate(dueDate.getDate() + (story.estimate || 3));\n  const dueDateFormatted = dueDate.toISOString().split('T')[0] + 'T12:00:00.000Z';\n  \n  // Build the card description\n  const description = [\n    `**Role:** ${story.role}`,\n    `**Goal:** ${story.goal}`,\n    `**Benefit:** ${story.benefit}`,\n    `**Estimate:** ${story.estimate} days`,\n    `**Priority:** ${story.priority}`,\n    `**Tags:** ${(story.tags || []).join(', ')}`,\n    `**Dependencies:** ${(story.dependencies || []).join(', ') || 'None'}`\n  ].join('\\n');\n  \n  // Format the card name (e.g., \"US-001: User Authentication\")\n  const cardName = `${story.id}: ${story.title}`;\n  \n  return {\n    json: {\n      // Trello card fields\n      idList: story.listId,\n      name: cardName,\n      desc: description,\n      due: dueDateFormatted,\n      pos: index + 1,  // position on the list (1-indexed)\n      idMembers: story.assigneeIds || [],\n      \n      // Additional metadata for downstream nodes (checklists, etc.)\n      acceptance_criteria: story.acceptance_criteria || [],\n      originalStory: {\n        id: story.id,\n        title: story.title,\n        role: story.role,\n        goal: story.goal,\n        benefit: story.benefit,\n        priority: story.priority,\n        estimate: story.estimate,\n        sprint: story.sprint\n      }\n    }\n  };\n});\n\nreturn formattedCards;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1408,
+        -336
+      ],
+      "id": "4831c32f-bb62-447a-997f-c8a99d40b646",
+      "name": "Format Cards",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/cards",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "idList",
+              "value": "={{ $json.idList }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "desc",
+              "value": "={{ $json.desc }}"
+            },
+            {
+              "name": "due",
+              "value": "={{ $json.due }}"
+            },
+            {
+              "name": "pos",
+              "value": "={{ $json.pos }}"
+            },
+            {
+              "name": "idMembers",
+              "value": "={{ $json.idMembers.join(',') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1648,
+        -336
+      ],
+      "id": "7bac51ec-10ce-42cd-96fc-bb6335400dde",
+      "name": "Create Cards",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the created cards from the HTTP request (input to this node)\nconst createdCards = $input.all();\n\n// Get the original formatted cards (from the Format Cards node)\nconst formattedCards = $('Format Cards').all();\n\nif (createdCards.length !== formattedCards.length) {\n  console.warn(`Mismatch: created ${createdCards.length} cards but expected ${formattedCards.length}`);\n}\n\n// Merge each created card with its corresponding original story data\nconst merged = createdCards.map((cardItem, idx) => {\n  const card = cardItem.json;\n  const original = formattedCards[idx]?.json || {};\n  \n  return {\n    json: {\n      // Trello card data\n      id: card.id,\n      idList: card.idList,\n      idMembers: card.idMembers,\n      name: card.name,\n      desc: card.desc,\n      due: card.due,\n      shortUrl: card.shortUrl,\n      url: card.url,\n      \n      // Original story metadata (for checklist creation)\n      acceptanceCriteria: original.acceptance_criteria || [],\n      originalStory: original.originalStory || null\n    }\n  };\n});\n\nreturn merged;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1904,
+        -336
+      ],
+      "id": "81ca1714-2885-4eb8-b9ba-8e2efc5de212",
+      "name": "Merge Cards",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all merged cards from the previous node\nconst cards = $input.all();\n\n// Create a checklist request for each card that has acceptance criteria\nconst requests = [];\n\nfor (const cardItem of cards) {\n  const card = cardItem.json;\n  const cardId = card.id;\n  const criteria = card.acceptanceCriteria || card.acceptance_criteria || [];\n  \n  if (!criteria.length) {\n    console.log(`Card ${cardId} has no acceptance criteria, skipping checklist`);\n    continue;\n  }\n  \n  // Create a request object for the HTTP node\n  requests.push({\n    json: {\n      method: 'POST',\n      url: 'https://api.trello.com/1/checklists',\n      query: {\n        idCard: cardId,\n        name: 'Acceptance Criteria'\n      },\n      // Store the criteria for the next node (Prepare Checklist Items)\n      _cardId: cardId,\n      _criteria: criteria\n    }\n  });\n}\n\nreturn requests;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2160,
+        -336
+      ],
+      "id": "08f14a7b-70dc-48dc-8c98-51dfdde177c0",
+      "name": "Checklist Request",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/checklists",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "idCard",
+              "value": "={{ $json.query.idCard }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.query.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2400,
+        -336
+      ],
+      "id": "2937f5d3-dcac-4c93-911b-1274836bb817",
+      "name": "Add Checklist",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the created checklists (from the \"Add Checklist\" HTTP node)\nconst checklists = $input.all();\n\n// Get the original requests (from the \"Checklist Request\" node)\nconst originalRequests = $('Checklist Request').all();\n\n// Prepare individual checklist item requests\nconst items = [];\n\nfor (let i = 0; i < checklists.length; i++) {\n  const checklist = checklists[i].json;\n  const checklistId = checklist.id;\n  \n  // Find the matching original request (by position, assuming same order)\n  const originalReq = originalRequests[i]?.json;\n  const criteria = originalReq?._criteria || [];\n  \n  if (!criteria.length) {\n    console.log(`Checklist ${checklistId} has no criteria, skipping items`);\n    continue;\n  }\n  \n  // Create one request per acceptance criterion\n  criteria.forEach((criterion, idx) => {\n    items.push({\n      json: {\n        method: 'POST',\n        url: `https://api.trello.com/1/checklists/${checklistId}/checkItems`,\n        query: {\n          name: criterion,\n          pos: idx  // position on the checklist (0-based)\n        }\n      }\n    });\n  });\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2656,
+        -336
+      ],
+      "id": "9f74fde1-ae81-4b26-9cb4-8d866a7d83e9",
+      "name": "Prepare Items",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.query.name }}"
+            },
+            {
+              "name": "pos",
+              "value": "={{ $json.query.pos }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2912,
+        -336
+      ],
+      "id": "b50e896d-25b9-42a5-98a8-6f99e0e24788",
+      "name": "Add Items",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the stories from the Parse LLM node\nconst parseLlmOutput = $('Parse LLM').first().json;\nconst stories = parseLlmOutput.stories || [];\n\n// Get the project from the Get Project node\nconst project = $('Get Project').first().json;\n\nif (!stories.length) {\n  console.log('No stories to update, skipping DB updates');\n  return [{ json: { skipped: true, message: 'No stories found' } }];\n}\n\n// Extract new story IDs\nconst newStoryIds = stories.map(s => s.id);\nconst oldPending = project.us_pending || [];\nconst newPending = [...oldPending, ...newStoryIds];\n\n// Prepare profile assignments (person_id, effort, project_name)\nconst assignments = [];\nstories.forEach(story => {\n  (story.assigned || []).forEach(assignee => {\n    assignments.push({\n      person_id: assignee.person_id,\n      effort: assignee.effort,\n      project_name: project.name\n    });\n  });\n});\n\n// Build SQL for updating profiles\nlet profileSql = '';\nfor (const a of assignments) {\n  profileSql += `\n    UPDATE profile \n    SET \n      assigned_effort_points = assigned_effort_points + ${a.effort},\n      current_projects = CASE\n        WHEN current_projects IS NULL THEN jsonb_build_array('${a.project_name}')\n        WHEN current_projects @> jsonb_build_array('${a.project_name}') THEN current_projects\n        ELSE current_projects || jsonb_build_array('${a.project_name}')\n      END\n    WHERE id = ${a.person_id};\n  `;\n}\n\nreturn [{\n  json: {\n    project_id: project.id,\n    us_pending: newPending,\n    us_done: project.us_done || [],\n    assignments: assignments,\n    profile_update_sql: profileSql.trim()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2400,
+        -192
+      ],
+      "id": "1efbcc4b-d593-403e-9184-b4c0d768d9c7",
+      "name": "DB Update Prep",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE project SET us_pending = '{{ JSON.stringify($json.us_pending) }}'::jsonb WHERE id = {{ $json.project_id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2656,
+        -192
+      ],
+      "id": "a4e08705-6197-47a4-97d4-b07f4addca13",
+      "name": "Update Project",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.profile_update_sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        3056,
+        32
+      ],
+      "id": "f37e23c0-6415-4d97-bd10-e1c8a02f05c4",
+      "name": "Update Profiles",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        496,
+        -336
+      ],
+      "id": "15c7e8ef-9524-4cea-96b9-30e6ae91f215",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input (already parsed by the router's classifier)\nconst input = $input.first().json;\nconst projectName = input.project_name;\nconst meetingMinutes = input.meeting_minutes;\nconst reportDate = new Date().toISOString().slice(0, 10);\n\nif (!projectName) throw new Error('project_name is required');\nif (!meetingMinutes) throw new Error('meeting_minutes is required');\n\n// Extract blockers from the minutes (simple approach: look for **BLOCKERS** section)\nconst blockerMatch = meetingMinutes.match(/\\*\\*BLOCKERS & IMPEDIMENTS\\*\\*([\\s\\S]*?)(?=\\n\\*\\*|$)/i);\nlet blockers = [];\nif (blockerMatch) {\n  const blockerText = blockerMatch[1];\n  // Split by bullet points or newlines\n  blockers = blockerText.split(/\\n\\s*\\*\\s*/).filter(b => b.trim().length > 0);\n}\n\nconst prompt = `You are an operations assistant for a Scrum board.\n\nExtract a strict JSON object from the daily standup notes.\n\nINPUTS\nProject name: ${projectName}\nReport date: ${reportDate}\nMeeting minutes:\n${meetingMinutes}\n\nBlockers:\n${JSON.stringify(blockers, null, 2)}\n\nReturn ONLY valid JSON with this exact shape:\n{\n  \"project_name\": string,\n  \"summary\": string,\n  \"completed_tasks\": [\n    {\n      \"user_story_id\": string | null,\n      \"user_story_title\": string,\n      \"priority\": \"Low\" | \"Medium\" | \"High\",\n      \"assignee_email\": string | null,\n      \"trello_card_id\": string | null,\n      \"behind_schedule\": boolean,\n      \"current_status\": string | null,\n      \"target_status\": \"Done\",\n      \"reason\": string\n    }\n  ],\n  \"notifications\": [\n    {\n      \"user_story_id\": string | null,\n      \"user_story_title\": string,\n      \"assignee_email\": string | null,\n      \"priority\": \"Low\" | \"Medium\" | \"High\",\n      \"behind_schedule\": true,\n      \"message\": string,\n      \"reason\": string\n    }\n  ]\n}\n\nRules:\n- completed_tasks must include any task explicitly marked done, finished, merged, shipped, or completed in the minutes.\n- behind_schedule must be true when the person is blocked, late, waiting on dependency, or missed a due date.\n- notifications must include all behind schedule assigned tasks.\n- priority should be High for blockers that stop delivery, Medium for normal risk, Low for minor delays.\n- Return JSON only. No markdown. No explanation.`;\n\nreturn [{\n  json: {\n    project_name: projectName,\n    meeting_minutes: meetingMinutes,\n    blockers: blockers,\n    report_date: reportDate,\n    prompt: prompt,\n    bodyForOllama: {\n      model: \"gpt-oss:120b\",\n      prompt: prompt,\n      format: \"json\",\n      stream: false\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -112,
+        128
+      ],
+      "id": "50fcb112-dbcc-482a-aed0-36519ee09e8a",
+      "name": "Build Prompt",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$json.trello_board_id}}/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "id,name,idList,idMembers"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        896,
+        128
+      ],
+      "id": "304816d5-bacc-4fdf-9e75-57b3b6f55212",
+      "name": "Get Cards",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$node['Get Project1'].json.trello_board_id}}/lists",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "id,name"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        880,
+        432
+      ],
+      "id": "f825a857-ee02-4181-b11e-294f882a066f",
+      "name": "Get Lists",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items (cards, lists, and parsed standup data)\nconst items = $input.all();\n\n// Separate cards, lists, and parsed data\nconst cards = [];\nconst lists = [];\nlet parsedData = null;\n\nfor (const item of items) {\n  const obj = item.json;\n  // Cards have idMembers (array) and no 'closed' (or have idList)\n  if (obj.idMembers && Array.isArray(obj.idMembers)) {\n    cards.push(obj);\n  }\n  // Lists have 'name' and 'closed' (or no idMembers)\n  else if (obj.name && (obj.closed !== undefined || !obj.idMembers)) {\n    lists.push(obj);\n  }\n  // Parsed standup data has 'project_name' and 'completed_tasks'\n  else if (obj.project_name && obj.completed_tasks) {\n    parsedData = obj;\n  }\n}\n\nif (!parsedData) {\n  throw new Error('Could not find parsed standup data in input (missing project_name or completed_tasks)');\n}\n\nconst completedTasks = parsedData.completed_tasks || [];\nconst notifications = parsedData.notifications || [];\nconst rawBlockers = parsedData.raw_blockers || [];\n\n// Find the \"Done\" list\nconst doneList = lists.find(l => /^done$/i.test(l.name.trim())) ||\n                 lists.find(l => /completed?/i.test(l.name.trim())) ||\n                 null;\n\nif (!doneList) {\n  console.warn('No Done list found; move actions will be skipped');\n}\n\n// Helper: extract story ID from card name (e.g., \"US-001: Title\" or \"US-001\")\nfunction extractStoryId(cardName) {\n  const match = String(cardName || '').match(/^([A-Z]{2,}-\\d+)/);\n  return match ? match[1] : null;\n}\n\n// Helper: match a task to a card\nfunction findCardForTask(task, cards) {\n  if (task.trello_card_id) {\n    return cards.find(c => c.id === task.trello_card_id);\n  }\n  if (task.user_story_id) {\n    return cards.find(c => extractStoryId(c.name) === task.user_story_id);\n  }\n  if (task.user_story_title) {\n    const lowerTitle = task.user_story_title.toLowerCase();\n    return cards.find(c => c.name.toLowerCase().includes(lowerTitle));\n  }\n  return null;\n}\n\n// Prepare move items (cards to move to Done)\nconst moveItems = [];\nfor (const task of completedTasks) {\n  const card = findCardForTask(task, cards);\n  if (!card) continue;\n  if (doneList && card.idList !== doneList.id) {\n    moveItems.push({\n      card_id: card.id,\n      done_list_id: doneList.id,\n      story_id: extractStoryId(card.name) || task.user_story_id,\n      story_title: card.name\n    });\n  }\n}\n\n// Prepare notify items (cards behind schedule)\nconst notifyItems = [];\nfor (const note of notifications) {\n  const card = findCardForTask(note, cards);\n  if (!card) continue;\n  const memberIds = card.idMembers || [];\n  if (memberIds.length === 0) continue;\n  notifyItems.push({\n    card_id: card.id,\n    story_id: extractStoryId(card.name) || note.user_story_id,\n    story_title: card.name,\n    member_ids: memberIds,\n    priority: note.priority || 'Medium',\n    message: note.message || note.reason || 'Task is behind schedule.',\n    reason: note.reason || '',\n    project_name: parsedData.project_name\n  });\n}\n\n// Prepare blocker items (from raw_blockers, if any)\nconst blockerItems = [];\nconst blockersList = lists.find(l => /^blockers?$/i.test(l.name.trim())) || lists[0];\nfor (const blockerText of rawBlockers) {\n  if (!blockerText || blockerText.trim() === '') continue;\n  blockerItems.push({\n    title: `Blocker: ${blockerText.substring(0, 100)}`,\n    description: `Reported during daily standup.\\n\\nDetails: ${blockerText}`,\n    list_id: blockersList?.id\n  });\n}\n\n// Build output items for downstream branching\nconst outputItems = [];\nif (moveItems.length > 0) outputItems.push({ json: { type: 'move', items: moveItems } });\nif (notifyItems.length > 0) outputItems.push({ json: { type: 'notify', items: notifyItems } });\nif (blockerItems.length > 0) outputItems.push({ json: { type: 'create_blocker', items: blockerItems } });\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1536,
+        192
+      ],
+      "id": "81adc99b-2abb-49c4-a3dc-24bf6d7d2988",
+      "name": "Prepare Actions",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "move",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1760,
+        128
+      ],
+      "id": "37c94b80-c2a1-46b9-95af-bdaa83288545",
+      "name": "Move IF",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        2000,
+        128
+      ],
+      "id": "35950f10-a35e-416e-8f41-05134a0d723e",
+      "name": "Split Moves",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.trello.com/1/cards/{{ $json.card_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "idList",
+              "value": "={{ $json.done_list_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2256,
+        128
+      ],
+      "id": "f63d2951-feef-4daa-9eaf-82b4ccbb3253",
+      "name": "Move Card",
+      "typeVersion": 4.4,
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "notify",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "7eb9e51e-5561-45f4-98ef-008c414025a6"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1760,
+        336
+      ],
+      "id": "6d2319c6-3680-4f3f-848a-8c9c58a25691",
+      "name": "Notify IF",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        2160,
+        400
+      ],
+      "id": "c45d1141-5fd1-43aa-b943-341ce2ba92dc",
+      "name": "Split Notifications",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "member_ids",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        2336,
+        416
+      ],
+      "id": "1f2fc524-fc46-46a7-a501-43060cc43ac8",
+      "name": "Split Members",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/members/{{$json.member_ids}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af3a9c8d66e158f96042cec32dc36544"
+            },
+            {
+              "name": "token",
+              "value": "ATTA84eae3af48720e9ab0a09a71ceb2e97ae7efce0916eeb50c3a2689467bfd9bd9FC975AF7"
+            },
+            {
+              "name": "fields",
+              "value": "email,fullName"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2512,
+        336
+      ],
+      "id": "090d6ce8-4dfd-4748-9584-86e73b773490",
+      "name": "Get Member",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT email FROM profile WHERE name ILIKE '{{ $json.fullName }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2752,
+        336
+      ],
+      "id": "67c64473-aa20-42cc-81b0-86e24e9ac4ff",
+      "name": "Get Email",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        3008,
+        336
+      ],
+      "id": "80eb3f99-e141-4170-9c23-e6af3f1693cc",
+      "name": "Merge Email",
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ '[' + $json.priority + '] Standup: ' + $json.story_title }}",
+        "html": "={{ $json.message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "position": [
+        3264,
+        336
+      ],
+      "id": "7edb0674-9f49-44af-825e-62d3b606a02a",
+      "name": "Send Email",
+      "typeVersion": 2.1,
+      "webhookId": "07984f3a-be16-41c4-99f4-28121cac3b2d",
+      "credentials": {
+        "smtp": {
+          "id": "NcfLn5RcSwLFi8hp",
+          "name": "ScrumMate"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ollama.com/api/generate",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer 751a6c5a5f5a402fa391a99d2b6d3e46.ikDku8a4-zLW_KqmOn23eFSL\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.bodyForOllama) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        144,
+        128
+      ],
+      "id": "385f6759-2825-477b-883b-72f4b2da7ef2",
+      "name": "LLM1",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the LLM response (output from the HTTP Request node)\nconst llmOutput = $input.first().json;\n\n// Extract raw response text\nlet rawResponse = '';\nif (llmOutput.response) {\n  rawResponse = llmOutput.response;\n} else if (llmOutput.text) {\n  rawResponse = llmOutput.text;\n} else if (llmOutput.content) {\n  rawResponse = llmOutput.content;\n} else if (typeof llmOutput === 'string') {\n  rawResponse = llmOutput;\n} else if (Array.isArray(llmOutput) && llmOutput[0]?.response) {\n  rawResponse = llmOutput[0].response;\n} else {\n  throw new Error('Could not find response text in LLM output');\n}\n\n// Strip markdown code fences if present\nlet cleaned = rawResponse.trim();\nif (cleaned.startsWith('```json')) {\n  cleaned = cleaned.replace(/^```json\\s*\\n?/, '').replace(/\\n?```$/, '');\n} else if (cleaned.startsWith('```')) {\n  cleaned = cleaned.replace(/^```\\s*\\n?/, '').replace(/\\n?```$/, '');\n}\n\n// Parse JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (err) {\n  throw new Error(`Failed to parse JSON: ${err.message}\\nRaw: ${cleaned.substring(0, 500)}`);\n}\n\n// Extract fields with defaults\nconst projectName = parsed.project_name || null;\nconst summary = parsed.summary || '';\nconst completedTasks = Array.isArray(parsed.completed_tasks) ? parsed.completed_tasks : [];\nconst notifications = Array.isArray(parsed.notifications) ? parsed.notifications : [];\n\n// Return in the format expected by the rest of the standup workflow\nreturn [{\n  json: {\n    project_name: projectName,\n    summary: summary,\n    completed_tasks: completedTasks,\n    notifications: notifications,\n    raw_blockers: []  // optional, could be extracted from the minutes separately\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        432,
+        336
+      ],
+      "id": "a762e531-26a8-4213-96d8-43e785f23c0c",
+      "name": "Parse LLM1",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, trello_board_id, us_pending, us_done FROM project WHERE name ILIKE '{{ $node['Parse LLM1'].json.project_name.replace(/'/g, \"''\") }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        640,
+        128
+      ],
+      "id": "2495046e-bd16-457c-a4dc-f4e3b92ac310",
+      "name": "Get Project1",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// If the body is a string, parse it\nlet payload = input;\nif (typeof input.body === 'string') {\n  try {\n    payload = JSON.parse(input.body);\n  } catch (e) {\n    throw new Error('Failed to parse body as JSON: ' + e.message);\n  }\n} else if (input.project_name && input.meeting_minutes) {\n  // Already parsed\n  payload = input;\n} else {\n  throw new Error('Unable to find project_name and meeting_minutes in input');\n}\n\nconst minutes = payload.meeting_minutes || '';\nconst isStandup = minutes.includes('STANDUP OVERVIEW');\n\nreturn [{\n  json: {\n    ...payload,\n    meeting_type: isStandup ? 'standup' : 'new_project'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -928,
+        -128
+      ],
+      "id": "3e850305-994f-4a18-af3f-2f41c710fdc5",
+      "name": "Classify",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.meeting_type }}",
+              "rightValue": "new_project",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "063801f2-75a1-45bc-803e-6b58e0989b6a"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -736,
+        -128
+      ],
+      "id": "3faf7c19-0186-48f2-a0ea-eb76eaeb8706",
+      "name": "Standup?",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meeting_router",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -1136,
+        -128
+      ],
+      "id": "f3ea6453-1961-4315-8464-64f16260380a",
+      "name": "Webhook1",
+      "typeVersion": 2.1,
+      "webhookId": "361c4ada-05f6-4286-b9b8-e021deb37829"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3584,
+        -304
+      ],
+      "id": "46236c02-40cc-43df-a250-c329d6116315",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1280,
+        128
+      ],
+      "id": "cd04a2ee-94ae-4da2-9a76-7450b88807e9",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item (or use the whole array)\nconst items = $input.all();\nlet inputData = items[0]?.json || {};\n\n// If the input itself is an array of notifications (common after IF)\nif (Array.isArray(inputData) && inputData.length) {\n  inputData = { items: inputData };\n}\n// If the input has no 'items' but directly contains notification fields\nif (!inputData.items && inputData.card_id) {\n  inputData = { items: [inputData] };\n}\n\nconst notifications = inputData.items || [];\n\nconst emailItems = [];\n\nfor (const note of notifications) {\n  const memberIds = note.member_ids || [];\n  for (const memberId of memberIds) {\n    emailItems.push({\n      json: {\n        member_id: memberId,\n        card_id: note.card_id,\n        story_id: note.story_id,\n        story_title: note.story_title,\n        priority: note.priority,\n        message: note.message,\n        reason: note.reason,\n        project_name: note.project_name\n      }\n    });\n  }\n}\n\n// If still no items, return a dummy to avoid workflow hanging\nif (emailItems.length === 0) {\n  console.warn('No email items generated – skipping');\n  return [{ json: { skipped: true, reason: 'no members or notifications' } }];\n}\n\nreturn emailItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        240
+      ],
+      "id": "e261defb-6282-48d7-aca7-17000878490d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3472,
+        208
+      ],
+      "id": "b321865e-22f6-481a-ba12-45909064f200",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "meeting_minutes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -576
+      ],
+      "id": "72d9631d-74f0-40be-9331-30618b80cd76",
+      "name": "Split Out"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Project": {
+      "main": [
+        [
+          {
+            "node": "Trello Members",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Team Profiles",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Trello Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trello Lists": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Trello Members": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Team Profiles": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM": {
+      "main": [
+        [
+          {
+            "node": "Map Lists & Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Lists & Members": {
+      "main": [
+        [
+          {
+            "node": "Format Cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cards": {
+      "main": [
+        [
+          {
+            "node": "Create Cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Cards": {
+      "main": [
+        [
+          {
+            "node": "Merge Cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Cards": {
+      "main": [
+        [
+          {
+            "node": "Checklist Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checklist Request": {
+      "main": [
+        [
+          {
+            "node": "Add Checklist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "DB Update Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Checklist": {
+      "main": [
+        [
+          {
+            "node": "Prepare Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Items": {
+      "main": [
+        [
+          {
+            "node": "Add Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Update Prep": {
+      "main": [
+        [
+          {
+            "node": "Update Project",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Project": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cards": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lists": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare Actions": {
+      "main": [
+        [
+          {
+            "node": "Move IF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move IF": {
+      "main": [
+        [
+          {
+            "node": "Split Moves",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Moves": {
+      "main": [
+        [
+          {
+            "node": "Move Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify IF": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Notifications": {
+      "main": [
+        [
+          {
+            "node": "Split Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Members": {
+      "main": [
+        [
+          {
+            "node": "Get Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member": {
+      "main": [
+        [
+          {
+            "node": "Get Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM1": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM1": {
+      "main": [
+        [
+          {
+            "node": "Get Project1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get Project1": {
+      "main": [
+        [
+          {
+            "node": "Get Cards",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify": {
+      "main": [
+        [
+          {
+            "node": "Standup?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Standup?": {
+      "main": [
+        [
+          {
+            "node": "Get Project",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ],
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Profiles": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Items": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge Email",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Move Card": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "JgL4ipoMjAxDsZMJ"
+  },
+  "versionId": "708725ff-b01c-40b0-9644-104cd7f6920b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "744490006193b9cc367739a2f1c78dafedf1298ed7a63abc616d759e1dd3d8a1"
+  },
+  "id": "JgL4ipoMjAxDsZMJ",
+  "tags": []
+}

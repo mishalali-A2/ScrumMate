@@ -1,346 +1,676 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScrumMate — Sign in</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #f4f7fb;
-            --surface: #ffffff;
-            --line: rgba(15, 23, 42, 0.12);
-            --line-2: rgba(15, 23, 42, 0.18);
-            --text-1: #0f172a;
-            --text-2: #334155;
-            --text-3: #64748b;
-            --accent: #2563eb;
-            --accent-2: #5de4ff;
-            --accent-soft: rgba(37, 99, 235, 0.08);
-            --radius: 12px;
-            --radius-sm: 10px;
-            --t: 140ms ease;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: auto; }
+  <title>ScrumMate — Login</title>
 
-        body {
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            background:
-                radial-gradient(circle at top right, rgba(37, 99, 235, 0.10), transparent 26%),
-                radial-gradient(circle at 18% 0%, rgba(93, 228, 255, 0.07), transparent 18%),
-                linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
-            color: var(--text-1);
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 46px 20px 30px;
-        }
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        .wrap {
-            width: 100%;
-            max-width: 860px;
-            padding: 18px;
-            display: grid;
-            grid-template-columns: 0.95fr 1.05fr;
-            gap: 14px;
-            align-items: start;
-        }
+  <style>
 
-        .brand-panel {
-            padding: 16px 16px;
-        }
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
 
-        .brand-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
+    :root{
+      --bg:#f5f5f4;
+      --card:#ffffff;
+      --border:#d8d8d8;
+      --text:#050505;
+      --muted:#666666;
+      --blue:#2450ff;
+      --blue-soft:#edf1ff;
+    }
 
-        .brand-logo {
-            width: 34px;
-            height: 34px;
-            object-fit: contain;
-            filter: saturate(1.05);
-        }
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Inter',sans-serif;
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
 
-        .brand-name {
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            font-size: 16px;
-        }
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
 
-        .brand-sub {
-            color: var(--text-3);
-            font-size: 13px;
-            line-height: 1.5;
-            max-width: 420px;
-        }
+    button{
+      border:none;
+      cursor:pointer;
+      font-family:'Inter',sans-serif;
+      transition:.2s ease;
+    }
 
-        .proof-list {
-            margin-top: 12px;
-            display: grid;
-            gap: 10px;
-        }
+    .container{
+      width:100%;
+      max-width:1450px;
+      margin:auto;
+      padding:0 28px;
+    }
 
-        .proof-item {
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-            padding: 10px 10px;
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            background: rgba(255,255,255,0.7);
-        }
+    /* =========================
+       NAVBAR
+    ========================== */
 
-        .proof-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.20);
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            margin-top: 4px;
-            flex-shrink: 0;
-        }
+    .navbar{
+      height:60px;
+      border-bottom:1px solid var(--border);
 
-        .proof-title {
-            font-weight: 700;
-            font-size: 13px;
-            color: var(--text-2);
-            margin-bottom: 2px;
-        }
+      display:flex;
+      align-items:center;
+    }
 
-        .proof-meta {
-            font-size: 12.5px;
-            color: var(--text-3);
-            line-height: 1.5;
-        }
+    .navbar-inner{
+      width:100%;
 
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
-        }
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
 
-        .card-head {
-            padding: 6px 6px 12px;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-            margin-bottom: 12px;
-        }
+    .logo-wrap{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
 
-        .card-title {
-            font-size: 16px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
+    .logo{
+      width:30px;
+      height:30px;
+      object-fit:contain;
+    }
 
-        .card-sub {
-            margin-top: 4px;
-            color: var(--text-3);
-            font-size: 13px;
-            line-height: 1.5;
-        }
+    .logo-text{
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-.05em;
+    }
 
-        .actions {
-            display: grid;
-            gap: 9px;
-        }
+    .nav-meta{
+      font-size:12px;
+      letter-spacing:.18em;
+      color:#666;
 
-        .btn {
-            height: 42px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--line);
-            background: rgba(255,255,255,0.8);
-            color: var(--text-2);
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
-            transition: border-color var(--t), background var(--t), box-shadow var(--t), color var(--t);
-        }
+      font-family:'JetBrains Mono', monospace;
+    }
 
-        .btn:hover {
-            border-color: var(--line-2);
-            background: rgba(255,255,255,1);
-        }
+    /* =========================
+       AUTH LAYOUT
+    ========================== */
 
-        .btn-primary {
-            border-color: rgba(37, 99, 235, 0.25);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.97), rgba(93, 228, 255, 0.55));
-            color: #ffffff;
-            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12) inset, 0 18px 40px rgba(37, 99, 235, 0.14);
-        }
+    .auth-layout{
+      border-left:1px solid var(--border);
+      border-top:1px solid var(--border);
+      border-right:1px solid var(--border);
 
-        .btn-primary:hover {
-            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.16) inset, 0 22px 50px rgba(37, 99, 235, 0.18);
-        }
+      display:grid;
+      grid-template-columns:.9fr 1.35fr;
 
-        .hint {
-            margin-top: 12px;
-            color: var(--text-3);
-            font-size: 12.5px;
-            line-height: 1.5;
-        }
+      margin-top:12px;
+      margin-bottom:50px;
+    }
 
-        .loading {
-            display: none;
-            margin-top: 14px;
-            padding: 12px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(37, 99, 235, 0.22);
-            background: rgba(37, 99, 235, 0.06);
-            color: rgba(37, 99, 235, 1);
-            font-weight: 700;
-            font-size: 12.5px;
-        }
+    .left-panel{
+      padding:48px 44px;
+      border-right:1px solid var(--border);
+      min-height:720px;
+    }
 
-        body.loading .loading { display: block; }
+    .right-panel{
+      padding:48px 54px;
+      min-height:720px;
+    }
 
-        @media (max-width: 900px) {
-            .wrap {
-                grid-template-columns: 1fr;
-            }
-            .proof-list { grid-template-columns: 1fr; }
-        }
-    </style>
+    .section-id{
+      font-size:11px;
+      letter-spacing:.18em;
+      color:#666;
 
-    <script
-        async
-        crossorigin="anonymous"
-        data-clerk-publishable-key="pk_test_cmVzb2x2ZWQtd2FscnVzLTg4LmNsZXJrLmFjY291bnRzLmRldiQ"
-        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js">
-    </script>
+      font-family:'JetBrains Mono', monospace;
+
+      margin-bottom:38px;
+    }
+
+    .tag{
+      display:inline-block;
+
+      border:1px solid #cfd8ff;
+      background:var(--blue-soft);
+
+      color:var(--blue);
+
+      font-size:10px;
+      letter-spacing:.2em;
+      font-family:'JetBrains Mono', monospace;
+
+      padding:7px 12px;
+
+      margin-bottom:30px;
+    }
+
+    .hero-title{
+      font-size:64px;
+      line-height:.9;
+      letter-spacing:-.07em;
+      font-weight:900;
+
+      margin-bottom:28px;
+    }
+
+    .hero-title span{
+      color:var(--blue);
+    }
+
+    .hero-text{
+      max-width:420px;
+
+      font-size:16px;
+      line-height:1.7;
+      color:var(--muted);
+
+      margin-bottom:36px;
+    }
+
+    /* =========================
+       INFO CARDS
+    ========================== */
+
+    .info-stack{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .info-card{
+      border:1px solid var(--border);
+      background:#fafafa;
+
+      padding:16px 16px;
+    }
+
+    .info-top{
+      display:flex;
+      align-items:center;
+      gap:12px;
+
+      margin-bottom:6px;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#4f74ff;
+    }
+
+    .info-title{
+      font-size:15px;
+      font-weight:700;
+      letter-spacing:-.03em;
+    }
+
+    .info-text{
+      padding-left:22px;
+
+      font-size:14px;
+      line-height:1.55;
+      color:var(--muted);
+    }
+
+    /* =========================
+       RIGHT PANEL
+    ========================== */
+
+    .session-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+
+      margin-bottom:18px;
+    }
+
+    .auth-via{
+      font-size:11px;
+      letter-spacing:.18em;
+      color:#666;
+
+      font-family:'JetBrains Mono', monospace;
+
+      margin-top:8px;
+    }
+
+    .signin-title{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:-.04em;
+
+      margin-bottom:8px;
+    }
+
+    .signin-text{
+      font-size:16px;
+      line-height:1.6;
+      color:var(--muted);
+    }
+
+    /* =========================
+       TABS
+    ========================== */
+
+    .tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+
+      margin-top:30px;
+      margin-bottom:28px;
+    }
+
+    .tab{
+      height:42px;
+
+      border:1px solid var(--border);
+
+      font-size:14px;
+      font-weight:700;
+
+      background:#fafafa;
+      color:#666;
+    }
+
+    .tab.active{
+      background:black;
+      color:white;
+      border-color:black;
+    }
+
+    /* =========================
+       BUTTONS
+    ========================== */
+
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .btn{
+      height:50px;
+
+      border:1px solid var(--border);
+
+      font-size:15px;
+      font-weight:700;
+
+      background:#fafafa;
+      color:#222;
+    }
+
+    .btn:hover{
+      background:white;
+    }
+
+    .btn-primary{
+      background:var(--blue);
+      color:white;
+      border-color:var(--blue);
+    }
+
+    .btn-primary:hover{
+      background:#123eff;
+    }
+
+    /* =========================
+       STATUS BOX
+    ========================== */
+
+    .status{
+      margin-top:26px;
+
+      border:1px solid #bfcfff;
+      background:#f5f8ff;
+
+      padding:18px 16px;
+    }
+
+    .status-label{
+      font-size:10px;
+      letter-spacing:.22em;
+      color:var(--blue);
+
+      font-family:'JetBrains Mono', monospace;
+
+      margin-bottom:12px;
+    }
+
+    .status-text{
+      font-size:15px;
+      line-height:1.7;
+      color:#666;
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================== */
+
+    @media(max-width:1100px){
+
+      .auth-layout{
+        grid-template-columns:1fr;
+      }
+
+      .left-panel{
+        border-right:none;
+        border-bottom:1px solid var(--border);
+        min-height:auto;
+      }
+
+      .right-panel{
+        min-height:auto;
+      }
+
+    }
+
+    @media(max-width:760px){
+
+      .hero-title{
+        font-size:48px;
+      }
+
+      .left-panel,
+      .right-panel{
+        padding:34px 24px;
+      }
+
+      .signin-title{
+        font-size:20px;
+      }
+
+      .signin-text{
+        font-size:15px;
+      }
+
+      .nav-meta{
+        display:none;
+      }
+
+      .session-top{
+        flex-direction:column;
+        gap:12px;
+      }
+
+    }
+
+  </style>
+
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_cmVzb2x2ZWQtd2FscnVzLTg4LmNsZXJrLmFjY291bnRzLmRldiQ"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js">
+  </script>
+
 </head>
 
-<body class="loading">
-    <div class="wrap">
-        <div class="brand-panel">
-            <div class="brand-row">
-                <img src="logo_gallery/Logo.png" alt="ScrumMate logo" class="brand-logo">
-                <div class="brand-name">ScrumMate</div>
-            </div>
+<body>
 
-            <div class="brand-sub">
-                Operate meeting intelligence with an engineered workflow: transcription, pipeline execution, and delivery-grade outputs.
-            </div>
+  <!-- NAVBAR -->
 
-            <div class="proof-list">
-                <div class="proof-item">
-                    <div class="proof-dot"></div>
-                    <div>
-                        <div class="proof-title">Pipeline clarity</div>
-                        <div class="proof-meta">Track runs, verify outputs, and surface blockers with a high-signal view.</div>
-                    </div>
-                </div>
-                <div class="proof-item">
-                    <div class="proof-dot"></div>
-                    <div>
-                        <div class="proof-title">Operator speed</div>
-                        <div class="proof-meta">Fast actions and dense tables built for daily work, not demos.</div>
-                    </div>
-                </div>
-            </div>
+  <nav class="navbar">
+
+    <div class="container navbar-inner">
+
+      <div class="logo-wrap">
+
+        <img
+          src="logo_gallery/Logo.png"
+          alt="Scrummate Logo"
+          class="logo"
+        >
+
+        <div class="logo-text">
+          SCRUMMATE
         </div>
 
-        <div class="card">
-            <div class="card-head">
-                <div class="card-title">Sign in to your workspace</div>
-                <div class="card-sub">Use Clerk to authenticate. If you're already signed in, you'll be redirected automatically.</div>
-            </div>
+      </div>
 
-            <div class="actions">
-                <button id="loginBtn" class="btn btn-primary" type="button">Sign in</button>
-                <button id="signupBtn" class="btn" type="button">Create account</button>
-            </div>
+      <div class="nav-meta">
+        V2.4.0-STABLE / AUTH
+      </div>
 
-            <div class="hint">
-                After signing in, you're taken to the dashboard. Your pipeline state remains available for review.
-            </div>
-
-            <div class="loading" id="loadingStatus">Checking session…</div>
-        </div>
     </div>
 
-    <script>
-        function setUpClerk() {
-            if (!window.Clerk) return false;
-            return true;
-        }
+  </nav>
 
-        function redirectToDashboard() {
-            window.location.replace('/dashboard.html');
-        }
+  <!-- MAIN -->
 
-        function setupAuthButtons() {
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
+  <main class="container">
 
-            if (!loginBtn || !signupBtn) return;
+    <section class="auth-layout">
 
-            loginBtn.addEventListener('click', () => {
-                window.Clerk.openSignIn({
-                    redirectUrl: '/dashboard.html',
-                    afterSignInUrl: '/dashboard.html',
-                });
-            });
+      <!-- LEFT -->
 
-            signupBtn.addEventListener('click', () => {
-                window.Clerk.openSignUp({
-                    redirectUrl: '/dashboard.html',
-                    afterSignUpUrl: '/dashboard.html',
-                });
-            });
-        }
+      <div class="left-panel">
 
-        function boot() {
-            if (!setUpClerk()) {
-                setTimeout(boot, 50);
-                return;
-            }
+        <div class="section-id">
+          00 / ACCESS
+        </div>
 
-            window.Clerk.load().then(() => {
-                const clerk = window.Clerk;
-                const isAuthed = () => {
-                    // Clerk v4: after load, `clerk.session.user` is non-null when signed in.
-                    return !!(clerk && clerk.session && clerk.session.user);
-                };
+        <div class="tag">
+          AUTHENTICATED WORKSPACE
+        </div>
 
-                // Some apps get session hydration slightly after `load()`, so retry briefly.
-                if (isAuthed()) {
-                    redirectToDashboard();
-                    return;
-                }
+        <h1 class="hero-title">
+          Operate your <br>
+          <span>scrum pipeline.</span>
+        </h1>
 
-                let tries = 0;
-                const t = setInterval(() => {
-                    tries += 1;
-                    if (isAuthed()) {
-                        clearInterval(t);
-                        redirectToDashboard();
-                        return;
-                    }
-                    if (tries >= 6) {
-                        clearInterval(t);
-                        document.body.classList.remove('loading');
-                        const loading = document.getElementById('loadingStatus');
-                        if (loading) loading.textContent = 'Ready';
-                        setupAuthButtons();
-                    }
-                }, 200);
-            }).catch(() => {
-                // If Clerk fails to initialize, still allow manual sign-in attempts.
-                document.body.classList.remove('loading');
-                setupAuthButtons();
-            });
-        }
+        <p class="hero-text">
+          Transcription, synthesis, and delivery-grade outputs.
+          Sign in to resume your sprint state.
+        </p>
 
-        window.addEventListener('load', boot);
-    </script>
+        <!-- INFO STACK -->
+
+        <div class="info-stack">
+
+          <div class="info-card">
+
+            <div class="info-top">
+              <div class="dot"></div>
+
+              <div class="info-title">
+                Pipeline clarity
+              </div>
+            </div>
+
+            <div class="info-text">
+              Track runs, verify outputs,
+              and surface blockers with a high-signal view.
+            </div>
+
+          </div>
+
+          <div class="info-card">
+
+            <div class="info-top">
+              <div class="dot"></div>
+
+              <div class="info-title">
+                Operator speed
+              </div>
+            </div>
+
+            <div class="info-text">
+              Fast actions and dense tables built for daily work,
+              not demos.
+            </div>
+
+          </div>
+
+          <div class="info-card">
+
+            <div class="info-top">
+              <div class="dot"></div>
+
+              <div class="info-title">
+                Session continuity
+              </div>
+            </div>
+
+            <div class="info-text">
+              Your context — sprints, tickets,
+              and standups — stays exactly where you left it.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+
+      <div class="right-panel">
+
+        <div class="section-id">
+          01 / SESSION
+        </div>
+
+        <div class="session-top">
+
+          <div>
+
+            <div class="signin-title">
+              Sign in to your workspace
+            </div>
+
+            <div class="signin-text">
+              Authenticate to resume your scrum pipeline.
+              Existing sessions are detected automatically.
+            </div>
+
+          </div>
+
+          <div class="auth-via">
+            VIA CLERK
+          </div>
+
+        </div>
+
+        <!-- TABS -->
+
+        <div class="tabs">
+
+          <button class="tab active">
+            SIGN IN
+          </button>
+
+          <button class="tab">
+            CREATE ACCOUNT
+          </button>
+
+        </div>
+
+        <!-- ACTIONS -->
+
+        <div class="actions">
+
+          <button
+            id="loginBtn"
+            class="btn btn-primary"
+          >
+            Continue with Clerk →
+          </button>
+
+          <button
+            id="signupBtn"
+            class="btn"
+          >
+            I don't have an account
+          </button>
+
+        </div>
+
+        <!-- STATUS -->
+
+        <div class="status">
+
+          <div class="status-label">
+            STATUS
+          </div>
+
+          <div class="status-text">
+            After signing in you'll be routed to the dashboard.
+            Pipeline state remains available for review.
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+
+    function redirectToDashboard() {
+      window.location.replace('/dashboard.html');
+    }
+
+    function setupAuthButtons() {
+
+      const loginBtn = document.getElementById('loginBtn');
+      const signupBtn = document.getElementById('signupBtn');
+
+      loginBtn.addEventListener('click', () => {
+
+        window.Clerk.openSignIn({
+          redirectUrl:'/dashboard.html',
+          afterSignInUrl:'/dashboard.html',
+        });
+
+      });
+
+      signupBtn.addEventListener('click', () => {
+
+        window.Clerk.openSignUp({
+          redirectUrl:'/dashboard.html',
+          afterSignUpUrl:'/dashboard.html',
+        });
+
+      });
+
+    }
+
+    async function boot() {
+
+      if(!window.Clerk){
+        setTimeout(boot,100);
+        return;
+      }
+
+      await window.Clerk.load();
+
+      const clerk = window.Clerk;
+
+      if(clerk.session && clerk.session.user){
+        redirectToDashboard();
+        return;
+      }
+
+      setupAuthButtons();
+
+    }
+
+    window.addEventListener('load', boot);
+
+  </script>
+
 </body>
 </html>
-
