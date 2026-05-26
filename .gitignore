@@ -12,8 +12,3 @@ __pycache__
 *.py[cod]
 *$py.class
 .env
-scrummate_agentic/tests
-chrome-profile*
-debug
-node_modules
-n8n-data
