@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Meeting Search</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="header-nav">
+                <h1><i class="fas fa-search"></i> ScrumMate</h1>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">Transcriber</a>
+                    <a href="rag.html" class="nav-link active">Meeting Search</a>
+                </div>
+            </nav>
+            <p class="subtitle">Search and query your meeting history using AI</p>
+        </header>
+
+        <div class="rag-container">
+            <div class="search-panel">
+                <h2><i class="fas fa-comments"></i> Ask About Meetings</h2>
+                
+                <div class="input-group">
+                    <label for="ragQuestion">
+                        <i class="fas fa-question-circle"></i> Your Question
+                    </label>
+                    <textarea 
+                        id="ragQuestion" 
+                        placeholder="What decisions were made about the authentication system?"
+                        rows="3"
+                    ></textarea>
+                    <div class="hint">
+                        <i class="fas fa-info-circle"></i> Ask any question about past meetings
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="askBtn" class="btn btn-primary" onclick="askQuestion()">
+                        <i class="fas fa-paper-plane"></i> Ask
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary" onclick="clearChat()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+
+                <div class="stats-panel">
+                    <h3><i class="fas fa-database"></i> Database Stats</h3>
+                    <div id="ragStats" class="rag-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Indexed Chunks:</span>
+                            <span id="chunkCount" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <h2><i class="fas fa-robot"></i> AI Assistant</h2>
+                </div>
+                
+                <div id="chatHistory" class="chat-history">
+                    <div class="welcome-message">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Welcome to Meeting Search</h3>
+                        <p>Ask questions about your past meetings. For example:</p>
+                        <ul>
+                            <li>"What were the action items from the last sprint planning?"</li>
+                            <li>"Who mentioned the database migration?"</li>
+                            <li>"What blockers were discussed?"</li>
+                            <li>"Summarize decisions about the API design"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load stats on page load
+        document.addEventListener('DOMContentLoaded', loadStats);
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/rag/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('chunkCount').textContent = data.count || 0;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                document.getElementById('chunkCount').textContent = 'Error';
+            }
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('ragQuestion');
+            const question = questionInput.value.trim();
+            
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            const chatHistory = document.getElementById('chatHistory');
+            
+            // Remove welcome message if present
+            const welcomeMsg = chatHistory.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.remove();
+            }
+
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user';
+            userMessage.innerHTML = `
+                <div class="message-content">
+                    <i class="fas fa-user"></i>
+                    <p>${escapeHtml(question)}</p>
+                </div>
+            `;
+            chatHistory.appendChild(userMessage);
+
+            // Add loading message
+            const loadingMessage = document.createElement('div');
+            loadingMessage.className = 'chat-message assistant loading';
+            loadingMessage.innerHTML = `
+                <div class="message-content">
+                    <i class="fas fa-robot"></i>
+                    <p><i class="fas fa-spinner fa-spin"></i> Searching meetings...</p>
+                </div>
+            `;
+            chatHistory.appendChild(loadingMessage);
+
+            // Scroll to bottom
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Clear input
+            questionInput.value = '';
+
+            try {
+                const response = await fetch('/api/rag/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                const data = await response.json();
+
+                // Remove loading message
+                loadingMessage.remove();
+
+                // Add assistant response
+                const assistantMessage = document.createElement('div');
+                assistantMessage.className = 'chat-message assistant';
+                
+                if (data.success && data.found_results) {
+                    assistantMessage.innerHTML = `
+                        <div class="message-content">
+                            <i class="fas fa-robot"></i>
+                            <div class="answer-content">
+                                <p>${formatAnswer(data.answer)}</p>
+                                ${data.sources && data.sources.length > 0 ? `
+                                    <div class="sources">
+                                        <strong>Sources:</strong>
+                                        ${data.sources.map(s => `
+                                            <div class="source-item">
+                                                <span class="source-speaker">${s.speaker}</span>
+                                                <span class="source-time">${Math.floor(s.start_time / 60)}:${String(Math.floor(s.start_time % 60)).padStart(2, '0')}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    assistantMessage.innerHTML = `
+                        <div class="message-content">
+                            <i class="fas fa-robot"></i>
+                            <p class="no-results">${data.answer || data.error || 'No relevant information found.'}</p>
+                        </div>
+                    `;
+                }
+
+                chatHistory.appendChild(assistantMessage);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            } catch (error) {
+                loadingMessage.remove();
+                
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'chat-message assistant error';
+                errorMessage.innerHTML = `
+                    <div class="message-content">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error: ${error.message}. Make sure the agentic API server is running.</p>
+                    </div>
+                `;
+                chatHistory.appendChild(errorMessage);
+            }
+        }
+
+        function clearChat() {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML = `
+                <div class="welcome-message">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>Welcome to Meeting Search</h3>
+                    <p>Ask questions about your past meetings. For example:</p>
+                    <ul>
+                        <li>"What were the action items from the last sprint planning?"</li>
+                        <li>"Who mentioned the database migration?"</li>
+                        <li>"What blockers were discussed?"</li>
+                        <li>"Summarize decisions about the API design"</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatAnswer(text) {
+            // Convert markdown-style formatting to HTML
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('ragQuestion').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>

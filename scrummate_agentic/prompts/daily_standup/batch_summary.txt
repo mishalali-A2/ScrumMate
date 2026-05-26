@@ -1,0 +1,17 @@
+You are a Scrum Master reviewing a Daily Standup transcript.
+Summarize ONLY what was actually said. Do not invent updates or blockers not mentioned.
+
+For each team member who speaks, extract:
+- What they completed since the last standup
+- What they are working on today
+- Any blockers or impediments they raised
+
+Also capture:
+- Dependencies between team members mentioned
+- Any urgent or escalated items
+- Brief progress notes on ongoing work or deliverables
+
+TRANSCRIPT:
+{transcript}
+
+SUMMARY:

@@ -1,0 +1,87 @@
+<!-- Shared sidebar partial — loaded by navbar-loader.js into <aside id="sidebar"> -->
+<div class="brand">
+    <img src="logo_gallery/Logo.png" alt="ScrumMate" class="brand-mark">
+    <div class="brand-copy">
+        <div class="brand-name">ScrumMate</div>
+        <div class="brand-sub">Engineering workspace</div>
+    </div>
+</div>
+
+<nav class="nav">
+    <a href="index.html" class="nav-cta" data-nav="start">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="nav-cta-icon">
+            <path d="M11 2H5a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3z"></path>
+            <path d="M8 5.5v5M5.5 8h5"></path>
+        </svg>
+        <span class="nav-cta-label">Start a Meeting</span>
+    </a>
+
+    <a href="dashboard.html" class="nav-item" data-nav="dashboard" data-tip="Dashboard">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1.5" y="1.5" width="5" height="5" rx="1"></rect>
+            <rect x="9.5" y="1.5" width="5" height="5" rx="1"></rect>
+            <rect x="1.5" y="9.5" width="5" height="5" rx="1"></rect>
+            <rect x="9.5" y="9.5" width="5" height="5" rx="1"></rect>
+        </svg>
+        <span class="nav-label">Dashboard</span>
+    </a>
+
+    <a href="projects.html" class="nav-item" data-nav="projects" data-tip="Projects">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1.5 4A1.5 1.5 0 0 1 3 2.5h3.4l1.2 1.2H13A1.5 1.5 0 0 1 14.5 5v7A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12z"></path>
+        </svg>
+        <span class="nav-label">Projects</span>
+    </a>
+
+    <a href="meetings.html" class="nav-item" data-nav="meetings" data-tip="Past meetings">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="6.5"></circle>
+            <path d="M8 5v3.5l2.5 1.5"></path>
+        </svg>
+        <span class="nav-label">Past meetings</span>
+    </a>
+
+    <a href="performance.html" class="nav-item" data-nav="analytics" data-tip="Analytics">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 13.5h12"></path>
+            <path d="M3.5 11V8"></path>
+            <path d="M8 11V4.5"></path>
+            <path d="M12.5 11V6.5"></path>
+        </svg>
+        <span class="nav-label">Analytics</span>
+    </a>
+</nav>
+
+<div class="sidebar-footer">
+    <div class="profile-wrap" id="profileWrap">
+        <!-- Main card: clicking name/avatar goes to profile.html -->
+        <a href="profile.html" class="profile" id="profileBtn" aria-label="Your profile">
+            <div class="profile-avatar" id="profileAvatar">MZ</div>
+            <div class="profile-copy">
+                <div class="profile-name" id="profileName">…</div>
+                <div class="profile-role" id="profileRole">Loading…</div>
+            </div>
+        </a>
+        <!-- Separate chevron button to open sign-out dropdown -->
+        <button class="profile-chevron-btn" id="profileChevronBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account options">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4.5l3 3 3-3"/></svg>
+        </button>
+        <div class="profile-menu" id="profileMenu" role="menu">
+            <a href="profile.html" class="profile-menu-item" role="menuitem">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="5.5" r="2.5"/>
+                    <path d="M2.5 13.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>
+                </svg>
+                View profile
+            </a>
+            <button class="profile-menu-item profile-menu-signout" id="signOutBtn" type="button" role="menuitem">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
+                    <path d="M11 11l3-3-3-3"/>
+                    <path d="M14 8H6"/>
+                </svg>
+                Sign out
+            </button>
+        </div>
+    </div>
+</div>

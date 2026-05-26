@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>SCRUMMATE — AI Scrum Copilot</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    :root{
+      --bg:#f5f5f4;
+      --card:#fafafa;
+      --border:#dcdcdc;
+      --text:#050505;
+      --muted:#646464;
+      --blue:#2450ff;
+      --blue-light:#9db0ff;
+    }
+
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Inter',sans-serif;
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    button{
+      border:none;
+      cursor:pointer;
+      transition:.2s ease;
+      font-family:'Inter',sans-serif;
+    }
+
+    .container{
+      width:100%;
+      max-width:1450px;
+      margin:auto;
+      padding:0 28px;
+    }
+
+    /* =========================
+       NAVBAR
+    ========================== */
+
+    .navbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+
+      width:100%;
+      height:56px;
+
+      border-bottom:1px solid var(--border);
+
+      background:rgba(245,245,244,.92);
+      backdrop-filter:blur(10px);
+    }
+
+    .navbar-inner{
+      height:100%;
+
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .nav-left{
+      display:flex;
+      align-items:center;
+      gap:44px;
+    }
+
+    .logo-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .logo{
+      width:31px;
+      height:31px;
+
+      object-fit:contain;
+    }
+
+    .logo-placeholder{
+      width:31px;
+      height:31px;
+
+      border-radius:8px;
+
+      background:var(--blue);
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      color:white;
+      font-weight:800;
+      font-size:12px;
+    }
+
+    .logo-text{
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-.05em;
+    }
+
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:34px;
+    }
+
+    .nav-links a{
+      font-size:14px;
+      color:#666;
+    }
+
+    .nav-links a:hover{
+      color:black;
+    }
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+
+    .version{
+      font-size:11px;
+      letter-spacing:.15em;
+      color:#777;
+      font-family:'JetBrains Mono', monospace;
+    }
+
+    .signup-btn{
+      height:40px;
+      padding:0 18px;
+
+      background:black;
+      color:white;
+
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .signup-btn:hover{
+      background:var(--blue);
+    }
+
+    /* =========================
+       HERO
+    ========================== */
+
+    .hero{
+      padding-top:120px;
+      padding-bottom:85px;
+
+      display:grid;
+      grid-template-columns:1.1fr .75fr;
+      gap:80px;
+      align-items:center;
+    }
+
+    .hero-tag{
+      display:inline-block;
+
+      border:1px solid #cfd8ff;
+      background:#edf1ff;
+
+      color:var(--blue);
+
+      font-size:10px;
+      letter-spacing:.22em;
+      font-family:'JetBrains Mono', monospace;
+
+      padding:7px 12px;
+      margin-bottom:32px;
+    }
+
+    .hero-title{
+      font-size:112px;
+      line-height:.88;
+      letter-spacing:-.08em;
+      font-weight:900;
+
+      margin-bottom:36px;
+    }
+
+    .hero-title span{
+      color:var(--blue);
+    }
+
+    .hero-text{
+      max-width:650px;
+
+      font-size:21px;
+      line-height:1.7;
+      color:var(--muted);
+    }
+
+    /* HERO CARD */
+
+    .hero-card{
+      width:100%;
+      max-width:430px;
+
+      background:white;
+
+      border:1px solid var(--border);
+
+      padding:28px;
+
+      justify-self:end;
+
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+
+    .live-feed{
+      display:flex;
+      align-items:center;
+      gap:10px;
+
+      font-size:11px;
+      font-weight:700;
+
+      letter-spacing:.12em;
+
+      margin-bottom:28px;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--blue);
+    }
+
+    .graph-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:13px;
+    }
+
+    .bar{
+      width:100%;
+      height:9px;
+
+      background:#dfe4ee;
+
+      position:relative;
+      overflow:hidden;
+    }
+
+    .bar-fill{
+      position:absolute;
+      top:0;
+      left:0;
+      height:100%;
+      background:black;
+    }
+
+    .b1{width:68%;}
+    .b2{width:52%;}
+    .b3{width:83%;}
+
+    .small{
+      width:76%;
+    }
+
+    .hero-footer{
+      margin-top:32px;
+      padding-top:28px;
+
+      border-top:1px solid var(--border);
+
+      display:flex;
+      justify-content:space-between;
+
+      font-size:12px;
+      font-family:'JetBrains Mono', monospace;
+    }
+
+    /* =========================
+       FEATURES
+    ========================== */
+
+    .feature-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+
+      border-top:1px solid var(--border);
+      border-left:1px solid var(--border);
+
+      margin-bottom:80px;
+    }
+
+    .feature-card{
+      min-height:310px;
+
+      padding:36px;
+
+      border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+
+      background:var(--bg);
+
+      transition:.2s ease;
+    }
+
+    .feature-card:hover{
+      background:white;
+    }
+
+    .large{
+      grid-column:span 2;
+    }
+
+    .feature-id{
+      font-size:10px;
+      letter-spacing:.18em;
+      font-family:'JetBrains Mono', monospace;
+      color:#666;
+
+      margin-bottom:30px;
+    }
+
+    .feature-title{
+      font-size:19px;
+      font-weight:700;
+      letter-spacing:-.04em;
+
+      margin-bottom:16px;
+    }
+
+    .feature-text{
+      font-size:15px;
+      line-height:1.65;
+      color:#666;
+
+      margin-bottom:30px;
+    }
+
+    /* GRAPH 1 */
+
+    .bars{
+      height:82px;
+
+      display:flex;
+      align-items:flex-end;
+      gap:5px;
+    }
+
+    .bars div{
+      flex:1;
+    }
+
+    .g1{height:18px;background:#cfd8ff;}
+    .g2{height:54px;background:#9db0ff;}
+    .g3{height:36px;background:#6d89ff;}
+    .g4{height:72px;background:#8ea4eb;}
+    .g5{height:45px;background:var(--blue);}
+
+    /* TASK BOX */
+
+    .task-box{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .task{
+      border:1px solid var(--border);
+      background:white;
+
+      padding:12px;
+
+      font-size:11px;
+      font-family:'JetBrains Mono', monospace;
+    }
+
+    .task.fade{
+      opacity:.45;
+    }
+
+    /* LOAD GRAPH */
+
+    .load-bars{
+      height:52px;
+      display:flex;
+      align-items:flex-end;
+      gap:5px;
+    }
+
+    .load-bars div{
+      width:18px;
+    }
+
+    .l1{height:36px;background:black;}
+    .l2{height:27px;background:black;}
+    .l3{height:18px;background:var(--blue);}
+    .l4{height:36px;background:black;}
+
+    /* BLOCKER */
+
+    .circle{
+      width:54px;
+      height:54px;
+
+      border:2px solid var(--blue);
+      border-radius:50%;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .circle-inner{
+      width:18px;
+      height:18px;
+
+      border-radius:50%;
+      background:var(--blue);
+    }
+
+    /* NETWORK */
+
+    .network{
+      width:100%;
+      height:120px;
+
+      border:1px solid var(--border);
+      background:#f8f8f8;
+
+      position:relative;
+      overflow:hidden;
+    }
+
+    .network svg{
+      width:100%;
+      height:100%;
+    }
+
+    /* BURNDOWN */
+
+    .burndown{
+      height:90px;
+    }
+
+    .burndown svg{
+      width:100%;
+      height:100%;
+    }
+
+    /* CHANGE */
+
+    .change{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .line{
+      height:4px;
+    }
+
+    .c1{
+      width:100%;
+      background:var(--blue);
+    }
+
+    .c2{
+      width:52%;
+      background:black;
+    }
+
+    .c3{
+      width:72%;
+      background:#cdd6ea;
+    }
+
+    .c4{
+      width:62%;
+      background:#8ea4eb;
+    }
+
+    /* =========================
+       FOOTER
+    ========================== */
+
+    footer{
+      padding:70px 0 120px;
+      border-top:1px solid var(--border);
+
+      text-align:center;
+    }
+
+    footer h2{
+      font-size:56px;
+      line-height:1;
+      letter-spacing:-.06em;
+      font-weight:900;
+
+      margin-bottom:30px;
+    }
+
+    .btn-wrap{
+      display:flex;
+      justify-content:center;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .primary-btn{
+      background:black;
+      color:white;
+
+      padding:15px 30px;
+
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .primary-btn:hover{
+      background:var(--blue);
+    }
+
+    .secondary-btn{
+      background:transparent;
+      border:1px solid var(--border);
+
+      padding:15px 30px;
+
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .secondary-btn:hover{
+      border-color:black;
+    }
+
+    .footer-note{
+      margin-top:48px;
+
+      font-size:11px;
+      letter-spacing:.18em;
+
+      color:#777;
+
+      font-family:'JetBrains Mono', monospace;
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================== */
+
+    @media(max-width:1150px){
+
+      .hero{
+        grid-template-columns:1fr;
+      }
+
+      .hero-card{
+        justify-self:start;
+      }
+
+      .hero-title{
+        font-size:78px;
+      }
+
+      .feature-grid{
+        grid-template-columns:repeat(2,1fr);
+      }
+
+    }
+
+    @media(max-width:760px){
+
+      .hero{
+        padding-top:70px;
+      }
+
+      .hero-title{
+        font-size:56px;
+      }
+
+      .hero-text{
+        font-size:17px;
+      }
+
+      .feature-grid{
+        grid-template-columns:1fr;
+      }
+
+      .large{
+        grid-column:span 1;
+      }
+
+      footer h2{
+        font-size:38px;
+      }
+
+      .nav-links{
+        display:none;
+      }
+
+      .version{
+        display:none;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+
+  <nav class="navbar">
+
+    <div class="container navbar-inner">
+
+      <div class="nav-left">
+
+        <div class="logo-wrap">
+
+  <!-- Use this if logo image exists -->
+  <img src="logo_gallery/Logo.png" class="logo" alt="Scrummate Logo">
+
+
+  <div class="logo-text">
+    SCRUMMATE
+  </div>
+
+</div>
+
+      </div>
+
+      <div class="nav-right">
+
+        <div class="version">
+          v2.4.0-STABLE
+        </div>
+
+        <button
+          class="signup-btn"
+          onclick="window.location.href='/login.html'"
+        >
+          Sign Up
+        </button>
+
+      </div>
+
+    </div>
+
+  </nav>
+
+  <!-- HERO -->
+
+  <section class="container hero">
+
+    <div>
+
+      <div class="hero-tag">
+        YOUR AGILE COPILOT
+      </div>
+
+      <h1 class="hero-title">
+        Still writing <br>
+        <span>user stories?</span>
+      </h1>
+
+      <p class="hero-text">
+        Let ScrumMate agents handle tickets, summaries,
+        and sprint planning while you focus on building.
+      </p>
+
+    </div>
+
+    <div class="hero-card">
+
+      <div class="live-feed">
+        <div class="dot"></div>
+        LIVE FEED
+      </div>
+
+      <div class="graph-wrap">
+
+        <div class="bar">
+          <div class="bar-fill b1"></div>
+        </div>
+
+        <div class="bar">
+          <div class="bar-fill b2"></div>
+        </div>
+
+        <div class="bar small">
+          <div class="bar-fill b3"></div>
+        </div>
+
+      </div>
+
+      <div class="hero-footer">
+        <span>SPRINT 42</span>
+        <span>82% Velocity</span>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- FEATURES -->
+
+  <section class="container">
+
+    <div class="feature-grid">
+
+      <!-- 01 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          01 / ENGINE
+        </div>
+
+        <h3 class="feature-title">
+          Meeting Intelligence
+        </h3>
+
+        <p class="feature-text">
+          Real-time transcription with
+          multi-speaker QA labeling and
+          intent detection.
+        </p>
+
+        <div class="bars">
+          <div class="g1"></div>
+          <div class="g2"></div>
+          <div class="g3"></div>
+          <div class="g4"></div>
+          <div class="g5"></div>
+        </div>
+
+      </div>
+
+      <!-- 02 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          02 / SYNTHESIS
+        </div>
+
+        <h3 class="feature-title">
+          Auto-Generated MoM
+        </h3>
+
+        <p class="feature-text">
+          Instant user stories and technical
+          tasks mapped directly to your backlog.
+        </p>
+
+        <div class="task-box">
+
+          <div class="task">
+            PRO-102: Refactor API
+          </div>
+
+          <div class="task fade">
+            PRO-103: Schema update
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 03 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          03 / RESOURCE
+        </div>
+
+        <h3 class="feature-title">
+          Skill-Based Load Balancing
+        </h3>
+
+        <p class="feature-text">
+          Intelligent task assignment
+          based on current skill-set and
+          developer bandwidth.
+        </p>
+
+        <div class="load-bars">
+          <div class="l1"></div>
+          <div class="l2"></div>
+          <div class="l3"></div>
+          <div class="l4"></div>
+        </div>
+
+      </div>
+
+      <!-- 04 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          04 / PREVENTION
+        </div>
+
+        <h3 class="feature-title">
+          Blocker Detection
+        </h3>
+
+        <p class="feature-text">
+          Proactive standup analysis catches
+          cross-team dependencies before
+          they stall.
+        </p>
+
+        <div class="circle">
+          <div class="circle-inner"></div>
+        </div>
+
+      </div>
+
+      <!-- 05 -->
+
+      <div class="feature-card large">
+
+        <div class="feature-id">
+          05 / SYNC
+        </div>
+
+        <h3 class="feature-title">
+          Collaboration Suggestions
+        </h3>
+
+        <p class="feature-text">
+          Dynamic pairing suggestions based
+          on code review patterns and PR velocity.
+        </p>
+
+        <div class="network">
+
+          <svg viewBox="0 0 600 140">
+
+            <line x1="90" y1="75" x2="300" y2="40" stroke="#d8d8d8" stroke-width="1"/>
+            <line x1="90" y1="75" x2="300" y2="95" stroke="#d8d8d8" stroke-width="1"/>
+
+            <line x1="300" y1="40" x2="520" y2="75" stroke="#2450ff" stroke-width="2"/>
+            <line x1="300" y1="95" x2="520" y2="75" stroke="#d8d8d8" stroke-width="1"/>
+
+            <circle cx="90" cy="75" r="13" fill="#050505"/>
+            <circle cx="300" cy="40" r="13" fill="#2450ff"/>
+            <circle cx="300" cy="95" r="13" fill="#050505"/>
+            <circle cx="520" cy="75" r="13" fill="#050505"/>
+
+          </svg>
+
+        </div>
+
+      </div>
+
+      <!-- 06 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          06 / VELOCITY
+        </div>
+
+        <h3 class="feature-title">
+          Burn-down Visuals
+        </h3>
+
+        <p class="feature-text">
+          Sprint analytics with predictive
+          burn-down forecasting.
+        </p>
+
+        <div class="burndown">
+
+          <svg viewBox="0 0 300 100">
+
+            <polyline
+              points="0,10 80,42 150,52 220,78 300,95"
+              fill="none"
+              stroke="#2450ff"
+              stroke-width="3"
+            />
+
+            <polyline
+              points="0,10 300,95"
+              fill="none"
+              stroke="#7a7a7a"
+              stroke-width="1.5"
+              stroke-dasharray="6 6"
+            />
+
+          </svg>
+
+        </div>
+
+      </div>
+
+      <!-- 07 -->
+
+      <div class="feature-card">
+
+        <div class="feature-id">
+          07 / OPERATIONS
+        </div>
+
+        <h3 class="feature-title">
+          Change Management
+        </h3>
+
+        <p class="feature-text">
+          Track scope drift,
+          requirement deltas,
+          and sprint-over-sprint adjustments.
+        </p>
+
+        <div class="change">
+
+          <div class="line c1"></div>
+          <div class="line c2"></div>
+          <div class="line c3"></div>
+          <div class="line c4"></div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- FOOTER -->
+
+  <footer class="container">
+
+    <h2>
+      Ready to automate your Scrum process?
+    </h2>
+
+    <div class="btn-wrap">
+
+      <button
+        class="primary-btn"
+        onclick="window.location.href='/login.html'"
+      >
+        Schedule a Meeting
+      </button>
+
+      <button
+        class="secondary-btn"
+        onclick="window.location.href='/login.html'"
+      >
+        Start Your Scrum Process
+      </button>
+
+    </div>
+
+    <div class="footer-note">
+      SCRUMMATE — ENGINEERED BY Mishal Ali, Ayaan Mugghal &amp; Muaz Ahmed
+    </div>
+
+  </footer>
+
+</body>
+</html>

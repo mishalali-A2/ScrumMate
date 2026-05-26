@@ -1,0 +1,14 @@
+{
+  "bot_id": "6c611af1-cdbf-4cc7-9720-bbda41fe1656",
+  "meeting_url": "https://meet.google.com/xab-zskq-yio",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-05-09T16:52:43.383Z",
+  "stopped_at": "2026-05-09T16:53:18.729Z",
+  "transcript": [],
+  "statistics": {
+    "total_speakers": 0,
+    "total_words": 0,
+    "total_entries": 0,
+    "duration": 35
+  }
+}

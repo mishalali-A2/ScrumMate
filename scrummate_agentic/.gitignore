@@ -1,0 +1,12 @@
+venv
+.env
+chroma_db
+chunks
+meetings
+summaries
+user_stories
+n8n
+../.agents
+../skills-lock.json
+__pychache__
+tests/

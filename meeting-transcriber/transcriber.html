@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Meeting Transcriber</title>
+    <script>location.replace('index.html');</script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="header-nav">
+                <h1><i class="fas fa-captions"></i> ScrumMate</h1>
+                <div class="nav-links">
+                    <a href="transcriber.html" class="nav-link active">Transcriber</a>
+                    <a href="rag.html" class="nav-link">Meeting Search</a>
+                </div>
+            </nav>
+            <p class="subtitle">Join Google Meet meetings and generate actionable insights</p>
+        </header>
+
+        <div class="app-container">
+            <div class="control-panel">
+                <h2><i class="fas fa-video"></i> Start Transcription</h2>
+                
+                <div class="input-group">
+                    <label for="meetingUrl">
+                        <i class="fas fa-link"></i> Google Meet URL
+                    </label>
+                    <input 
+                        type="text" 
+                        id="meetingUrl" 
+                        placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    >
+                    <div class="hint">
+                        <i class="fas fa-info-circle"></i> Paste the full Google Meet URL
+                    </div>
+                </div>
+                <div class="control-panel">
+                    <div class="input-group meeting-type-container">
+                        <label><i class="fas fa-tasks"></i> Meeting Type</label>
+
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="radio" id="retrospective" name="meetingType" value="retrospective">
+                                Retrospective
+                            </label>
+
+                            <label class="checkbox-item">
+                                <input type="radio" id="dailyStandup" name="meetingType" value="daily-standup">
+                                Daily Standup
+                            </label>
+
+                            <label class="checkbox-item">
+                                <input type="radio" id="productOwner" name="meetingType" value="product-owner">
+                                Product Owner Meeting
+                            </label>
+                        </div>
+
+                        <div class="hint"><i class="fas fa-info-circle"></i> Select the type of meeting</div>
+                    </div>
+
+
+                <div class="button-group">
+                    <button id="startBtn" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Join Meeting
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>
+                        <i class="fas fa-stop"></i> Leave Meeting
+                    </button>
+                </div>
+
+                <div class="status-container">
+                    <h3><i class="fas fa-info-circle"></i> Status</h3>
+                    <div id="status" class="status idle">
+                        <i class="fas fa-clock"></i> Ready to start
+                    </div>
+                    <div id="botInfo" class="bot-info" style="display: none;">
+                        <div><strong>Bot ID:</strong> <span id="botId"></span></div>
+                        <div><strong>Status:</strong> <span id="botStatus"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcript-container">
+                <div class="transcript-header">
+                    <h2><i class="fas fa-comment-alt"></i> Live Transcript</h2>
+                    <div class="controls">
+                        <button id="clearBtn" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button id="copyBtn" class="btn btn-secondary">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="transcript" class="transcript">
+                    <div class="empty-state">
+                        <i class="fas fa-microphone-alt"></i>
+                        <p>Transcript will appear here once the meeting starts</p>
+                    </div>
+                </div>
+                
+                <div class="transcript-stats">
+                    <div><i class="fas fa-user-friends"></i> Speakers: <span id="speakerCount">0</span></div>
+                    <div><i class="fas fa-clock"></i> Last update: <span id="lastUpdate">Never</span></div>
+                    <div><i class="fas fa-file-word"></i> Words: <span id="wordCount">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3><i class="fas fa-graduation-cap"></i> How to Use</h3>
+            <ol>
+                <li>Copy your Google Meet URL</li>
+                <li>Paste the URL and click "Join Meeting"</li>
+                <li>The bot will join and start transcribing in real-time</li>
+                <li>When done, click "Leave Meeting" to save the transcript</li>
+                <li>Click "Run Pipeline" to generate meeting minutes, user stories, and assignments</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Pipeline Modal -->
+    <div id="pipelineModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cogs"></i> Processing Pipeline</h2>
+                <button class="modal-close" onclick="closePipelineModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="pipelineStatus" class="pipeline-status">
+                    <div class="pipeline-step" data-step="chunking">
+                        <i class="fas fa-circle"></i>
+                        <span>Chunking transcript</span>
+                    </div>
+                    <div class="pipeline-step" data-step="embedding">
+                        <i class="fas fa-circle"></i>
+                        <span>Generating embeddings</span>
+                    </div>
+                    <div class="pipeline-step" data-step="summarization">
+                        <i class="fas fa-circle"></i>
+                        <span>Creating meeting minutes</span>
+                    </div>
+                    <div class="pipeline-step" data-step="userstories">
+                        <i class="fas fa-circle"></i>
+                        <span>Extracting user stories</span>
+                    </div>
+                    <div class="pipeline-step" data-step="assignment">
+                        <i class="fas fa-circle"></i>
+                        <span>Assigning tasks</span>
+                    </div>
+                </div>
+                <div id="pipelineResult" class="pipeline-result" style="display: none;"></div>
+                <div id="pipelineError" class="pipeline-error" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

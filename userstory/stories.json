@@ -1,0 +1,179 @@
+[
+  {
+    "id": "US-001",
+    "user_story": "As a new user, I want to create an account using my email and password so that I can access the platform securely.",
+    "acceptance_criteria": [
+      "User can enter email, username, and password",
+      "Email must be unique",
+      "Password must meet security requirements",
+      "Confirmation message is shown after successful registration"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-002",
+    "user_story": "As a registered user, I want to log in to my account so that I can access my boards and tasks.",
+    "acceptance_criteria": [
+      "User can log in with valid credentials",
+      "Error shown for invalid credentials",
+      "Session is maintained after login"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 3
+  },
+  {
+    "id": "US-003",
+    "user_story": "As a user, I want to create a workspace so that I can organize multiple projects under one space.",
+    "acceptance_criteria": [
+      "User can name the workspace",
+      "Workspace is visible in dashboard",
+      "User becomes workspace admin"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-004",
+    "user_story": "As a workspace admin, I want to invite team members so that they can collaborate on projects.",
+    "acceptance_criteria": [
+      "Admin can send invitation via email",
+      "Invited user receives notification",
+      "User can accept or reject invitation"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-005",
+    "user_story": "As a user, I want to create a project board so that I can manage tasks visually.",
+    "acceptance_criteria": [
+      "Board has a name and description",
+      "Board is linked to a workspace",
+      "Board creator is assigned admin role"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-006",
+    "user_story": "As a board admin, I want to add members to a board so that they can contribute to tasks.",
+    "acceptance_criteria": [
+      "Admin can search users",
+      "Users can be added or removed",
+      "Roles (admin/member) can be assigned"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-007",
+    "user_story": "As a user, I want to create lists (e.g., To Do, In Progress, Done) so that I can organize tasks by status.",
+    "acceptance_criteria": [
+      "User can create, rename, and delete lists",
+      "Lists are displayed in order"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 3
+  },
+  {
+    "id": "US-008",
+    "user_story": "As a user, I want to create tasks within lists so that I can track work items.",
+    "acceptance_criteria": [
+      "Task has title and description",
+      "Task belongs to a list",
+      "Task creation is instant"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-009",
+    "user_story": "As a user, I want to assign tasks to team members so that responsibilities are clear.",
+    "acceptance_criteria": [
+      "Task can have one or multiple assignees",
+      "Assigned users receive notification"
+    ],
+    "urgency": "High",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-010",
+    "user_story": "As a user, I want to drag and drop tasks between lists so that I can update task progress.",
+    "acceptance_criteria": [
+      "Drag-and-drop functionality works smoothly",
+      "Task status updates instantly"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-011",
+    "user_story": "As a user, I want to set due dates for tasks so that deadlines are tracked.",
+    "acceptance_criteria": [
+      "User can select date and time",
+      "Overdue tasks are highlighted"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Frontend",
+    "effort_points": 3
+  },
+  {
+    "id": "US-012",
+    "user_story": "As a user, I want to comment on tasks so that I can communicate with team members.",
+    "acceptance_criteria": [
+      "Comments are timestamped",
+      "Comments show author name",
+      "Notifications sent to relevant users"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 5
+  },
+  {
+    "id": "US-013",
+    "user_story": "As a user, I want to attach files to tasks so that I can share relevant documents.",
+    "acceptance_criteria": [
+      "Supports multiple file types",
+      "Files are downloadable",
+      "Upload progress is shown"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
+    "effort_points": 5
+  },
+  {
+    "id": "US-014",
+    "user_story": "As a user, I want to receive notifications so that I stay updated on project activity.",
+    "acceptance_criteria": [
+      "Notifications for task assignment, comments, deadlines",
+      "Real-time or near real-time alerts",
+      "Notification panel accessible"
+    ],
+    "urgency": "High",
+    "skill_required": "Fullstack",
+    "effort_points": 8
+  },
+  {
+    "id": "US-015",
+    "user_story": "As a project manager, I want to view activity logs so that I can monitor team contributions.",
+    "acceptance_criteria": [
+      "Logs include task creation, updates, and assignments",
+      "Filter by user and date",
+      "Displays history of actions"
+    ],
+    "urgency": "Medium",
+    "skill_required": "Backend",
+    "effort_points": 5
+  }
+]

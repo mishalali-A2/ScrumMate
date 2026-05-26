@@ -1,0 +1,81 @@
+{
+  "bot_id": "da2298c3-595d-4869-9135-5d4ce913a95f",
+  "meeting_url": "https://meet.google.com/ugq-ikje-ihv",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-05-14T07:29:40.531Z",
+  "stopped_at": "2026-05-14T07:31:08.962Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "And I need someone to test the front end.",
+      "timestamp": "2026-05-14T07:30:38.970Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Can someone test the front end?",
+      "timestamp": "2026-05-14T07:30:39.293Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Oh my God. Oh my God. You are in rocky monkey here.",
+      "timestamp": "2026-05-14T07:30:39.616Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "'S six, seven, eight.",
+      "timestamp": "2026-05-14T07:30:39.931Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Yeah, right here. Progress report tomorrow.",
+      "timestamp": "2026-05-14T07:30:40.912Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Progressive Product Owner Report.",
+      "timestamp": "2026-05-14T07:30:45.635Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "We need someone to tell that's the front end.",
+      "timestamp": "2026-05-14T07:30:49.477Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Someone needs to test the neural network and the machine learning models.",
+      "timestamp": "2026-05-14T07:30:57.102Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I need someone working on the backend.",
+      "timestamp": "2026-05-14T07:30:58.999Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Why we say Yog?",
+      "timestamp": "2026-05-14T07:31:00.738Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "A model.",
+      "timestamp": "2026-05-14T07:31:04.569Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 75,
+    "total_entries": 11,
+    "duration": 88
+  }
+}

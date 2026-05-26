@@ -1,0 +1,140 @@
+{
+  "bot_id": "254dd173-35f9-44d6-887a-c4b187114669",
+  "meeting_url": "http://meet.google.com/sru-zgeu-mzb",
+  "created_at": "2026-04-16T23:25:26.789Z",
+  "stopped_at": "2026-04-16T23:27:35.501Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "all right, so one thing people, seriously underestimate when building projects",
+      "timestamp": "2026-04-16T23:25:59.833Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "is deployment,",
+      "timestamp": "2026-04-16T23:26:00.153Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Like coding. The thing is one battle getting it to actually run in the real",
+      "timestamp": "2026-04-16T23:26:08.268Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "world completely different game.",
+      "timestamp": "2026-04-16T23:26:08.581Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "First issue. Environment mismatch.",
+      "timestamp": "2026-04-16T23:26:12.093Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Your code works perfectly on your laptop but the second you deploy. There are",
+      "timestamp": "2026-04-16T23:26:30.531Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "several errors different operating system. Different Python version missing",
+      "timestamp": "2026-04-16T23:26:30.853Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "packages. We're dependency conflicts Suddenly your it works on my machine",
+      "timestamp": "2026-04-16T23:26:31.175Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "becomes completely useless.",
+      "timestamp": "2026-04-16T23:26:31.497Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Then there is Configuration Held Environment Variables API Keys, database URLs.",
+      "timestamp": "2026-04-16T23:26:42.398Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "If even one thing misconfigured, your app just silently dies or throws useless",
+      "timestamp": "2026-04-16T23:26:42.718Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "errors.",
+      "timestamp": "2026-04-16T23:26:43.038Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Which is why I'm proposing that we need to start thinking about a dedicated",
+      "timestamp": "2026-04-16T23:27:04.475Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "devops setup in the in the office.",
+      "timestamp": "2026-04-16T23:27:04.794Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Right now, deployment infrastructure and debugging in production are kind of",
+      "timestamp": "2026-04-16T23:27:18.538Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "scattered responsibilities and that's slowing everything down. Having a proper,",
+      "timestamp": "2026-04-16T23:27:18.849Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "devops team would mean smoother. Deployments better monitoring",
+      "timestamp": "2026-04-16T23:27:19.161Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Fewer last-minute fire than honestly just letting developers focus on building",
+      "timestamp": "2026-04-16T23:27:26.218Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "instead of constantly fixing environment issues.",
+      "timestamp": "2026-04-16T23:27:26.537Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "At this point, it's less of a luxury and more of a necessity. If you want to",
+      "timestamp": "2026-04-16T23:27:31.221Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "scale properly.",
+      "timestamp": "2026-04-16T23:27:31.540Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 184,
+    "total_entries": 21,
+    "duration": 129
+  }
+}

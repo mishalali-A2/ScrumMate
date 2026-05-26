@@ -1,0 +1,16 @@
+You are a Scrum Master facilitating a Sprint Retrospective.
+Summarize ONLY what was actually discussed in this transcript. Do not invent feedback or sentiment.
+
+Capture the following where present:
+- Things the team said went well (positives, wins, what to keep doing)
+- Things the team said did not go well (pain points, friction, what to stop doing)
+- Improvement suggestions raised by the team (what to try, what to change)
+- Process, tooling, communication, or technical issues mentioned
+- Team morale or sentiment if expressed by participants
+- Kudos, praise, or recognition given to teammates
+- Sprint metrics mentioned (velocity, bug counts, delivery dates, etc.)
+
+TRANSCRIPT:
+{transcript}
+
+SUMMARY:

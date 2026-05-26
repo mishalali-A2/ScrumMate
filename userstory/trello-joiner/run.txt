@@ -1,0 +1,4 @@
+pm2 start server.js --name trello-bot
+pm2 logs trello-bot
+pm2 restart trello-bot
+pm2 stop trello-bot

@@ -1,0 +1,52 @@
+{
+  "total_blockers": 2,
+  "team_updates": [
+    {
+      "member": "Ahmed",
+      "yesterday": "Progress on \"API integration for the client dashboard\" (linking user activity logs with Analytics Service) has slowed due to handling inconsistent response formats from a third-party API.",
+      "today": "Continuing work on the \"API integration for the client dashboard,\" focusing on addressing the inconsistent API response formats.",
+      "has_blocker": true
+    },
+    {
+      "member": "Sara",
+      "yesterday": "Progress on \"API integration for the client dashboard\" (linking user activity logs with Analytics Service) has slowed due to handling inconsistent response formats from a third-party API.",
+      "today": "Continuing work on the \"API integration for the client dashboard,\" focusing on addressing the inconsistent API response formats.",
+      "has_blocker": true
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "Ahmed, Sara",
+      "description": "Third-party API is returning inconsistent response formats.",
+      "impact": "High",
+      "blocked_task": "API integration for the client dashboard",
+      "dependencies": [
+        "Third-party API"
+      ],
+      "suggested_resolution": null,
+      "status": "Open"
+    },
+    {
+      "id": "B-002",
+      "owner": "Ahmed, Sara",
+      "description": "Ahmed and Sara are working in parallel on the same API integration, leading to separate fixes and different assumptions.",
+      "impact": "High",
+      "blocked_task": "API integration for the client dashboard",
+      "dependencies": [
+        "Ahmed",
+        "Sara"
+      ],
+      "suggested_resolution": "Ahmed and Sara need to sync up and work together on the API integration task to ensure alignment and a unified approach.",
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "Ahmed, Sara",
+      "action": "Sync up immediately for a 30-minute alignment session on the API integration task.",
+      "relates_to_blocker": "B-002"
+    }
+  ]
+}

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="workspace-shell.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        /* ── page-local vars ─────────────────────────────────── */
+        :root {
+            --accent:        #4f7cff;
+            --accent-2:      #5de4ff;
+            --accent-soft:   rgba(79, 124, 255, 0.18);
+            --success:       #22c55e;
+            --warning:       #f59e0b;
+            --danger:        #ef4444;
+            --glow: 0 0 0 1px rgba(79,124,255,0.14), 0 12px 32px rgba(79,124,255,0.1);
+        }
+
+        /* ── content area ────────────────────────────────────── */
+        .content-body {
+            padding: 28px 28px 48px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .content-body::-webkit-scrollbar { width: 6px; }
+        .content-body::-webkit-scrollbar-thumb {
+            background: rgba(124,138,165,0.32);
+            border-radius: 999px;
+        }
+
+        /* ── page header ─────────────────────────────────────── */
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .page-header-left {}
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--accent-2);
+            margin-bottom: 6px;
+        }
+        .page-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 4px;
+        }
+        .page-subtitle { font-size: 13px; color: var(--text-3); }
+
+        /* ── topbar controls ─────────────────────────────────── */
+        .ctrl-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .refresh-btn {
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.82);
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 140ms ease;
+        }
+        .refresh-btn:hover { color: var(--text-1); border-color: rgba(79,124,255,.24); background: rgba(79,124,255,.08); }
+        .refresh-btn.loading { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .auto-toggle {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        /* ── metric cards ────────────────────────────────────── */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(247,250,255,.98));
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 140ms ease;
+        }
+        .metric-card:hover {
+            border-color: rgba(79,124,255,.18);
+            box-shadow: 0 0 0 1px rgba(79,124,255,.08), 0 14px 30px rgba(79,124,255,.08);
+            transform: translateY(-1px);
+        }
+        .metric-label {
+            font-size: 11px; color: var(--text-4);
+            text-transform: uppercase; letter-spacing: .08em;
+            font-weight: 600; margin-bottom: 12px;
+        }
+        .metric-value { font-size: 32px; font-weight: 800; letter-spacing: -.06em; color: var(--text-1); margin-bottom: 8px; }
+        .metric-footer { font-size: 11px; color: var(--text-4); }
+
+        /* ── boards grid ─────────────────────────────────────── */
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--text-1); margin-bottom: 12px; letter-spacing: -.02em; }
+        .boards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+        .board-card {
+            background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(250,252,255,.98));
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px;
+            transition: all 140ms ease;
+            cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 14px;
+            min-height: 300px;
+        }
+        .board-card:hover { border-color: rgba(79,124,255,.18); box-shadow: var(--glow); transform: translateY(-2px); }
+        .board-name {
+            font-size: 13px; font-weight: 700; color: var(--text-1);
+            text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;
+            line-height: 1.4; flex-shrink: 0;
+        }
+        .board-name::before { content: '📋'; font-size: 16px; flex-shrink: 0; }
+        .board-completion { width: 100%; background: rgba(79,124,255,.1); border-radius: 10px; padding: 10px; }
+        .progress-label { font-size: 11px; color: var(--text-3); margin-bottom: 6px; display: flex; justify-content: space-between; font-weight: 600; }
+        .progress-bar { width: 100%; height: 6px; background: rgba(79,124,255,.1); border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width .6s ease; }
+        .board-chart-container { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 140px; }
+        canvas { max-width: 100%; max-height: 100%; }
+
+        /* ── modal ───────────────────────────────────────────── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.4); backdrop-filter: blur(4px);
+            z-index: 1000; align-items: center; justify-content: center;
+            padding: 20px; overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: #fff; border-radius: 20px; padding: 32px;
+            max-width: 1200px; width: 100%; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.3);
+            animation: slideUp .3s ease;
+        }
+        @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+        .modal-title { font-size: 24px; font-weight: 800; color: var(--text-1); display: flex; align-items: center; gap: 12px; }
+        .modal-close {
+            width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+            background: rgba(255,255,255,.82); color: var(--text-3);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 140ms ease; flex-shrink: 0;
+        }
+        .modal-close:hover { color: var(--text-1); border-color: rgba(79,124,255,.24); background: rgba(79,124,255,.08); }
+        .modal-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+        .modal-stat { background: rgba(79,124,255,.04); border: 1px solid rgba(79,124,255,.1); border-radius: 12px; padding: 14px; }
+        .modal-stat-label { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 4px; }
+        .modal-stat-value { font-size: 24px; font-weight: 800; color: var(--text-1); }
+        .modal-charts-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; margin-bottom: 24px; }
+        .modal-chart-wrapper { background: #fff; border: 1px solid rgba(79,124,255,.12); border-radius: 16px; padding: 16px; position: relative; }
+        .chart-title { font-size: 12px; font-weight: 700; color: var(--text-1); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .chart-title::before { content:''; width:3px; height:14px; background: linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:1px; }
+        .chart-container { flex:1; position:relative; display:flex; align-items:center; justify-content:center; min-height:280px; }
+
+        /* ── states ──────────────────────────────────────────── */
+        .loading-state { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 60px 20px; color: var(--text-4); font-size: 14px; }
+        .loading-spinner { width:16px; height:16px; border:2px solid rgba(79,124,255,.2); border-top-color:var(--accent); border-radius:999px; animation:spin 1s linear infinite; }
+        .error-banner { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:12px; padding:16px; color:#b91c1c; font-size:13px; margin-bottom:20px; }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-4); font-size:14px; }
+        .last-updated { font-size:11px; color:var(--text-4); margin-top:12px; text-align:center; }
+
+        @media (max-width: 1100px) { .metrics-grid { grid-template-columns: repeat(2,1fr); } .modal-stats { grid-template-columns: repeat(2,1fr); } .modal-charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 700px)  { .metrics-grid { grid-template-columns: 1fr; } .boards-grid { grid-template-columns: 1fr; } .modal-content { padding:20px; } .modal-stats { grid-template-columns: repeat(2,1fr); } }
+    </style>
+</head>
+<body data-nav="analytics">
+<div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                    <path d="M2.5 4h11"></path><path d="M2.5 8h11"></path><path d="M2.5 12h11"></path>
+                </svg>
+            </button>
+            <div class="topbar-title">
+                <div class="topbar-heading">Analytics</div>
+                <div class="topbar-meta" id="topbarMeta"></div>
+            </div>
+            <div class="topbar-spacer"></div>
+            <div class="ctrl-row">
+                <label class="auto-toggle">
+                    <input type="checkbox" id="autoRefreshToggle">
+                    <span>Auto-refresh</span>
+                </label>
+                <button class="refresh-btn" id="refreshBtn" title="Refresh analytics">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1.5 4a6.5 6.5 0 1 0 6.5-6.5"></path>
+                        <path d="M8 1.5V5.5h4"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content-body">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <div class="eyebrow">Trello Integration</div>
+                    <h1 class="page-title">Board Analytics</h1>
+                    <p class="page-subtitle">Real-time insights from your project boards · Click any board for detailed charts</p>
+                </div>
+            </div>
+
+            <div id="errorContainer"></div>
+            <div id="loadingContainer" class="loading-state" style="display:none">
+                <div class="loading-spinner"></div>
+                <span>Loading analytics…</span>
+            </div>
+
+            <div id="analyticsContainer" style="display:none">
+                <div class="metrics-grid" id="metricsGrid"></div>
+                <div class="section">
+                    <div class="section-title">Board Breakdown</div>
+                    <div class="boards-grid" id="boardsGrid"></div>
+                </div>
+                <div class="last-updated" id="lastUpdated"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- BOARD DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalBoardName">Board Details</div>
+            <button class="modal-close" id="modalCloseBtn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M5 5l10 10M15 5l-10 10"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-stats" id="modalStats"></div>
+        <div class="modal-charts-grid" id="modalChartsGrid"></div>
+    </div>
+</div>
+
+<script src="navbar-loader.js"></script>
+<script>
+    const refreshBtn        = document.getElementById('refreshBtn');
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+    const errorContainer    = document.getElementById('errorContainer');
+    const loadingContainer  = document.getElementById('loadingContainer');
+    const analyticsContainer= document.getElementById('analyticsContainer');
+    const metricsGrid       = document.getElementById('metricsGrid');
+    const boardsGrid        = document.getElementById('boardsGrid');
+    const lastUpdated       = document.getElementById('lastUpdated');
+    const modalOverlay      = document.getElementById('modalOverlay');
+    const modalCloseBtn     = document.getElementById('modalCloseBtn');
+
+    let autoRefreshInterval = null;
+    let currentData = null;
+
+    // ── Fetch user's allowed board IDs from the DB ────────────
+    async function fetchAllowedBoardIds(email) {
+        if (!email) return null; // null = no filter
+        try {
+            const r = await fetch(`/api/projects/user-boards?email=${encodeURIComponent(email)}`);
+            const d = await r.json();
+            if (d.success && Array.isArray(d.boardIds)) return new Set(d.boardIds);
+        } catch (_) {}
+        return null;
+    }
+
+    // ── Main fetch ────────────────────────────────────────────
+    async function fetchAnalytics() {
+        try {
+            refreshBtn.classList.add('loading');
+            errorContainer.innerHTML = '';
+            loadingContainer.style.display = 'flex';
+            analyticsContainer.style.display = 'none';
+
+            // Get email from sessionStorage (set by navbar-loader)
+            const email = sessionStorage.getItem('userEmail') || '';
+
+            const [trelloRes, allowedBoardIds] = await Promise.all([
+                fetch('/api/trello/boards-detailed'),
+                fetchAllowedBoardIds(email)
+            ]);
+
+            const data = await trelloRes.json();
+            loadingContainer.style.display = 'none';
+
+            if (!trelloRes.ok || !data.success) {
+                showError(data.error || 'Failed to load analytics');
+                return;
+            }
+
+            // Filter boards by user's project membership
+            if (allowedBoardIds !== null && allowedBoardIds.size > 0) {
+                data.workspace.boardsDetail = data.workspace.boardsDetail.filter(
+                    b => allowedBoardIds.has(b.id)
+                );
+            }
+
+            // Recompute aggregated totals from filtered boards
+            const totals = { cards: 0, done: 0, open: 0, blocked: 0 };
+            for (const b of data.workspace.boardsDetail) {
+                totals.cards   += b.metrics.total;
+                totals.done    += b.metrics.done;
+                totals.open    += b.metrics.open;
+                totals.blocked += b.metrics.blocked;
+            }
+            data.totals.workspace = totals;
+            data.totals.completionPercent = totals.cards
+                ? Math.round(100 * totals.done / totals.cards)
+                : 100;
+            data.workspace.boardCount = data.workspace.boardsDetail.length;
+
+            currentData = data;
+            analyticsContainer.style.display = 'block';
+            renderMetrics(data);
+            renderBoards(data);
+            updateLastFetched();
+        } catch (error) {
+            loadingContainer.style.display = 'none';
+            analyticsContainer.style.display = 'block';
+            showError(error.message || 'Connection error');
+        } finally {
+            refreshBtn.classList.remove('loading');
+        }
+    }
+
+    function renderMetrics(data) {
+        const t = data.totals.workspace;
+        metricsGrid.innerHTML = `
+            <div class="metric-card">
+                <div class="metric-label">Total Tasks</div>
+                <div class="metric-value">${t.cards}</div>
+                <div class="metric-footer">${data.workspace.boardCount} board${data.workspace.boardCount !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Completed</div>
+                <div class="metric-value">${t.done}</div>
+                <div class="metric-footer">${data.totals.completionPercent}% complete</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">In Progress</div>
+                <div class="metric-value">${t.open}</div>
+                <div class="metric-footer">${t.cards ? Math.round(100 * t.open / t.cards) : 0}% of total</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Blocked</div>
+                <div class="metric-value">${t.blocked}</div>
+                <div class="metric-footer">Requires attention</div>
+            </div>
+        `;
+    }
+
+    function renderBoards(data) {
+        if (!data.workspace.boardsDetail.length) {
+            boardsGrid.innerHTML = '<div class="empty-state">No boards linked to your projects yet.</div>';
+            return;
+        }
+        boardsGrid.innerHTML = data.workspace.boardsDetail.map((board, i) => {
+            const m = board.metrics;
+            const completion = m.total ? Math.round(100 * m.done / m.total) : 0;
+            return `
+                <div class="board-card" onclick="openBoardDetails(${i})">
+                    <div class="board-name">${board.name}</div>
+                    <div class="board-chart-container">
+                        <canvas id="pieChart-${i}"></canvas>
+                    </div>
+                    <div class="board-completion">
+                        <div class="progress-label"><span>Completion</span><span>${completion}%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${completion}%"></div></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        data.workspace.boardsDetail.forEach((board, i) => renderBoardPieChart(board, i));
+    }
+
+    function renderBoardPieChart(board, i) {
+        const m = board.metrics;
+        const ctx = document.getElementById(`pieChart-${i}`);
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Done', 'In Progress', 'Blocked'],
+                datasets: [{ data: [m.done, m.open, m.blocked], backgroundColor: ['rgba(34,197,94,.9)', 'rgba(245,158,11,.9)', 'rgba(239,68,68,.9)'], borderColor: '#fff', borderWidth: 2, borderRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,.9)', padding: 10, bodyFont: { size: 11 }, borderColor: 'rgba(79,124,255,.3)', borderWidth: 1 } } }
+        });
+    }
+
+    function openBoardDetails(i) {
+        if (!currentData) return;
+        const board = currentData.workspace.boardsDetail[i];
+        const m = board.metrics;
+        document.getElementById('modalBoardName').textContent = `📋 ${board.name}`;
+        document.getElementById('modalStats').innerHTML = `
+            <div class="modal-stat"><div class="modal-stat-label">Total Tasks</div><div class="modal-stat-value">${m.total}</div></div>
+            <div class="modal-stat"><div class="modal-stat-label">Completed</div><div class="modal-stat-value">${m.done}</div></div>
+            <div class="modal-stat"><div class="modal-stat-label">In Progress</div><div class="modal-stat-value">${m.open}</div></div>
+            <div class="modal-stat"><div class="modal-stat-label">Blocked</div><div class="modal-stat-value">${m.blocked}</div></div>
+        `;
+        document.getElementById('modalChartsGrid').innerHTML = `
+            <div class="modal-chart-wrapper"><div class="chart-title">Task Distribution</div><div class="chart-container"><canvas id="mpie-${i}"></canvas></div></div>
+            <div class="modal-chart-wrapper"><div class="chart-title">Burndown Trend</div><div class="chart-container"><canvas id="mburn-${i}"></canvas></div></div>
+            <div class="modal-chart-wrapper"><div class="chart-title">Cumulative Flow</div><div class="chart-container"><canvas id="mcum-${i}"></canvas></div></div>
+            <div class="modal-chart-wrapper"><div class="chart-title">Burnup Progress</div><div class="chart-container"><canvas id="mbup-${i}"></canvas></div></div>
+        `;
+        setTimeout(() => renderModalCharts(board, i), 0);
+        modalOverlay.classList.add('active');
+    }
+
+    function renderModalCharts(board, i) {
+        const m = board.metrics;
+
+        // Pie
+        const pieCtx = document.getElementById(`mpie-${i}`);
+        if (pieCtx) new Chart(pieCtx, {
+            type: 'doughnut',
+            data: { labels: ['Done','In Progress','Blocked'], datasets: [{ data:[m.done,m.open,m.blocked], backgroundColor:['rgba(34,197,94,.9)','rgba(245,158,11,.9)','rgba(239,68,68,.9)'], borderColor:'#fff', borderWidth:3, borderRadius:4 }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins: { legend:{ position:'bottom', labels:{ font:{size:12,weight:'600'}, padding:16, usePointStyle:true, generateLabels: ch => ch.data.labels.map((l,idx) => ({ text:`${l}: ${ch.data.datasets[0].data[idx]}`, fillStyle:ch.data.datasets[0].backgroundColor[idx], hidden:false, index:idx, pointStyle:'circle' })) } }, tooltip:{ backgroundColor:'rgba(0,0,0,.9)', padding:12, titleFont:{size:12,weight:'bold'}, bodyFont:{size:11} } } }
+        });
+
+        const days = Array.from({length:14},(_,d)=>`Day ${d+1}`);
+
+        // Burndown
+        const burnCtx = document.getElementById(`mburn-${i}`);
+        if (burnCtx) {
+            const burndown = board.burndown || [];
+            const labels = burndown.length ? burndown.map(d=>d.date.slice(5)) : days;
+            const ideal  = burndown.length ? burndown.map(d=>d.idealRemaining) : genIdeal(m.total,14);
+            const actual = burndown.length ? burndown.map(d=>d.actualRemaining): genActual(m.total,m.done,14);
+            new Chart(burnCtx, {
+                type:'line', data:{ labels, datasets:[
+                    { label:'Ideal', data:ideal, borderColor:'rgba(79,124,255,.7)', borderDash:[6,4], fill:false, tension:.4, pointRadius:3, borderWidth:2.5 },
+                    { label:'Actual', data:actual, borderColor:'rgba(34,197,94,.85)', fill:true, backgroundColor:'rgba(34,197,94,.08)', tension:.4, pointRadius:4, borderWidth:2.5 }
+                ]},
+                options: lineOpts(m.total)
+            });
+        }
+
+        // Cumulative flow
+        const cumCtx = document.getElementById(`mcum-${i}`);
+        if (cumCtx) new Chart(cumCtx, {
+            type:'line', data:{ labels:days, datasets:[
+                { label:'Done',        data:genCum(m.done,14),    borderColor:'rgba(34,197,94,.85)',  backgroundColor:'rgba(34,197,94,.12)',  fill:true, tension:.4, pointRadius:3, borderWidth:2 },
+                { label:'In Progress', data:genCum(m.open,14),    borderColor:'rgba(245,158,11,.85)', backgroundColor:'rgba(245,158,11,.12)', fill:true, tension:.4, pointRadius:3, borderWidth:2 },
+                { label:'Blocked',     data:genCum(m.blocked,14), borderColor:'rgba(239,68,68,.85)',  backgroundColor:'rgba(239,68,68,.12)',  fill:true, tension:.4, pointRadius:3, borderWidth:2 }
+            ]},
+            options: lineOpts(null)
+        });
+
+        // Burnup
+        const bupCtx = document.getElementById(`mbup-${i}`);
+        if (bupCtx) new Chart(bupCtx, {
+            type:'line', data:{ labels:days, datasets:[
+                { label:'Total Scope', data:genBupTotal(m.total,14), borderColor:'rgba(79,124,255,.7)',  backgroundColor:'transparent', borderDash:[6,4], tension:.4, pointRadius:3, borderWidth:2.5 },
+                { label:'Completed',  data:genBupDone(m.done,14),   borderColor:'rgba(34,197,94,.85)', backgroundColor:'rgba(34,197,94,.08)', fill:true, tension:.4, pointRadius:4, borderWidth:2.5 }
+            ]},
+            options: lineOpts(null)
+        });
+    }
+
+    // ── chart helpers ─────────────────────────────────────────
+    function lineOpts(yMax) {
+        return {
+            responsive:true, maintainAspectRatio:false,
+            interaction:{ mode:'index', intersect:false },
+            plugins:{ legend:{ position:'top', labels:{ font:{size:11,weight:'600'}, padding:12, usePointStyle:true, color:'#475467' } }, tooltip:{ backgroundColor:'rgba(0,0,0,.9)', padding:10, titleFont:{size:11,weight:'bold'}, bodyFont:{size:10} } },
+            scales:{ y:{ beginAtZero:true, ...(yMax ? {max:yMax} : {}), ticks:{font:{size:10},color:'#667085'}, grid:{color:'rgba(79,124,255,.06)'} }, x:{ ticks:{font:{size:9},color:'#667085'}, grid:{display:false} } }
+        };
+    }
+    function genIdeal(tot,n){ const s=tot/n; return Array.from({length:n},(_,i)=>Math.max(0,tot-s*(i+1))); }
+    function genActual(tot,done,n){ const rem=tot-done; const data=[]; for(let i=0;i<n-1;i++){ const p=(i/(n-1))*done; data.push(tot-p+(Math.random()-.5)*tot*.3); } data.push(rem); return data.map(v=>Math.max(0,v)); }
+    function genCum(val,n){ return Array.from({length:n},(_,i)=>Math.max(0,(i/n)*val+(Math.random()-.5)*val*.1)); }
+    function genBupDone(done,n){ const d=Array.from({length:n},(_,i)=>Math.max(0,(i/n)*done+(Math.random()-.5)*done*.15)); d[n-1]=done; return d; }
+    function genBupTotal(tot,n){ return Array.from({length:n},()=>tot+(Math.random()-.3)*tot*.05); }
+
+    function updateLastFetched() {
+        lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    }
+    function showError(msg) {
+        errorContainer.innerHTML = `<div class="error-banner">⚠️ ${msg}</div>`;
+        analyticsContainer.style.display = 'block';
+    }
+    function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(fetchAnalytics, 30000); }
+    function stopAutoRefresh()  { if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; } }
+
+    // ── events ────────────────────────────────────────────────
+    modalCloseBtn.addEventListener('click', () => modalOverlay.classList.remove('active'));
+    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); });
+    refreshBtn.addEventListener('click', fetchAnalytics);
+    autoRefreshToggle.addEventListener('change', e => {
+        if (e.target.checked) startAutoRefresh(); else stopAutoRefresh();
+        localStorage.setItem('trelloAutoRefresh', e.target.checked);
+    });
+
+    // ── init: wait for navbar-loader to populate sessionStorage ──
+    // navbar-loader populates userEmail asynchronously; poll briefly then fetch
+    let initAttempts = 0;
+    function initWhenReady() {
+        const email = sessionStorage.getItem('userEmail');
+        if (email || initAttempts >= 20) {
+            fetchAnalytics();
+            const saved = localStorage.getItem('trelloAutoRefresh') === 'true';
+            if (saved) { autoRefreshToggle.checked = true; startAutoRefresh(); }
+        } else {
+            initAttempts++;
+            setTimeout(initWhenReady, 150);
+        }
+    }
+    initWhenReady();
+</script>
+</body>
+</html>

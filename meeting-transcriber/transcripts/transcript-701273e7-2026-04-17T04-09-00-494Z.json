@@ -1,0 +1,195 @@
+{
+  "bot_id": "701273e7-895f-4de3-8ecf-682b5e6d3204",
+  "meeting_url": "https://meet.google.com/fwc-syvt-sim",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-04-17T04:06:07.885Z",
+  "stopped_at": "2026-04-17T04:09:00.495Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Alright team. So a quick stand up update.",
+      "timestamp": "2026-04-17T04:06:55.571Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Looking at where we are right now. There is one area that's starting to slow us",
+      "timestamp": "2026-04-17T04:06:55.884Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "down a bit and I want to address it early before it becomes a bigger issue.",
+      "timestamp": "2026-04-17T04:06:56.196Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Ahmed and Sara, you've both been working on the API integration for the client",
+      "timestamp": "2026-04-17T04:07:06.277Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "dashboard.",
+      "timestamp": "2026-04-17T04:07:06.590Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Specifically. The part where we think user activity logs with the Analytics",
+      "timestamp": "2026-04-17T04:07:11.824Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Service?",
+      "timestamp": "2026-04-17T04:07:12.137Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "From what I'm seeing, you're still stuck on handling inconsistent response",
+      "timestamp": "2026-04-17T04:07:20.299Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "formats coming back from the third party API.",
+      "timestamp": "2026-04-17T04:07:20.617Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Now I get it that kind of issue can be Missy, One and Point Return screen JSON.",
+      "timestamp": "2026-04-17T04:07:33.200Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Another randomness data differently and suddenly you're writing Edge, case",
+      "timestamp": "2026-04-17T04:07:33.524Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "handler instead of moving forward.",
+      "timestamp": "2026-04-17T04:07:33.844Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "But we've been on this for a couple of days now. And progress has really slowed",
+      "timestamp": "2026-04-17T04:07:38.936Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "down more than it should have.",
+      "timestamp": "2026-04-17T04:07:39.258Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "And what concerns me more isn't the problem itself is that both you and Sarah",
+      "timestamp": "2026-04-17T04:07:50.042Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "have been trying to solve it in parallel, rather than working together.",
+      "timestamp": "2026-04-17T04:07:50.357Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "I can see separate fixes being attempted different assumptions being made and",
+      "timestamp": "2026-04-17T04:07:57.956Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "not enough alignment between you.",
+      "timestamp": "2026-04-17T04:07:58.269Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "this is exactly the kind of situation, where coll,",
+      "timestamp": "2026-04-17T04:08:09.663Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Instead of working in silos sync up right now set together, walk through. What",
+      "timestamp": "2026-04-17T04:08:18.194Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "each of you have tried agree on a single approach and move forward as the unit",
+      "timestamp": "2026-04-17T04:08:18.516Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Even a quick 30 minute alignment could save hours of duplicated effort.",
+      "timestamp": "2026-04-17T04:08:23.175Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Is the API is truly unreliable. Then let's define a consistent, internal format",
+      "timestamp": "2026-04-17T04:08:32.339Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "and normalize everything at one layer.",
+      "timestamp": "2026-04-17T04:08:32.669Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "But make that decision together not separately.",
+      "timestamp": "2026-04-17T04:08:35.805Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "For everyone else. This is a good reminder to if your blog for too long. That's",
+      "timestamp": "2026-04-17T04:08:47.322Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "a signal, either raise it or pull someone in. Don't let it drag you quietly.",
+      "timestamp": "2026-04-17T04:08:47.642Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Let's seem to have this unblocked by the next stand up speed martyrs, but smart",
+      "timestamp": "2026-04-17T04:08:54.911Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "coordination matters as well.",
+      "timestamp": "2026-04-17T04:08:55.227Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Okay, let's get moving.",
+      "timestamp": "2026-04-17T04:08:57.093Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 316,
+    "total_entries": 30,
+    "duration": 173
+  }
+}

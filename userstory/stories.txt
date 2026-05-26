@@ -1,0 +1,150 @@
+Project: Agile Project Management Web Application
+
+---
+
+User Story 1: User Registration
+As a new user, I want to create an account using my email and password so that I can access the platform securely.
+Acceptance Criteria:
+
+* User can enter email, username, and password
+* Email must be unique
+* Password must meet security requirements
+* Confirmation message is shown after successful registration
+
+---
+
+User Story 2: User Login
+As a registered user, I want to log in to my account so that I can access my boards and tasks.
+Acceptance Criteria:
+
+* User can log in with valid credentials
+* Error shown for invalid credentials
+* Session is maintained after login
+
+---
+
+User Story 3: Create Workspace
+As a user, I want to create a workspace so that I can organize multiple projects under one space.
+Acceptance Criteria:
+
+* User can name the workspace
+* Workspace is visible in dashboard
+* User becomes workspace admin
+
+---
+
+User Story 4: Invite Team Members
+As a workspace admin, I want to invite team members so that they can collaborate on projects.
+Acceptance Criteria:
+
+* Admin can send invitation via email
+* Invited user receives notification
+* User can accept or reject invitation
+
+---
+
+User Story 5: Create Project Board
+As a user, I want to create a project board so that I can manage tasks visually.
+Acceptance Criteria:
+
+* Board has a name and description
+* Board is linked to a workspace
+* Board creator is assigned admin role
+
+---
+
+User Story 6: Add Members to Board
+As a board admin, I want to add members to a board so that they can contribute to tasks.
+Acceptance Criteria:
+
+* Admin can search users
+* Users can be added/removed
+* Roles (admin/member) can be assigned
+
+---
+
+User Story 7: Create Task List
+As a user, I want to create lists (e.g., To Do, In Progress, Done) so that I can organize tasks by status.
+Acceptance Criteria:
+
+* User can create, rename, and delete lists
+* Lists are displayed in order
+
+---
+
+User Story 8: Create Task/Card
+As a user, I want to create tasks within lists so that I can track work items.
+Acceptance Criteria:
+
+* Task has title and description
+* Task belongs to a list
+* Task creation is instant
+
+---
+
+User Story 9: Assign Task to Member
+As a user, I want to assign tasks to team members so that responsibilities are clear.
+Acceptance Criteria:
+
+* Task can have one or multiple assignees
+* Assigned users receive notification
+
+---
+
+User Story 10: Move Tasks Between Lists
+As a user, I want to drag and drop tasks between lists so that I can update task progress.
+Acceptance Criteria:
+
+* Drag-and-drop functionality works smoothly
+* Task status updates instantly
+
+---
+
+User Story 11: Add Due Dates
+As a user, I want to set due dates for tasks so that deadlines are tracked.
+Acceptance Criteria:
+
+* User can select date/time
+* Overdue tasks are highlighted
+
+---
+
+User Story 12: Add Comments to Tasks
+As a user, I want to comment on tasks so that I can communicate with team members.
+Acceptance Criteria:
+
+* Comments are timestamped
+* Comments show author name
+* Notifications sent to relevant users
+
+---
+
+User Story 13: File Attachments
+As a user, I want to attach files to tasks so that I can share relevant documents.
+Acceptance Criteria:
+
+* Supports multiple file types
+* Files are downloadable
+* Upload progress is shown
+
+---
+
+User Story 14: Notifications System
+As a user, I want to receive notifications so that I stay updated on project activity.
+Acceptance Criteria:
+
+* Notifications for task assignment, comments, deadlines
+* Real-time or near real-time alerts
+* Notification panel accessible
+
+---
+
+User Story 15: Activity Tracking & Logs
+As a project manager, I want to view activity logs so that I can monitor team contributions.
+Acceptance Criteria:
+
+* Logs include task creation, updates, and assignments
+* Filter by user/date
+* Displays commit-like history of actions
+
+---

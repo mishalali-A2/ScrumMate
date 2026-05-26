@@ -1,0 +1,58 @@
+{
+  "total_blockers": 2,
+  "team_updates": [
+    {
+      "member": "Muaz Ahmed",
+      "yesterday": "Observed API integration for client dashboard (user activity logs with Analytics Service) slowing down. Identified Ahmed & Sarah are stuck on inconsistent third-party API formats and are attempting to solve it in parallel without alignment.",
+      "today": "Facilitating resolution. Instructed Ahmed & Sarah to sync up post-standup, agree on a single approach, and work together. Suggested defining a consistent internal format if the API is unreliable. Reminded the team to raise blockers promptly.",
+      "has_blocker": false
+    },
+    {
+      "member": "Ahmed & Sarah",
+      "yesterday": "Stuck on handling inconsistent response formats from a third-party API, impacting the client dashboard API integration (user activity logs with Analytics Service). Progress has slowed for a couple of days.",
+      "today": "Will sync up right after the standup to align on a single approach for resolving the API integration issue.",
+      "has_blocker": true
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "Ahmed & Sarah",
+      "description": "Inconsistent response formats from a third-party API, affecting client dashboard API integration.",
+      "impact": "Medium",
+      "blocked_task": "client dashboard API integration (user activity logs with Analytics Service)",
+      "dependencies": [
+        "Third-party API"
+      ],
+      "suggested_resolution": "Defining a consistent internal format if the API is unreliable",
+      "status": "Open"
+    },
+    {
+      "id": "B-002",
+      "owner": "Ahmed & Sarah",
+      "description": "Ahmed & Sarah are trying to solve the API response format issue in parallel, leading to lack of alignment and slowing progress.",
+      "impact": "Medium",
+      "blocked_task": "client dashboard API integration (user activity logs with Analytics Service)",
+      "dependencies": [
+        "Ahmed",
+        "Sarah"
+      ],
+      "suggested_resolution": "Ahmed & Sarah to sync up post-standup, agree on a single approach, and work together.",
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "Ahmed & Sarah",
+      "action": "Sync immediately post-standup to agree on a single approach for handling inconsistent API response formats and move forward as a unit.",
+      "relates_to_blocker": "B-002"
+    },
+    {
+      "id": "AI-002",
+      "owner": "Team",
+      "action": "Raise blockers promptly; do not let issues drag quietly.",
+      "relates_to_blocker": null
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "bot_id": "021d965c-6567-43b2-a667-f832e1cc4f68",
+  "meeting_url": "https://meet.google.com/sgs-twij-ibe",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-04-17T04:46:17.913Z",
+  "stopped_at": "2026-04-17T04:52:26.461Z",
+  "transcript": [
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "And if I can split both things right now,",
+      "timestamp": "2026-04-17T04:46:45.061Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "We can see.",
+      "timestamp": "2026-04-17T04:46:51.632Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "The live transcription. Works fine.",
+      "timestamp": "2026-04-17T04:46:53.972Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "and if mobile and Machine can also join the link, we can run",
+      "timestamp": "2026-04-17T04:47:01.573Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Meeting right now, and",
+      "timestamp": "2026-04-17T04:47:02.029Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Show how the daily startup would work.",
+      "timestamp": "2026-04-17T04:47:05.200Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Okay, so I'll be acting as a Scrum master and Michele and would be developers.",
+      "timestamp": "2026-04-17T04:47:31.137Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "So okay. Alright. Team or if do a quick stand up. What did we work on yesterday?",
+      "timestamp": "2026-04-17T04:47:41.795Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "What's the plan? And are there any blockers?",
+      "timestamp": "2026-04-17T04:47:42.106Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Ion, can you go first?",
+      "timestamp": "2026-04-17T04:47:44.275Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Okay. And",
+      "timestamp": "2026-04-17T04:48:14.085Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Own, can you in the other meeting?",
+      "timestamp": "2026-04-17T04:48:17.530Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Right.",
+      "timestamp": "2026-04-17T04:48:24.237Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Into word, say it again.",
+      "timestamp": "2026-04-17T04:48:26.272Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "Yeah.",
+      "timestamp": "2026-04-17T04:48:27.921Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Okay.",
+      "timestamp": "2026-04-17T04:48:28.958Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Wait. So yesterday I worked on API integration for Dashboard Analytics Modules.",
+      "timestamp": "2026-04-17T04:48:44.993Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "I made progress on fetching user activity logs, but I ran into inconsistent",
+      "timestamp": "2026-04-17T04:48:45.307Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "response format from third party service.",
+      "timestamp": "2026-04-17T04:48:45.626Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "Some endpoints are returning messages on, There's a flag. So my parsing logic is",
+      "timestamp": "2026-04-17T04:49:02.062Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "in stable yet. Today, I'm trying to normalize the response structure and push",
+      "timestamp": "2026-04-17T04:49:02.375Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Ayaan Mughal",
+      "text": "working draft. Blocker right now is figuring out the correct expected, schema.",
+      "timestamp": "2026-04-17T04:49:02.688Z",
+      "is_final": true
+    },
+    {
+      "speaker": "i221125 Muhammad Muaz",
+      "text": "We got it and Michelle was your update.",
+      "timestamp": "2026-04-17T04:49:06.443Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "So I was working on the same audio mainly handling the front end consumption of",
+      "timestamp": "2026-04-17T04:49:22.693Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "that data. I build the UI mapping for the activity feed, but I had to pause",
+      "timestamp": "2026-04-17T04:49:23.007Z",
+      "is_final": true
+    },
+    {
+      "speaker": "M A",
+      "text": "because the backend data structure kept changing depending on the endpoint.",
+      "timestamp": "2026-04-17T04:49:23.320Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 3,
+    "total_words": 223,
+    "total_entries": 26,
+    "duration": 369
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "bot_id": "30a851cc-f3da-4c1b-bd99-25237d8fea12",
+  "meeting_url": "https://meet.google.com/pmv-gvky-kzk",
+  "meeting_type": "daily-standup",
+  "created_at": "2026-04-17T03:22:06.638Z",
+  "stopped_at": "2026-04-17T03:25:05.798Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "All right.",
+      "timestamp": "2026-04-17T03:22:40.947Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "With stand-up update.",
+      "timestamp": "2026-04-17T03:22:42.591Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "So looking at where we are right now, there's one area that's starting to slow",
+      "timestamp": "2026-04-17T03:22:49.799Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "us down a bit.",
+      "timestamp": "2026-04-17T03:22:50.113Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Um, and I want to address it early before it becomes a bitter, a bigger issue.",
+      "timestamp": "2026-04-17T03:23:07.891Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Ahmed and Sara is both been working on the API integration for the client",
+      "timestamp": "2026-04-17T03:23:18.844Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "dashboard. Specifically the part where we think user activity logs with the",
+      "timestamp": "2026-04-17T03:23:19.158Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Analytics Service",
+      "timestamp": "2026-04-17T03:23:19.472Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "From what I'm seeing, you're still stuck on handling inconsistent response",
+      "timestamp": "2026-04-17T03:23:27.112Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "formats coming back from the third party API.",
+      "timestamp": "2026-04-17T03:23:27.427Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "now, I get that, this kind of issue can be messy, one endpoint returns here,",
+      "timestamp": "2026-04-17T03:23:35.245Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "JSON another randomness,",
+      "timestamp": "2026-04-17T03:23:35.566Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Data or differently.",
+      "timestamp": "2026-04-17T03:23:36.753Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "And certainly you're writing Edge case handlers instead of moving forward.",
+      "timestamp": "2026-04-17T03:23:41.117Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "But we've been on this for a couple of days and progress has slowed down more",
+      "timestamp": "2026-04-17T03:23:47.007Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "than it should.",
+      "timestamp": "2026-04-17T03:23:47.319Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "What concerns me isn't the problem itself. It's that both of you have been",
+      "timestamp": "2026-04-17T03:23:55.732Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "trying to solve it in parallel, but not really together.",
+      "timestamp": "2026-04-17T03:23:56.044Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "And I can see separate fixes being attempted different assumptions being made",
+      "timestamp": "2026-04-17T03:24:02.016Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "and not enough alignment between you two.",
+      "timestamp": "2026-04-17T03:24:02.328Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "This is exactly the kind of situation, we're collaboration, should speed things",
+      "timestamp": "2026-04-17T03:24:08.134Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "up, not slow them down.",
+      "timestamp": "2026-04-17T03:24:08.446Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "So here's what I want instead of working in silos sync, upright after this set",
+      "timestamp": "2026-04-17T03:24:25.648Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "together or walk through with each of you have tried agree on a single approach",
+      "timestamp": "2026-04-17T03:24:25.971Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "and move forward as a unit, even a quick 30 minute alignment could save ours of",
+      "timestamp": "2026-04-17T03:24:26.531Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "duplicated effort.",
+      "timestamp": "2026-04-17T03:24:27.111Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "On, if the API is truly unreliable. Then let's define a consistent internal",
+      "timestamp": "2026-04-17T03:24:33.109Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "format and normalize everything at one layer.",
+      "timestamp": "2026-04-17T03:24:33.711Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "But make that decision together not separately.",
+      "timestamp": "2026-04-17T03:24:37.006Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "For everyone else. This is a good reminder to if your blog for too long. That's",
+      "timestamp": "2026-04-17T03:24:46.930Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "a signal, either raise it or pull or pull someone in",
+      "timestamp": "2026-04-17T03:24:47.242Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "don't let it drag quite",
+      "timestamp": "2026-04-17T03:24:49.179Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "That same to have this unlocked by the next stand up.",
+      "timestamp": "2026-04-17T03:24:52.800Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Speed matter is, but smart coordination. Matter is more.",
+      "timestamp": "2026-04-17T03:24:56.237Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "And that's it from me. Let's get moving.",
+      "timestamp": "2026-04-17T03:24:59.723Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 333,
+    "total_entries": 35,
+    "duration": 179
+  }
+}

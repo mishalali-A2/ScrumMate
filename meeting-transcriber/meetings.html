@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumMate - Past Meetings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="workspace-shell.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .page { flex: 1; overflow: auto; padding: 26px 26px 40px; }
+        .page::-webkit-scrollbar { width: 6px; }
+        .page::-webkit-scrollbar-thumb { background: rgba(124,138,165,0.32); border-radius: 999px; }
+
+        /* ── Page header ── */
+        .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+        .eyebrow { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-2); margin-bottom: 8px; }
+        .page-title { font-size: 26px; font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; color: var(--text-1); }
+        .page-title span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .page-actions { display: flex; align-items: center; gap: 10px; }
+
+        /* ── Panel ── */
+        .panel { background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,252,255,0.98)); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+        .panel-title { font-size: 13px; font-weight: 700; color: var(--text-1); letter-spacing: -0.02em; }
+        .panel-meta { font-size: 11px; color: var(--text-4); }
+
+        /* ── Table ── */
+        .table-wrap { overflow: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { padding: 11px 18px; font-size: 11px; font-weight: 600; color: var(--text-4); text-align: left; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); background: rgba(79,124,255,0.02); white-space: nowrap; }
+        tbody tr { position: relative; transition: background var(--transition-fast); cursor: pointer; }
+        tbody tr:hover { background: rgba(79,124,255,0.04); }
+        tbody td { padding: 14px 18px; border-bottom: 1px solid rgba(148,163,184,0.08); font-size: 12.5px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
+        tbody tr:last-child td { border-bottom: none; }
+        .meeting-title { font-size: 13px; font-weight: 600; color: var(--text-1); letter-spacing: -0.02em; }
+        .meeting-id { margin-top: 3px; font-size: 11px; color: var(--text-4); font-family: 'SFMono-Regular', Consolas, monospace; }
+        .table-tag { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: rgba(79,124,255,0.04); color: var(--text-3); font-size: 11px; font-weight: 500; }
+        .tag-standup  { background: rgba(93,228,255,0.08); border-color: rgba(93,228,255,0.2); color: #0891b2; }
+        .tag-retro    { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2); color: #7c3aed; }
+        .tag-po       { background: rgba(79,124,255,0.08); border-color: rgba(79,124,255,0.2); color: #3b6ef7; }
+        .open-btn { height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--text-2); font: inherit; font-size: 11px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast); }
+        .open-btn:hover { color: var(--accent); border-color: rgba(79,124,255,0.28); background: rgba(79,124,255,0.06); box-shadow: 0 0 0 1px rgba(79,124,255,0.08); }
+        .empty-state { padding: 60px 18px; text-align: center; color: var(--text-4); font-size: 13px; }
+        .empty-state i { font-size: 28px; margin-bottom: 12px; display: block; opacity: 0.4; }
+
+        /* ── Detail view ── */
+        #detail-view { display: none; flex-direction: column; height: 100%; }
+        #detail-view.visible { display: flex; }
+
+        .detail-topbar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+        .back-btn { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--text-2); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast); }
+        .back-btn:hover { color: var(--text-1); border-color: rgba(79,124,255,0.2); background: rgba(79,124,255,0.06); }
+        .detail-meta { flex: 1; }
+        .detail-title { font-size: 14px; font-weight: 700; color: var(--text-1); letter-spacing: -0.02em; }
+        .detail-subtitle { font-size: 11px; color: var(--text-4); margin-top: 2px; }
+        .detail-actions { display: flex; gap: 8px; }
+        .detail-btn { height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--text-2); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast); }
+        .detail-btn:hover { color: var(--text-1); border-color: rgba(79,124,255,0.24); background: rgba(79,124,255,0.07); }
+        .detail-btn.active { background: rgba(79,124,255,0.1); border-color: rgba(79,124,255,0.28); color: var(--accent); }
+        .detail-btn:disabled { opacity: 0.38; cursor: default; pointer-events: none; }
+
+        /* ── Transcript entries ── */
+        .tx-scroll { flex: 1; overflow-y: auto; padding: 20px 24px 40px; }
+        .tx-scroll::-webkit-scrollbar { width: 6px; }
+        .tx-scroll::-webkit-scrollbar-thumb { background: rgba(124,138,165,0.28); border-radius: 999px; }
+
+        .tx-entry { display: grid; grid-template-columns: 140px 1fr auto; gap: 10px 14px; padding: 10px 14px; border-radius: 10px; margin-bottom: 4px; transition: background var(--transition-fast); }
+        .tx-entry:hover { background: rgba(79,124,255,0.04); }
+        .tx-speaker { font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 1px; }
+        .tx-text { font-size: 13.5px; color: var(--text-1); line-height: 1.55; }
+        .tx-ts { font-size: 10.5px; color: var(--text-4); white-space: nowrap; padding-top: 3px; font-family: monospace; }
+        .tx-empty { text-align: center; padding: 60px 20px; color: var(--text-4); font-size: 13px; }
+
+        /* ── Modal overlay ── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.38); backdrop-filter: blur(4px); z-index: 900; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--bg-elevated, #fff); border: 1px solid var(--line); border-radius: 18px; width: min(720px, 92vw); max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.22); }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+        .modal-head-title { font-size: 13px; font-weight: 700; color: var(--text-1); }
+        .modal-close { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text-3); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background var(--transition-fast), color var(--transition-fast); }
+        .modal-close:hover { background: rgba(239,68,68,0.08); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+        .modal-body::-webkit-scrollbar { width: 5px; }
+        .modal-body::-webkit-scrollbar-thumb { background: rgba(124,138,165,0.28); border-radius: 999px; }
+
+        /* Minutes markdown */
+        .minutes-md { font-size: 13.5px; line-height: 1.75; color: var(--text-1); }
+        .minutes-md h1 { font-size: 18px; font-weight: 800; color: var(--text-1); margin: 0 0 14px; letter-spacing: -0.04em; }
+        .minutes-md h2 { font-size: 15px; font-weight: 700; color: var(--text-1); margin: 22px 0 8px; letter-spacing: -0.03em; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+        .minutes-md h3 { font-size: 13.5px; font-weight: 700; color: var(--text-2); margin: 16px 0 6px; }
+        .minutes-md h4 { font-size: 12.5px; font-weight: 600; color: var(--text-3); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .minutes-md p { margin: 0 0 10px; }
+        .minutes-md ul, .minutes-md ol { padding-left: 20px; margin: 0 0 10px; }
+        .minutes-md li { margin-bottom: 4px; }
+        .minutes-md strong { font-weight: 700; color: var(--text-1); }
+        .minutes-md em { color: var(--text-2); font-style: italic; }
+        .minutes-md code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; background: rgba(79,124,255,0.07); padding: 1px 5px; border-radius: 4px; color: var(--accent); }
+        .minutes-md blockquote { border-left: 3px solid var(--accent-soft); padding: 6px 12px; margin: 10px 0; color: var(--text-3); background: rgba(79,124,255,0.03); border-radius: 0 6px 6px 0; }
+        .minutes-md hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+
+        /* Stories display */
+        .story-card { background: rgba(79,124,255,0.03); border: 1px solid rgba(79,124,255,0.12); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+        .story-id { font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 6px; }
+        .story-text { font-size: 13px; font-weight: 500; color: var(--text-1); margin-bottom: 8px; line-height: 1.5; }
+        .story-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+        .s-tag { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: rgba(79,124,255,0.08); color: var(--accent); border: 1px solid rgba(79,124,255,0.16); }
+        .s-tag.high { background: rgba(239,68,68,0.08); color: #b91c1c; border-color: rgba(239,68,68,0.18); }
+        .s-tag.medium { background: rgba(245,158,11,0.08); color: #92400e; border-color: rgba(245,158,11,0.2); }
+        .s-tag.low { background: rgba(34,197,94,0.08); color: #15803d; border-color: rgba(34,197,94,0.18); }
+        .blocker-card { background: rgba(239,68,68,0.03); border: 1px solid rgba(239,68,68,0.14); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+        .blocker-id { font-size: 10.5px; font-weight: 700; color: #b91c1c; letter-spacing: 0.04em; margin-bottom: 6px; }
+        .blocker-desc { font-size: 13px; color: var(--text-1); margin-bottom: 8px; line-height: 1.5; }
+        .blocker-meta { font-size: 11.5px; color: var(--text-3); }
+        .action-card { background: rgba(34,197,94,0.03); border: 1px solid rgba(34,197,94,0.14); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 12.5px; color: var(--text-1); }
+        .action-owner { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+        @media (max-width: 900px) {
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .page-actions { width: 100%; }
+            .tx-entry { grid-template-columns: 110px 1fr; }
+            .tx-ts { display: none; }
+        }
+        @media (max-width: 720px) {
+            .page { padding: 18px 16px 32px; }
+        }
+    </style>
+</head>
+<body data-nav="meetings">
+<div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                    <path d="M2.5 4h11"></path><path d="M2.5 8h11"></path><path d="M2.5 12h11"></path>
+                </svg>
+            </button>
+            <div class="topbar-title">
+                <div class="topbar-heading">Past Meetings</div>
+                <div class="topbar-meta" id="topbarMeta"></div>
+            </div>
+            <div class="topbar-spacer"></div>
+            <label class="search">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+                <input type="text" id="searchInput" placeholder="Search meetings…">
+            </label>
+            <a href="index.html" class="primary-btn">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8"></path><path d="M2 6h8"></path></svg>
+                New meeting
+            </a>
+        </header>
+
+        <!-- ═══════════════════ LIST VIEW ═══════════════════ -->
+        <section class="page" id="list-view">
+            <div class="page-header">
+                <div>
+                    <div class="eyebrow">Meeting history</div>
+                    <h1 class="page-title">Past <span>meetings</span></h1>
+                </div>
+                <div class="page-actions">
+                    <select id="projectFilter" class="sm-select" aria-label="Filter by project" style="min-width:160px">
+                        <option value="">All projects</option>
+                    </select>
+                    <select id="typeFilter" class="sm-select" aria-label="Filter by type">
+                        <option value="">All types</option>
+                        <option value="daily-standup">Daily standup</option>
+                        <option value="product-owner">Product owner</option>
+                        <option value="retrospective">Retrospective</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">All meetings</div>
+                    <div class="panel-meta" id="meetingCount">Loading…</div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Meeting</th>
+                                <th>Type</th>
+                                <th>Duration</th>
+                                <th>Speakers</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="meetingsTbody">
+                            <tr><td colspan="5" class="empty-state"><i class="fas fa-circle-notch fa-spin"></i>Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════ DETAIL VIEW ═══════════════════ -->
+        <div id="detail-view">
+            <div class="detail-topbar">
+                <button class="back-btn" id="backBtn">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg>
+                    Back
+                </button>
+                <div class="detail-meta">
+                    <div class="detail-title" id="detailTitle">—</div>
+                    <div class="detail-subtitle" id="detailSubtitle">—</div>
+                </div>
+                <div class="detail-actions">
+                    <button class="detail-btn" id="minutesBtn" disabled>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 6h6M5 9h6M5 12h3"/></svg>
+                        Minutes
+                    </button>
+                    <button class="detail-btn" id="storiesBtn" disabled>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 7h8M2 11h5"/></svg>
+                        <span id="storiesBtnLabel">User Stories</span>
+                    </button>
+                </div>
+            </div>
+            <div class="tx-scroll" id="txScroll">
+                <div class="tx-empty">Select a meeting to view the transcript.</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Minutes Modal -->
+<div class="modal-overlay" id="minutesModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <span class="modal-head-title">Meeting Minutes</span>
+            <button class="modal-close" onclick="closeModal('minutesModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body"><div class="minutes-md" id="minutesText">Loading…</div></div>
+    </div>
+</div>
+
+<!-- Stories / Blockers Modal -->
+<div class="modal-overlay" id="storiesModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <span class="modal-head-title" id="storiesModalTitle">User Stories</span>
+            <button class="modal-close" onclick="closeModal('storiesModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="storiesBody">Loading…</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="navbar-loader.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let allMeetings = [];
+let activeMeeting = null; // the currently open meeting object
+
+// ── Utilities ──────────────────────────────────────────────────────────
+function fmtDuration(secs) {
+    if (!secs) return '—';
+    const m = Math.floor(secs / 60), s = secs % 60;
+    return m ? `${m}m ${s}s` : `${s}s`;
+}
+function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+         + ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+function meetingLabel(t) {
+    const m = (t.meeting_url || '').match(/meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})/);
+    const code = m ? m[1] : (t.bot_id || '').substring(0, 11);
+    const typeNames = { 'daily-standup': 'Daily Standup', 'product-owner': 'Product Owner', 'retrospective': 'Retrospective' };
+    const label = typeNames[t.meeting_type] || 'Meeting';
+    return { code, label };
+}
+function typeTagHtml(type) {
+    const cls = type === 'daily-standup' ? 'tag-standup' : type === 'retrospective' ? 'tag-retro' : 'tag-po';
+    const names = { 'daily-standup': 'Standup', 'product-owner': 'Product Owner', 'retrospective': 'Retro' };
+    return `<span class="table-tag ${cls}">${names[type] || 'Meeting'}</span>`;
+}
+// ── Render meeting list ────────────────────────────────────────────────
+function renderTable(meetings) {
+    const tbody = document.getElementById('meetingsTbody');
+    document.getElementById('meetingCount').textContent = `${meetings.length} record${meetings.length !== 1 ? 's' : ''}`;
+
+    if (!meetings.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">
+            <i class="fas fa-history"></i>No meetings recorded yet. Start a meeting to see it here.
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = meetings.map(m => {
+        const { code, label } = meetingLabel(m);
+        const spk = m.statistics?.total_speakers ?? '—';
+        return `<tr data-filename="${m.filename}">
+            <td>
+                <div class="meeting-title">${label} · ${fmtDate(m.created_at).split(' · ')[0]}</div>
+                <div class="meeting-id">${code}</div>
+            </td>
+            <td>${typeTagHtml(m.meeting_type)}</td>
+            <td>${fmtDuration(m.statistics?.duration)}</td>
+            <td>${spk}</td>
+            <td>
+                <button class="open-btn" onclick="openMeeting('${m.filename}')">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3M10 2h4v4M8 8l6-6"/></svg>
+                    Open
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Filters ────────────────────────────────────────────────────────────
+function applyFilters() {
+    const search  = document.getElementById('searchInput').value.toLowerCase();
+    const project = document.getElementById('projectFilter').value;
+    const type    = document.getElementById('typeFilter').value;
+
+    const filtered = allMeetings.filter(m => {
+        const { code } = meetingLabel(m);
+        const matchSearch = !search || code.includes(search) || (m.meeting_type || '').includes(search);
+        const matchType   = !type   || m.meeting_type === type;
+        return matchSearch && matchType;
+    });
+    renderTable(filtered);
+}
+
+['searchInput', 'typeFilter', 'projectFilter'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', applyFilters);
+    document.getElementById(id)?.addEventListener('change', applyFilters);
+});
+
+// ── Load meetings ──────────────────────────────────────────────────────
+(async function loadMeetings() {
+    try {
+        const res  = await fetch('/api/transcripts');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        allMeetings = data.transcripts;
+        renderTable(allMeetings);
+    } catch (e) {
+        document.getElementById('meetingsTbody').innerHTML =
+            `<tr><td colspan="6" class="empty-state"><i class="fas fa-exclamation-circle"></i>Could not load meetings: ${e.message}</td></tr>`;
+        document.getElementById('meetingCount').textContent = '0 records';
+    }
+})();
+
+// ── Project filter dropdown ────────────────────────────────────────────
+(async function loadProjects() {
+    const select = document.getElementById('projectFilter');
+    try {
+        const email = sessionStorage.getItem('userEmail') || 'i221125@nu.edu.pk';
+        const res   = await fetch(`/api/projects?email=${encodeURIComponent(email)}`);
+        const data  = await res.json();
+        if (data.success && data.projects.length) {
+            data.projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+        }
+    } catch { /* offline – leave default */ }
+})();
+
+// ── Open a meeting detail ──────────────────────────────────────────────
+async function openMeeting(filename) {
+    activeMeeting = allMeetings.find(m => m.filename === filename);
+    if (!activeMeeting) return;
+
+    // Switch views
+    document.getElementById('list-view').style.display = 'none';
+    const dv = document.getElementById('detail-view');
+    dv.classList.add('visible');
+
+    // Header
+    const { code, label } = meetingLabel(activeMeeting);
+    document.getElementById('detailTitle').textContent = `${label} · ${fmtDate(activeMeeting.created_at)}`;
+    document.getElementById('detailSubtitle').textContent =
+        `${code} · ${fmtDuration(activeMeeting.statistics?.duration)} · ${activeMeeting.statistics?.total_speakers ?? 0} speaker(s) · ${activeMeeting.statistics?.total_words ?? 0} words`;
+
+    // Pipeline buttons — always enabled, endpoint returns 404 gracefully if no data
+    document.getElementById('minutesBtn').disabled = false;
+    document.getElementById('storiesBtn').disabled = false;
+    document.getElementById('storiesBtnLabel').textContent =
+        activeMeeting.has_blockers ? 'Blockers' : 'User Stories';
+
+    // Load transcript
+    const scroll = document.getElementById('txScroll');
+    scroll.innerHTML = `<div class="tx-empty"><i class="fas fa-circle-notch fa-spin" style="font-size:20px;margin-bottom:10px;display:block;color:var(--accent)"></i>Loading transcript…</div>`;
+
+    try {
+        const res  = await fetch(`/api/transcript/${filename}`);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error('Server returned an unexpected response. Please restart the server.');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        renderTranscript(data.data.transcript || []);
+    } catch (e) {
+        scroll.innerHTML = `<div class="tx-empty"><i class="fas fa-exclamation-circle"></i>${e.message}</div>`;
+    }
+}
+
+function renderTranscript(entries) {
+    const scroll = document.getElementById('txScroll');
+    if (!entries.length) {
+        scroll.innerHTML = `<div class="tx-empty"><i class="fas fa-microphone-slash" style="font-size:24px;margin-bottom:10px;display:block;opacity:0.3"></i>No transcript data recorded.</div>`;
+        return;
+    }
+    scroll.innerHTML = entries.map(e => {
+        const ts = e.timestamp ? new Date(e.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+        return `<div class="tx-entry">
+            <span class="tx-speaker">${e.speaker || 'Unknown'}</span>
+            <span class="tx-text">${e.text || ''}</span>
+            <span class="tx-ts">${ts}</span>
+        </div>`;
+    }).join('');
+}
+
+// ── Back button ────────────────────────────────────────────────────────
+document.getElementById('backBtn').addEventListener('click', () => {
+    document.getElementById('detail-view').classList.remove('visible');
+    document.getElementById('list-view').style.display = '';
+    activeMeeting = null;
+});
+
+// ── Minutes modal ──────────────────────────────────────────────────────
+document.getElementById('minutesBtn').addEventListener('click', async () => {
+    if (!activeMeeting?.meeting_id) return;
+    document.getElementById('minutesText').innerHTML = '<em style="color:var(--text-4)">Loading…</em>';
+    document.getElementById('minutesModal').classList.add('open');
+    try {
+        const res  = await fetch(`/api/minutes/${activeMeeting.meeting_id}`);
+        const data = await res.json();
+        const raw = data.success ? data.text : null;
+        document.getElementById('minutesText').innerHTML = raw
+            ? (typeof marked !== 'undefined' ? marked.parse(raw) : `<pre style="white-space:pre-wrap">${raw}</pre>`)
+            : `<p style="color:var(--danger)">Error: ${data.error}</p>`;
+    } catch (e) {
+        document.getElementById('minutesText').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    }
+});
+
+// ── Stories / Blockers modal ───────────────────────────────────────────
+document.getElementById('storiesBtn').addEventListener('click', async () => {
+    if (!activeMeeting?.meeting_id) return;
+    document.getElementById('storiesBody').innerHTML = '<p style="color:var(--text-4);padding:10px">Loading…</p>';
+    document.getElementById('storiesModal').classList.add('open');
+    try {
+        const type = activeMeeting.meeting_type ? `?type=${encodeURIComponent(activeMeeting.meeting_type)}` : '';
+        const res  = await fetch(`/api/stories/${activeMeeting.meeting_id}${type}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        if (data.type === 'blockers') {
+            document.getElementById('storiesModalTitle').textContent = 'Blockers Report';
+            renderBlockers(data.data);
+        } else {
+            document.getElementById('storiesModalTitle').textContent = 'User Stories';
+            renderStories(data.data);
+        }
+    } catch (e) {
+        document.getElementById('storiesBody').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    }
+});
+
+function renderStories(stories) {
+    if (!Array.isArray(stories) || !stories.length) {
+        document.getElementById('storiesBody').innerHTML = '<p style="color:var(--text-4)">No stories found.</p>';
+        return;
+    }
+    document.getElementById('storiesBody').innerHTML = stories.map(s => `
+        <div class="story-card">
+            <div class="story-id">${s.id || ''}</div>
+            <div class="story-text">${s.user_story || s.description || ''}</div>
+            <div class="story-tags">
+                ${s.urgency ? `<span class="s-tag ${(s.urgency||'').toLowerCase()}">${s.urgency}</span>` : ''}
+                ${s.effort_points != null ? `<span class="s-tag">${s.effort_points} pts</span>` : ''}
+                ${s.skill_required ? `<span class="s-tag">${s.skill_required}</span>` : ''}
+            </div>
+            ${s.acceptance_criteria?.length ? `<ul style="margin-top:10px;padding-left:18px;font-size:12px;color:var(--text-3);line-height:1.6">${s.acceptance_criteria.map(ac=>`<li>${ac}</li>`).join('')}</ul>` : ''}
+        </div>`).join('');
+}
+
+function renderBlockers(report) {
+    const blockers = report.blockers || [];
+    const actions  = report.action_items || [];
+    let html = '';
+    if (blockers.length) {
+        html += `<p style="font-size:11px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Blockers (${blockers.length})</p>`;
+        html += blockers.map(b => `<div class="blocker-card">
+            <div class="blocker-id">${b.id}</div>
+            <div class="blocker-desc">${b.description}</div>
+            <div class="blocker-meta">Owner: ${b.owner} · Impact: ${b.impact} · Status: ${b.status}</div>
+            ${b.suggested_resolution ? `<div class="blocker-meta" style="margin-top:6px">Resolution: ${b.suggested_resolution}</div>` : ''}
+        </div>`).join('');
+    }
+    if (actions.length) {
+        html += `<p style="font-size:11px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Action Items (${actions.length})</p>`;
+        html += actions.map(a => `<div class="action-card">
+            ${a.action}
+            <div class="action-owner">Owner: ${a.owner}</div>
+        </div>`).join('');
+    }
+    document.getElementById('storiesBody').innerHTML = html || '<p style="color:var(--text-4)">No blockers found.</p>';
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

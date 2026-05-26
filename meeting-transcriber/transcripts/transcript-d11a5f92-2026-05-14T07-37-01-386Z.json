@@ -1,0 +1,45 @@
+{
+  "bot_id": "d11a5f92-c268-4be6-9a29-6ec52d35cd78",
+  "meeting_url": "https://meet.google.com/fzp-jcyo-kwx",
+  "meeting_type": "product-owner",
+  "created_at": "2026-05-14T07:35:38.626Z",
+  "stopped_at": "2026-05-14T07:37:01.386Z",
+  "transcript": [
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Need someone to work on the UI as well as test. The ML models. Someone needs to",
+      "timestamp": "2026-05-14T07:36:36.001Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "make sure that",
+      "timestamp": "2026-05-14T07:36:36.332Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "The accuracy maintains when new data appears.",
+      "timestamp": "2026-05-14T07:36:40.960Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "The backend API calls have some glitches.",
+      "timestamp": "2026-05-14T07:36:46.071Z",
+      "is_final": true
+    },
+    {
+      "speaker": "Muaz Ahmed",
+      "text": "Can someone work on the landing page?",
+      "timestamp": "2026-05-14T07:36:57.886Z",
+      "is_final": true
+    }
+  ],
+  "statistics": {
+    "total_speakers": 1,
+    "total_words": 41,
+    "total_entries": 5,
+    "duration": 83
+  }
+}

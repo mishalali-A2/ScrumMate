@@ -1,0 +1,1012 @@
+{
+  "name": "Trello Board Setup & Member Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "setup_board",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1200,
+        512
+      ],
+      "id": "1fd23030-169d-4f85-8ee5-a155a2cb45a4",
+      "name": "Project Setup Webhook",
+      "webhookId": "project_setup_webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming webhook data\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst projectName = body.project_name?.trim();\nif (!projectName) throw new Error('project_name is required');\n\nconst trelloBoardLink = body.trello_board_link?.trim() || null;\nconst membersRaw = body.members || [];\nif (!Array.isArray(membersRaw) || membersRaw.length === 0) throw new Error('members must be a non-empty array');\n\n// Find leader (first with role='leader' or fallback to first member)\nconst leader = membersRaw.find(m => m.role === 'leader') || membersRaw[0];\nif (!leader.email) throw new Error('Leader must have an email');\n\n// Extract board ID from link if provided\nlet boardId = null;\nif (trelloBoardLink) {\n  const match = trelloBoardLink.match(/\\/(?:b|invite\\/b)\\/([A-Za-z0-9]+)/);\n  if (!match) throw new Error('Invalid Trello board link');\n  boardId = match[1];\n}\n\nreturn {\n  json: {\n    project_name: projectName,\n    trello_board_link: trelloBoardLink,\n    boardId: boardId,\n    hasBoardLink: !!trelloBoardLink,\n    members: membersRaw.map(m => ({ email: m.email, name: m.name || m.email, role: m.role || 'member' })),\n    leader: leader\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -944,
+        512
+      ],
+      "id": "c1cf0231-4e72-4f8b-8f4c-a9577d10a7d8",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasBoardLink }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "8ffc4aff-1249-4f88-bf27-bdfa916fbc2d"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        512
+      ],
+      "id": "b72b9842-a968-449a-aeff-dd9d0ed7e654",
+      "name": "Has Board Link?",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/join-board",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"inviteUrl\": \"{{ $json.trello_board_link }}\"}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -496,
+        320
+      ],
+      "id": "afbad630-2810-40d2-a0a7-ffcd2c5bf2ad",
+      "name": "Join Board",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$('Parse Input').item.json.boardId}}/members?fields=email,fullName,id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -352,
+        320
+      ],
+      "id": "2dd0f35f-9d0f-420f-a35f-fee21d1837ef",
+      "name": "Get Board Members",
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.trello.com/1/boards/{{$('Parse Input').item.json.boardId}}/lists?fields=id,name",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -144,
+        384
+      ],
+      "id": "a1cbcb99-5c5f-4675-9e6f-5d56e91c990b",
+      "name": "Get Board Lists",
+      "alwaysOutputData": true,
+      "credentials": {
+        "trelloApi": {
+          "id": "JxobRkUfmJ1zRz0G",
+          "name": "trelloKeyToken"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// 1. SAFELY GET EXTERNAL DATA (Board Members & Lists)\n// ============================================================\nlet membersOnBoard = [];\ntry {\n  const membersItems = $('Get Board Members').all() || [];\n  membersOnBoard = membersItems.flatMap(item => item.json).filter(m => m && m.email);\n} catch (e) {\n  console.log('Could not read board members:', e.message);\n}\n\nlet existingLists = [];\ntry {\n  const listsItems = $('Get Board Lists').all() || [];\n  existingLists = listsItems.flatMap(item => item.json).filter(l => l && l.id);\n} catch (e) {\n  console.log('Could not read board lists:', e.message);\n}\n\n// ============================================================\n// 2. GET ORIGINAL PROJECT DATA (from Parse Input)\n// ============================================================\nconst parseItems = $('Parse Input').all();\nif (!parseItems || parseItems.length === 0) {\n  throw new Error('Parse Input node returned no data. Check webhook payload.');\n}\nconst originalItem = parseItems[0].json;\nif (!originalItem) {\n  throw new Error('Parse Input node returned empty JSON.');\n}\n\nconst projectName = originalItem.project_name;\nif (!projectName) throw new Error('project_name is missing.');\n\nconst boardId = originalItem.boardId;\nif (!boardId) throw new Error('boardId is missing. Valid Trello board link required.');\n\nconst members = originalItem.members;\nif (!Array.isArray(members) || members.length === 0) {\n  throw new Error('members array is missing or empty.');\n}\n\nconst leader = members.find(m => m.role === 'leader') || members[0];\nif (!leader || !leader.email) {\n  throw new Error('Leader not found. Provide one member with role=\"leader\".');\n}\n\n// ============================================================\n// 3. MEMBERS TO ADD (skip existing emails)\n// ============================================================\nconst existingEmails = new Set(\n  membersOnBoard\n    .map(m => m.email?.trim().toLowerCase())\n    .filter(email => email && email !== 'undefined')\n);\n\nconst membersToAdd = members.filter(m => {\n  const email = m.email.trim().toLowerCase();\n  return !existingEmails.has(email);\n});\n\nconst addMemberRequests = membersToAdd.map(member => ({\n  email: member.email,\n  fullName: member.name || member.email,\n  isLeader: member.email === leader.email,\n  boardId: boardId\n}));\n\n// ============================================================\n// 4. LISTS TO CREATE (skip existing, case‑insensitive, synonyms)\n// ============================================================\nconst canonicalLists = ['Backlog', 'Ongoing', 'To Test', 'To Integrate', 'Done'];\n\nconst synonymMap = {\n  'backlog': ['backlog', 'todo', 'to be done', 'product backlog', 'icebox'],\n  'ongoing': ['ongoing', 'in progress', 'doing', 'wip', 'development'],\n  'to test': ['to test', 'testing', 'qa', 'review'],\n  'to integrate': ['to integrate', 'integration', 'deploy', 'release'],\n  'done': ['done', 'complete', 'completed', 'finished', 'closed']\n};\n\n// Normalize existing list names (lowercase, trimmed)\nconst existingListNames = existingLists\n  .map(l => l.name?.trim().toLowerCase() || '')\n  .filter(name => name !== '');\n\nconst listsToCreate = [];\nfor (const canonical of canonicalLists) {\n  const canonicalLower = canonical.toLowerCase();\n  const synonyms = synonymMap[canonicalLower] || [canonicalLower];\n\n  // Check if any synonym exists in the board's list names\n  const exists = existingListNames.some(listName =>\n    synonyms.some(syn => listName.includes(syn))\n  );\n\n  if (!exists) {\n    listsToCreate.push({ name: canonical, boardId: boardId });\n  }\n}\n\n// ============================================================\n// 5. LOGGING (for debug – shows what will be created)\n// ============================================================\nconsole.log(`Members to add: ${addMemberRequests.length}`);\nconsole.log(`Lists to create: ${listsToCreate.length}`);\n\nreturn {\n  json: {\n    boardId: boardId,\n    addMemberRequests: addMemberRequests,\n    listsToCreate: listsToCreate,\n    membersAddedCount: addMemberRequests.length,\n    listsCreatedCount: listsToCreate.length,\n    project_name: projectName,\n    leader: leader,\n    members: members\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        496
+      ],
+      "id": "157318e8-53be-407d-a4df-b56bd2aa7ea2",
+      "name": "Reconcile Members & Lists"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "addMemberRequests",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        256,
+        336
+      ],
+      "id": "33769cee-a531-481a-91e8-49c64ba6f126",
+      "name": "Split Member Requests"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.trello.com/1/boards/{{ $json.boardId }}/members?email={{ $json.email }}&type={{ $json.isLeader ? 'admin' : 'normal' }}&allowBillableGuest=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        592,
+        288
+      ],
+      "id": "af797203-8e6d-4026-b42b-880ddeb58b4b",
+      "name": "Add Member to Board",
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "listsToCreate",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        352,
+        560
+      ],
+      "id": "64e9d434-7d6f-4d37-ae73-61a0e40fa0ff",
+      "name": "Split List Requests"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/lists",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "idBoard",
+              "value": "={{ $json.boardId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        592,
+        496
+      ],
+      "id": "2c4297bd-28af-405a-a4f5-2b92feb996fb",
+      "name": "Create Board List",
+      "credentials": {
+        "trelloApi": {
+          "id": "JxobRkUfmJ1zRz0G",
+          "name": "trelloKeyToken"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Directly get the original data from the Reconcile node\nconst reconcile = $('Reconcile Members & Lists').first().json;\n\nreturn {\n  json: {\n    project_name: reconcile.project_name,\n    trello_board_id: reconcile.boardId,\n    team_emails: reconcile.members.map(m => m.email),\n    leader_email: reconcile.leader.email,\n    members: reconcile.members,\n    leader: reconcile.leader,\n    board_url: `https://trello.com/b/${reconcile.boardId}`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        416
+      ],
+      "id": "1a9116e0-d009-41ba-bc5e-22a10f7aa2ca",
+      "name": "Prepare DB Data"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "={{ $('Prepare DB Data').item.json.leader_email }}",
+        "subject": "=Project Board Setup Complete: {{ $node['Prepare DB Data'].json.project_name }}",
+        "text": "=The board has been configured. Members have been added. Board link: {{ $node['Prepare DB Data'].json.board_url }}\n\nYou are the leader. Please review lists and permissions.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        432
+      ],
+      "id": "6a0fff10-1578-4bbe-abe4-02d7d6f6eeef",
+      "name": "Notify Leader",
+      "webhookId": "4a2a81ce-d185-4ad3-855d-275c282270db",
+      "credentials": {
+        "smtp": {
+          "id": "NcfLn5RcSwLFi8hp",
+          "name": "ScrumMate"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Try to get data from various sources in order of preference\nlet data = null;\n\n// 1. First, try the incoming data (if it already contains members)\nif ($input && $input.first() && $input.first().json && $input.first().json.members) {\n  data = $input.first().json;\n}\n// 2. If not, try absolute reference to 'Prepare DB Data' (true branch)\nelse if ($('Prepare DB Data') && $('Prepare DB Data').first() && $('Prepare DB Data').first().json) {\n  data = $('Prepare DB Data').first().json;\n}\n// 3. If still not, try 'Finalize New Board' (false branch)\nelse if ($('Finalize New Board') && $('Finalize New Board').first() && $('Finalize New Board').first().json) {\n  data = $('Finalize New Board').first().json;\n}\n// 4. Last resort: try 'Reconcile Members & Lists'\nelse if ($('Reconcile Members & Lists') && $('Reconcile Members & Lists').first() && $('Reconcile Members & Lists').first().json) {\n  data = $('Reconcile Members & Lists').first().json;\n}\nelse {\n  throw new Error('Could not find members data from any source node. Check workflow connections.');\n}\n\n// Validate members array\nif (!data.members || !Array.isArray(data.members) || data.members.length === 0) {\n  throw new Error('Members array is missing or empty in the data source.');\n}\n\n// Determine leader email\nlet leaderEmail = data.leader_email || (data.leader && data.leader.email);\nif (!leaderEmail) {\n  // Fallback: find member with role 'leader'\n  const leaderMember = data.members.find(m => m.role === 'leader');\n  if (leaderMember) leaderEmail = leaderMember.email;\n  else leaderEmail = data.members[0]?.email; // fallback to first member\n}\nif (!leaderEmail) throw new Error('Could not determine leader email.');\n\n// Get board URL or ID\nconst boardId = data.trello_board_id || data.boardId;\nconst boardUrl = data.board_url || `https://trello.com/b/${boardId}`;\nconst projectName = data.project_name;\n\n// Filter out leader\nconst regularMembers = data.members.filter(m => m.email !== leaderEmail);\n\n// If no regular members, return empty array (email node will be skipped)\nif (regularMembers.length === 0) {\n  return [];\n}\n\n// Prepare one item per regular member for the email node\nreturn regularMembers.map(member => ({\n  json: {\n    email: member.email,\n    name: member.name || member.email,\n    board_url: boardUrl,\n    project_name: projectName\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        640
+      ],
+      "id": "f834f856-a5af-4573-b959-b6875a2fcb18",
+      "name": "Filter Members for Notification"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=You have been added to project: {{ $json.project_name }}",
+        "text": "=You have been added to the Trello board: {{ $json.board_url }}\n\nPlease check your assignments.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        592
+      ],
+      "id": "5e83de90-1578-4e5e-b800-787850ffd77d",
+      "name": "Notify Members (True Branch)",
+      "webhookId": "319896bd-5457-4af3-8de6-1ad34183a1ae",
+      "credentials": {
+        "smtp": {
+          "id": "1wsNOPIy294pIVUc",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Use the incoming data directly (from the IF node's false branch)\nconst input = $input.first().json;\n\nconst projectName = input.project_name;\nconst members = input.members;\nconst leader = input.leader;\n\n// Prepare data for board creation\nreturn {\n  json: {\n    project_name: projectName,\n    members: members,\n    leader: leader,\n    // Use standard list names (synonyms handled later if needed)\n    lists: ['Backlog', 'Ongoing', 'To Test', 'To Integrate', 'Done']\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        688
+      ],
+      "id": "c6a772cc-683f-41f7-8ef2-130d99a55ab2",
+      "name": "Prepare Create Board"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/boards/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.project_name }}"
+            },
+            {
+              "name": "defaultLists",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -240,
+        896
+      ],
+      "id": "6b534bd0-8475-4c46-88a4-aa46e6faca81",
+      "name": "Create Trello Board",
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "lists",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        208,
+        896
+      ],
+      "id": "7e084d89-0425-4f74-8257-afe1b9f1be6d",
+      "name": "Split Lists for Creation",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.trello.com/1/lists",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.lists}}"
+            },
+            {
+              "name": "idBoard",
+              "value": "={{ $json.boardId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        528,
+        816
+      ],
+      "id": "86bc1229-4a5c-4393-a7d4-be8b96f1b64d",
+      "name": "Create List on New Board",
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the board data directly from the Create Trello Board node\nconst board = $('Create Trello Board').first().json;\nif (!board || !board.id) {\n  throw new Error('Could not read board ID from Create Trello Board node.');\n}\nconst boardId = board.id;\n\n// Get the member list and leader from Prepare Create Board node\nconst setup = $('Prepare Create Board').first().json;\nif (!setup || !setup.members) {\n  throw new Error('Could not read member data from Prepare Create Board node.');\n}\nconst members = setup.members;\nconst leader = setup.leader;\n\n// Create one request per member (leader gets 'admin' type)\nreturn members.map(m => ({\n  json: {\n    boardId: boardId,\n    email: m.email,\n    type: m.email === leader.email ? 'admin' : 'normal'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        688
+      ],
+      "id": "428f3286-cbf8-4db1-bf15-4ba0e7734823",
+      "name": "Prepare Member Additions"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.trello.com/1/boards/{{ $json.boardId }}/members?email={{ $json.email }}&type={{ $json.type }}&allowBillableGuest=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1136,
+        688
+      ],
+      "id": "732d9783-9c77-4004-9e36-77b4f1875f98",
+      "name": "Add Members to New Board",
+      "credentials": {
+        "trelloApi": {
+          "id": "JVtbj8wgb4al1xX2",
+          "name": "Trello account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Use the output of the previous node (Create Trello Board) and the original setup data\nconst board = $input.first().json; // from Create Trello Board\nconst setup = $('Prepare Create Board').first().json; // still need original members\n\nconst boardId = board.id;\nconst projectName = setup.project_name;\nconst members = setup.members;\nconst leader = setup.leader;\nconst memberEmails = members.map(m => m.email);\n\nreturn {\n  json: {\n    project_name: projectName,\n    trello_board_id: boardId,\n    team_emails: memberEmails,\n    leader_email: leader.email,\n    board_url: `https://trello.com/b/${boardId}`,\n    members: members,\n    leader: leader\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        688
+      ],
+      "id": "fe4cf5da-580a-4b48-8dc5-c3a5eff1821b",
+      "name": "Finalize New Board"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM profile WHERE email ILIKE ANY(ARRAY[{{ `'${$json.team_emails.join(\"','\")}'` }}]);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1616,
+        848
+      ],
+      "id": "7a767515-a3c0-43e0-82a1-aad385390fb8",
+      "name": "Get Profile IDs New",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH\n  project_data AS (\n    SELECT\n      '{{ $('Finalize New Board').first().json.project_name.replace(/'/g, \"''\") }}' AS name,\n      '{{ $('Finalize New Board').first().json.trello_board_id }}' AS trello_board_id,\n      (\n        SELECT json_agg(id)\n        FROM profile\n        WHERE email = ANY(ARRAY[{{ $('Finalize New Board').first().json.team_emails.map(e => `'${e.replace(/'/g, \"''\")}'`).join(',') }}])\n      )::jsonb AS team\n  ),\n  do_update AS (\n    UPDATE project\n    SET\n      trello_board_id = project_data.trello_board_id,\n      team = project_data.team,\n      status = 'Active',\n      sprints = COALESCE(project.sprints, 0),\n      user_stories_count = COALESCE(project.user_stories_count, 0),\n      us_done = COALESCE(project.us_done, '[]'::jsonb),\n      us_pending = COALESCE(project.us_pending, '[]'::jsonb),\n      meeting_id = NULL,\n      created_at = NOW()\n    FROM project_data\n    WHERE project.name = project_data.name\n    RETURNING project.id\n  )\nINSERT INTO project (\n  name, trello_board_id, team, status, created_at,\n  sprints, user_stories_count, us_done, us_pending, meeting_id\n)\nSELECT\n  name, trello_board_id, team, 'Active', NOW(),\n  0, 0, '[]'::jsonb, '[]'::jsonb, NULL\nFROM project_data\nWHERE NOT EXISTS (SELECT 1 FROM do_update)\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1840,
+        848
+      ],
+      "id": "da129389-d49c-4b3e-881e-a669999825c3",
+      "name": "Insert New Project",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "={{ $('Finalize New Board').item.json.leader_email }}",
+        "subject": "=New Trello Board Created: {{ $node['Finalize New Board'].json.project_name }}",
+        "text": "=Your board has been created: {{ $node['Finalize New Board'].json.board_url }}\n\nAll members have been added. You have admin privileges.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        688
+      ],
+      "id": "b38ceea0-316d-4a56-bf2c-2da09c2b9007",
+      "name": "Notify Leader New",
+      "webhookId": "e2c92991-2198-468f-bfa0-f5210f5955d1",
+      "credentials": {
+        "smtp": {
+          "id": "NcfLn5RcSwLFi8hp",
+          "name": "ScrumMate"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data directly from Finalize New Board node\nconst final = $('Finalize New Board').first().json;\n\n// Validate required fields\nif (!final || !final.members) {\n  throw new Error('Finalize New Board did not return valid members data');\n}\nif (!final.leader || !final.leader.email) {\n  throw new Error('Leader email missing in Finalize New Board data');\n}\n\nconst leaderEmail = final.leader.email;\nconst regularMembers = final.members.filter(m => m.email !== leaderEmail);\n\n// If no regular members, return empty array (email node will be skipped)\nif (regularMembers.length === 0) {\n  return [];\n}\n\n// Map each regular member to the format expected by the email node\nreturn regularMembers.map(m => ({\n  json: {\n    email: m.email,\n    name: m.name || m.email,\n    board_url: final.board_url,\n    project_name: final.project_name\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        896
+      ],
+      "id": "0b22bf08-39a3-444c-883a-a9c6119832c6",
+      "name": "Filter Regular Members"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=You have been added to project: {{ $json.project_name }}",
+        "text": "=You have been added to the Trello board: {{ $json.board_url }}\n\nPlease check your assignments.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        896
+      ],
+      "id": "e6019ad0-a49e-46d8-a693-ece674c51285",
+      "name": "Notify Members New",
+      "webhookId": "83caf164-0d6c-4753-8c03-1255ebe70237",
+      "credentials": {
+        "smtp": {
+          "id": "NcfLn5RcSwLFi8hp",
+          "name": "ScrumMate"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        816,
+        416
+      ],
+      "id": "19be7321-3a48-4825-b517-88a4a7267ea3",
+      "name": "Merge"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2144,
+        480
+      ],
+      "id": "cdc401b1-5ddd-4bd6-a853-1e2e09e70840",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2736,
+        800
+      ],
+      "id": "6bd6236a-7fa3-4d8f-84cd-98233050eaca",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get board ID from Create Trello Board node\nconst board = $('Create Trello Board').first().json;\n// Get lists and other data from Prepare Create Board node\nconst setup = $('Prepare Create Board').first().json;\n\nreturn {\n  json: {\n    boardId: board.id,           // <-- plain field\n    lists: setup.lists,          // array of list names\n    project_name: setup.project_name,\n    members: setup.members,\n    leader: setup.leader\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        880
+      ],
+      "id": "dae1edfa-90da-4aa0-b733-3202309ba689",
+      "name": "Combine Board and List"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH\n  project_data AS (\n    SELECT\n      '{{ $node['Prepare DB Data'].json.project_name.replace(/'/g, \"''\") }}' AS name,\n      '{{ $node['Prepare DB Data'].json.trello_board_id }}' AS trello_board_id,\n      COALESCE(\n        (SELECT json_agg(id) FROM profile WHERE email = ANY(ARRAY[{{ `'${$node['Prepare DB Data'].json.team_emails.join(\"','\")}'` }}])),\n        '[]'::json\n      ) AS team,\n      0 AS default_sprints,\n      0 AS default_user_stories_count,\n      '[]'::jsonb AS default_us_done,\n      '[]'::jsonb AS default_us_pending,\n      NULL::INTEGER AS default_meeting_id\n  ),\n  do_update AS (\n    UPDATE project\n    SET\n      trello_board_id = project_data.trello_board_id,\n      team = project_data.team,               -- now json, matches column type\n      status = 'Active',\n      sprints = COALESCE(project.sprints, project_data.default_sprints),\n      user_stories_count = COALESCE(project.user_stories_count, project_data.default_user_stories_count),\n      us_done = COALESCE(project.us_done, project_data.default_us_done),\n      us_pending = COALESCE(project.us_pending, project_data.default_us_pending),\n      meeting_id = COALESCE(project.meeting_id, project_data.default_meeting_id),\n      created_at = NOW()\n    FROM project_data\n    WHERE project.name = project_data.name\n    RETURNING project.id\n  )\nINSERT INTO project (\n  name, trello_board_id, team, status, created_at,\n  sprints, user_stories_count, us_done, us_pending, meeting_id\n)\nSELECT\n  name, trello_board_id, team, 'Active', NOW(),\n  default_sprints, default_user_stories_count, default_us_done, default_us_pending, default_meeting_id\nFROM project_data\nWHERE NOT EXISTS (SELECT 1 FROM do_update)\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1184,
+        416
+      ],
+      "id": "702b307f-2c3d-425d-8da1-73f7f6d5e9ce",
+      "name": "Upsert Project",
+      "credentials": {
+        "postgres": {
+          "id": "ZbiFrRJKgTFFb4gj",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Project Setup Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Has Board Link?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Board Link?": {
+      "main": [
+        [
+          {
+            "node": "Join Board",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Create Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Board": {
+      "main": [
+        [
+          {
+            "node": "Get Board Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Board Members": {
+      "main": [
+        [
+          {
+            "node": "Get Board Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Board Lists": {
+      "main": [
+        [
+          {
+            "node": "Reconcile Members & Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reconcile Members & Lists": {
+      "main": [
+        [
+          {
+            "node": "Split List Requests",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Member Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Member Requests": {
+      "main": [
+        [
+          {
+            "node": "Add Member to Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Member to Board": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split List Requests": {
+      "main": [
+        [
+          {
+            "node": "Create Board List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Board List": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare DB Data": {
+      "main": [
+        [
+          {
+            "node": "Upsert Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Members for Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Members (True Branch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Create Board": {
+      "main": [
+        [
+          {
+            "node": "Create Trello Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Trello Board": {
+      "main": [
+        [
+          {
+            "node": "Combine Board and List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Lists for Creation": {
+      "main": [
+        [
+          {
+            "node": "Create List on New Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create List on New Board": {
+      "main": [
+        [
+          {
+            "node": "Prepare Member Additions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Member Additions": {
+      "main": [
+        [
+          {
+            "node": "Add Members to New Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Members to New Board": {
+      "main": [
+        [
+          {
+            "node": "Finalize New Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize New Board": {
+      "main": [
+        [
+          {
+            "node": "Get Profile IDs New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile IDs New": {
+      "main": [
+        [
+          {
+            "node": "Insert New Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Project": {
+      "main": [
+        [
+          {
+            "node": "Notify Leader New",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Regular Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Regular Members": {
+      "main": [
+        [
+          {
+            "node": "Notify Members New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare DB Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Members (True Branch)": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Leader": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Notify Leader New": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Members New": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Board and List": {
+      "main": [
+        [
+          {
+            "node": "Split Lists for Creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Project": {
+      "main": [
+        [
+          {
+            "node": "Notify Leader",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Members for Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "53cb4ef4-5cda-4061-805a-76c51cb9baa5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "744490006193b9cc367739a2f1c78dafedf1298ed7a63abc616d759e1dd3d8a1"
+  },
+  "id": "IzEFGt0EY3HG6ZiC",
+  "tags": []
+}

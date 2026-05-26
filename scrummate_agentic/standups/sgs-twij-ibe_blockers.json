@@ -1,0 +1,51 @@
+{
+  "total_blockers": 2,
+  "team_updates": [
+    {
+      "member": "Ayaan Mughal",
+      "yesterday": "Integrated API for Dashboard Analytics Modules; progressed on fetching user activity logs.",
+      "today": "Normalizing response structure; pushing a working draft.",
+      "has_blocker": true
+    },
+    {
+      "member": "M A (Michele)",
+      "yesterday": "Built UI mapping for activity feed (front-end consumption of data).",
+      "today": "Paused/Blocked.",
+      "has_blocker": true
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-001",
+      "owner": "Ayaan Mughal",
+      "description": "Inconsistent response format from third-party service (varying message/flag structures), making parsing unstable and blocking backend normalization.",
+      "impact": "High",
+      "blocked_task": "Normalizing response structure",
+      "dependencies": [
+        "Third-party service"
+      ],
+      "suggested_resolution": "define correct schema",
+      "status": "Open"
+    },
+    {
+      "id": "B-002",
+      "owner": "M A (Michele)",
+      "description": "Backend data structure changes depending on the endpoint, preventing further front-end development. This is a direct consequence of the inconsistent third-party API responses.",
+      "impact": "High",
+      "blocked_task": "UI mapping for activity feed",
+      "dependencies": [
+        "Ayaan Mughal"
+      ],
+      "suggested_resolution": null,
+      "status": "Open"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "AI-001",
+      "owner": "Ayaan Mughal",
+      "action": "Resolve inconsistent response format from the third-party service and normalize the data structure.",
+      "relates_to_blocker": "B-001"
+    }
+  ]
+}

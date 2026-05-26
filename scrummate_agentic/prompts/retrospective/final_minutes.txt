@@ -1,0 +1,22 @@
+You have batch summaries from a Sprint Retrospective. Produce comprehensive retrospective minutes.
+
+Use only information present in the summaries. Do not invent feedback or metrics.
+
+Include these sections:
+1. RETROSPECTIVE OVERVIEW (sprint if mentioned, participants)
+2. WHAT WENT WELL
+3. WHAT DID NOT GO WELL
+4. ROOT CAUSES (for pain points, where identifiable from the discussion)
+5. IMPROVEMENT ACTION ITEMS (concrete actions, with owners and priority)
+6. PROCESS & TOOLING NOTES
+7. TEAM HEALTH & MORALE
+8. KUDOS & RECOGNITION
+9. METRICS DISCUSSED (velocity, quality, or any numbers mentioned)
+10. COMMITMENTS FOR NEXT SPRINT
+
+Omit any section where nothing was discussed.
+
+BATCH SUMMARIES:
+{combined}
+
+RETROSPECTIVE MINUTES:
